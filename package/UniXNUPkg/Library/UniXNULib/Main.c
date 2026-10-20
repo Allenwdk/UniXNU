@@ -62,6 +62,7 @@ UniXNURun (
   UINTN            Index;
   BOOLEAN          Countdown;
   UNIXNU_ENTRY         *Entry;
+  UNIXNU_ENTRY         BootCopy;
 
   //
   // A boot manager waits for people; the 5 minute BDS watchdog does not.
@@ -143,7 +144,33 @@ UniXNURun (
   for ( ; ;) {
     Index  = UniXNUMenuRun (&Ui, &Config, Countdown);
     Entry  = &Config.Entries[Index];
-    Status = UniXNUBootEntry (ImageHandle, &Config, Entry);
+    BootCopy = *Entry;
+    if (Entry->Confirm != NULL) {
+      UINTN  Choice;
+
+      if (!UniXNUMenuConfirm (&Ui, Entry, &Choice)) {
+        UniXNULog ("menu: entry %u not confirmed", (UINT32)Index);
+        UnicodeSPrint (Ui.Notice, sizeof (Ui.Notice), L"'%s' cancelled", Entry->Title);
+        Countdown = FALSE;
+        continue;
+      }
+
+      if (Entry->ConfirmCount > 0) {
+        //
+        // The chosen option's arguments follow the entry's own, on a copy: the entry itself stays as configured.
+        //
+        UINTN  Length = (Entry->Args != NULL ? StrLen (Entry->Args) : 0) + 1 + StrLen (Entry->ConfirmArgs[Choice]) + 1;
+
+        BootCopy.Args = AllocateZeroPool (Length * sizeof (CHAR16));
+        if (BootCopy.Args != NULL) {
+          UnicodeSPrint (BootCopy.Args, Length * sizeof (CHAR16), L"%s %s", Entry->Args != NULL ? Entry->Args : L"", Entry->ConfirmArgs[Choice]);
+        } else {
+          BootCopy.Args = Entry->Args;
+        }
+      }
+    }
+
+    Status = UniXNUBootEntry (ImageHandle, &Config, &BootCopy);
     if ((Entry->Type == UniXNUEntryAction) && (Entry->Action == UniXNUActionExit)) {
       return EFI_SUCCESS;
     }

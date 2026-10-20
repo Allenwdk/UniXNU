@@ -1,6 +1,6 @@
 # 启动参数
 
-内核命令行来自板级文件的 `[payload] kernel_args` 和每个 `--kernel-arg`。负载步骤把合并后的行写入 `unixnu.toml`，DarwinBoot 复制到 `boot_args`。
+内核命令行来自板级文件的 `[payload] kernel_args`。额外的 `--kernel-arg NAME=VALUE` 会替换板级同名参数。负载步骤把合并后的行写入 `unixnu.toml`，DarwinBoot 复制到 `boot_args`。
 
 ## 格式
 
@@ -55,6 +55,9 @@
 | `sheng-gpu-power=<n>` | 选择 GPU 电源序列 |
 | `sheng-gpu-metal=1` | 启用 Metal 路径 |
 | `sheng-gpu-addon=1` | 挂载 GPU addon 内容 |
+| `sheng-data-persist=<n>` | 1 只验证 Data store 窗口，2 打开写窗口 |
+| `sheng-data-reset=<n>` | 1 丢弃 Data overlay，2 同时要求 Setup |
+| `sheng-log-reserve=<mib>` | userdata 末尾为诊断日志和导出区保留的空间，默认 1024 |
 | `sheng-disable-watchdogd=1` | 停止 watchdog daemon |
 | `sheng-disable-jobs=<list>` | 跳过指定 launch job |
 | `offline-legacy-*=1` | 启用 legacy 显示和输入探针 |

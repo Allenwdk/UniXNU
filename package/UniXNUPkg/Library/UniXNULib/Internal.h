@@ -212,6 +212,10 @@ typedef struct {
   EFI_HANDLE       Volume;      ///< Volume for Path/Dtb/Initrd.
   CHAR16           *Path;       ///< "\\EFI\\x.efi" or "fv:<GUID>".
   CHAR16           *Args;
+  CHAR16           *Confirm;    ///< NULL, or the question shown before this entry boots (it never boots by countdown).
+  CHAR16           **ConfirmTitles;  ///< Optional choices offered with the question; each adds ConfirmArgs[i] to Args.
+  CHAR16           **ConfirmArgs;
+  UINTN            ConfirmCount;
   CHAR16           *Dtb;        ///< NULL, L"firmware" or a file path.
   CHAR16           *Initrd;
   UNIXNU_DT_PATCH      *Patches;    ///< Entry patches, chosen properties last.
@@ -230,6 +234,19 @@ typedef enum {
   UniXNUConsoleNone
 } UNIXNU_CONSOLE;
 
+//
+// [ui] layout: landscape (the original arrangement) or portrait (a column
+// laid out for a tall panel). Auto picks portrait when width / height is below
+// PortraitBelow.
+//
+typedef enum {
+  UniXNULayoutAuto,
+  UniXNULayoutLandscape,
+  UniXNULayoutPortrait
+} UNIXNU_LAYOUT;
+
+#define UNIXNU_PORTRAIT_BELOW_DEFAULT  800   ///< width/height in thousandths.
+
 typedef struct {
   //
   // [boot]
@@ -246,6 +263,8 @@ typedef struct {
   CHAR16         *Title;
   UINTN          Scale;            ///< 0 = automatic.
   BOOLEAN        ShowLogo;
+  UNIXNU_LAYOUT      Layout;
+  UINTN          PortraitBelow;    ///< Auto threshold, width/height in thousandths.
   //
   // Injection, after kits are merged in.
   //
@@ -483,6 +502,10 @@ typedef struct {
   UINT32                          Width;
   UINT32                          Height;
   UINTN                           Scale;
+  BOOLEAN                         Portrait;         ///< Column layout for a tall panel.
+  UINTN                           Margin;           ///< Portrait side margin.
+  UINTN                           CardHeight;       ///< Portrait entry card height.
+  UINTN                           StatusLines;      ///< Portrait status lines in use.
   UINTN                           MenuTop;
   UINTN                           RowHeight;
   UINTN                           MenuLeft;
@@ -494,6 +517,19 @@ typedef struct {
   CHAR16                          Info[96];         ///< Injection summary line.
   CHAR16                          Notice[96];       ///< Result of the last boot attempt.
 } UNIXNU_UI;
+
+/**
+  Decide whether the menu uses the portrait layout. Landscape never does and
+  portrait always does. Auto does when Width * 1000 < PortraitBelow * Height,
+  an exact integer comparison of the aspect ratio.
+**/
+BOOLEAN
+UniXNUUiChoosePortrait (
+  IN UNIXNU_LAYOUT  Layout,
+  IN UINTN          PortraitBelow,
+  IN UINT32         Width,
+  IN UINT32         Height
+  );
 
 VOID
 UniXNUUiInit (
@@ -543,6 +579,21 @@ UniXNUMenuRun (
   IN UNIXNU_UI      *Ui,
   IN UNIXNU_CONFIG  *Config,
   IN BOOLEAN    Countdown
+  );
+
+/**
+  Ask the user to confirm an entry that has a `confirm` text. Without choices only the Enter key (the power key on a device with
+  hardware keys) confirms and any other key cancels. With choices, Up/Down step through them and a final Cancel (selected first),
+  Enter picks the shown one. No input device at all cancels. Keys pressed before the question appeared are discarded.
+
+  @retval TRUE   Confirmed.
+  @retval FALSE  Cancelled.
+**/
+BOOLEAN
+UniXNUMenuConfirm (
+  IN  UNIXNU_UI      *Ui,
+  IN  UNIXNU_ENTRY   *Entry,
+  OUT UINTN      *Choice
   );
 
 #endif

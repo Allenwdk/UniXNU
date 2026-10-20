@@ -28,6 +28,7 @@ def common():
     p.add_argument('--kernel', metavar='FILE', help='prelinked kernel Mach-O for the payload (default: the kernel step output)')
     p.add_argument('--kernel-arg', action='append', metavar='NAME[=VALUE]', help='extra kernel boot argument (repeatable)')
     p.add_argument('--trust-cache', metavar='FILE', help='trust cache bundle for the payload')
+    p.add_argument('--owner-trust-cache', metavar='FILE', help='owner-signed trust cache bundle that carries the original caches and extra modules; replaces --trust-cache and skips the board allow-list')
     p.add_argument('--skip-setup', action='store_true', help='mark Setup as done in the Data seed, so the Hello pages are skipped (needs --data-ramdisk; optional)')
     p.add_argument('--data-ramdisk', metavar='FILE', help='Data ramdisk seed for the payload (an input; not built here)')
     p.add_argument('--unique-chip-id', metavar='HEX', help='platform seed for the device tree; or UNIXNU_UNIQUE_CHIP_ID')
@@ -71,7 +72,7 @@ def need_uefi(ctx):
     return uefi
 
 
-REFERENCES = {'kernel': ('xnu', 'libplatform', 'libdispatch', 'AvailabilityVersions'), 'package': ('edk2',), 'firmware': ('edk2',)}
+REFERENCES = {'kernel': ('xnu', 'libplatform', 'libdispatch', 'AvailabilityVersions', 'libpthread', 'corecrypto-2023'), 'package': ('edk2',), 'firmware': ('edk2',)}
 
 
 def prepare(ctx, steps=()):

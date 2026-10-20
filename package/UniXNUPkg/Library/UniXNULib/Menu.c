@@ -246,3 +246,84 @@ UniXNUMenuRun (
   gBS->CloseEvent (Timer);
   return Selected;
 }
+
+BOOLEAN
+UniXNUMenuConfirm (
+  IN  UNIXNU_UI      *Ui,
+  IN  UNIXNU_ENTRY   *Entry,
+  OUT UINTN      *Choice
+  )
+{
+  EFI_INPUT_KEY  Key;
+  UINTN          Index;
+  UINTN          Shown;
+  UINTN          Items;
+  CHAR16         Line[160];
+
+  *Choice = 0;
+  if ((gST->ConIn == NULL) || (CountInputDevices () == 0)) {
+    UniXNULog ("menu: confirmation needs an input device, cancelled");
+    return FALSE;
+  }
+
+  //
+  // With choices the items are the choices and then Cancel, and Cancel is shown first, so the first press cannot confirm anything.
+  //
+  Items = (Entry->ConfirmCount > 0) ? Entry->ConfirmCount + 1 : 0;
+  Shown = Items > 0 ? Items - 1 : 0;
+
+  UnicodeSPrint (Line, sizeof (Line), L"%s", Entry->Confirm);
+  UniXNUUiDrawStatus (Ui, 0, Line);
+  UniXNUUiDrawStatus (Ui, 2, Items > 0 ? L"Volume keys: choose     Power key: confirm" : L"Power key = confirm     any other key = cancel");
+
+  //
+  // The press that chose the entry, and anything typed since, must not answer the question.
+  //
+  gBS->Stall (500000);
+  while (!EFI_ERROR (gST->ConIn->ReadKeyStroke (gST->ConIn, &Key))) {
+  }
+
+  for ( ; ;) {
+    if (Items > 0) {
+      UnicodeSPrint (Line, sizeof (Line), L"<  %s  >", (Shown + 1 == Items) ? L"Cancel" : Entry->ConfirmTitles[Shown]);
+      UniXNUUiDrawStatus (Ui, 1, Line);
+    } else {
+      UniXNUUiDrawStatus (Ui, 1, L"");
+    }
+
+    if (EFI_ERROR (gBS->WaitForEvent (1, &gST->ConIn->WaitForKey, &Index))) {
+      return FALSE;
+    }
+
+    if (EFI_ERROR (gST->ConIn->ReadKeyStroke (gST->ConIn, &Key))) {
+      continue;
+    }
+
+    if (Items > 0) {
+      if (Key.ScanCode == SCAN_UP) {
+        Shown = (Shown + Items - 1) % Items;
+        continue;
+      }
+
+      if (Key.ScanCode == SCAN_DOWN) {
+        Shown = (Shown + 1) % Items;
+        continue;
+      }
+    }
+
+    if ((Key.UnicodeChar == CHAR_CARRIAGE_RETURN) || (Key.UnicodeChar == CHAR_LINEFEED)) {
+      if (Items > 0) {
+        if (Shown + 1 == Items) {
+          return FALSE;
+        }
+
+        *Choice = Shown;
+      }
+
+      UniXNULog ("menu: confirmed '%a' choice %u", (Entry->Id != NULL) ? Entry->Id : "?", (UINT32)*Choice);
+      return TRUE;
+    }
+
+    return FALSE;
+  }
+}

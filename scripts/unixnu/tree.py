@@ -46,6 +46,14 @@ def assemble(ctx, modules):
         (tree / folder).mkdir(exist_ok=True)
     for name in ('build', '.cache'):
         (tree / name).mkdir(exist_ok=True)
+    # Proprietary files (device repository: scripts/extract-files.py) stay in the device repository and are shared by every tree.
+    firmware = ctx.device / '.cache/firmware'
+    firmware.mkdir(parents=True, exist_ok=True)
+    link = tree / '.cache/firmware'
+    if link.is_symlink():
+        link.unlink()
+    if not link.exists():
+        link.symlink_to(firmware)
     kit = ctx.board.get('board', {}).get('kit', ctx.name)
     for (kind, name), module in sorted(modules.items()):
         if module.path is None:

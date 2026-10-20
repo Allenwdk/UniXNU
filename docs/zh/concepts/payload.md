@@ -56,6 +56,7 @@ ADT 使用 Apple 的扁平节点编码。`[payload.adt] tool` 指定的板级脚
 | `--packed-data-ramdisk` | `[payload.adt] packed_data_ramdisk` |
 | `--data-ramdisk` | 非 packed Data 种子 |
 | `--trust-cache` | trust cache 包 |
+| `--owner-trust-cache` | owner 签名的包，包含原始缓存和额外模块。它替换 `--trust-cache`，并跳过板级允许列表 |
 | `--ipad-identity` | `[payload.adt] ipad_identity` |
 
 ADT 必须为对应输入预留以下属性：
@@ -74,6 +75,7 @@ DarwinBoot 要求每个输入都有对应占位符。不匹配时返回 `EFI_COM
 写卷前会检查命令行：
 
 - 每个参数匹配 `[A-Za-z0-9_.\-]+`，可选 `=value`，值匹配 `[A-Za-z0-9_.,\-]+`。
+- 额外的 `--kernel-arg NAME=VALUE` 会替换板级同名参数。
 - 合并后的行不超过 1000 字节。DarwinBoot 把它复制到 1024 字节缓冲区。
 
 命令行以 `args` 写入 `unixnu.toml`，DarwinBoot 原样复制到 `boot_args`。
@@ -91,6 +93,8 @@ DarwinBoot 校验 trust cache 包：
 
 包被复制到内核窗口，地址和大小替换 `TrustCache` 占位符。
 
+`--owner-trust-cache` 包不经过 `[payload] trust_cache_sha256` 校验。它携带原始缓存和 GPU 插件等额外模块。
+
 ## Data ramdisk
 
 Data 种子有两种交付形式：
@@ -101,6 +105,8 @@ Data 种子有两种交付形式：
 | Packed | `PackedRAMDisk` | DarwinBoot 校验 `DBRDISK1` extent 表并复制片段 |
 
 Packed 形式包含 magic `DBRDISK1`、版本 1、页大小、展开大小和 `(offset, length)` extent 表。未列出的范围是零填充 RAM。
+
+`scripts/seed-data-grow.py` 把 packed 种子增长到平板的存储大小。内核接受最大 1 TiB 的 Data 磁盘，超过 2 GiB 时 typed provider 只保存种子的非零页。
 
 ## 确定性
 

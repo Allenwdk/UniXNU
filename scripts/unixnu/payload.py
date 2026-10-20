@@ -32,7 +32,7 @@ def check_args(arguments):
     line = ' '.join(arguments)
     # DarwinBoot copies the command line into a 1024-byte buffer and refuses a longer one.
     if len(line) > 1000:
-        raise Error(f'the kernel command line is {len(line)} bytes; the boot loader accepts at most 1023')
+        raise Error(f'the kernel command line is {len(line)} bytes; the limit is 1000')
     return line
 
 
@@ -87,15 +87,19 @@ def build(ctx, kernel=None):
     kernel = expand(kernel or getattr(args, 'kernel', None) or ctx.work / 'kernel/kernel.macho')
     if not kernel.is_file():
         raise Error(f'kernel not found: {kernel}; run "unixnu build kernel" or pass --kernel FILE')
-    arguments = list(spec.get('kernel_args', [])) + list(getattr(args, 'kernel_arg', None) or [])
+    extra = list(getattr(args, 'kernel_arg', None) or [])
+    # An extra NAME=VALUE replaces the board's argument of the same name.
+    names = {item.split('=', 1)[0] for item in extra}
+    arguments = [item for item in spec.get('kernel_args', []) if item.split('=', 1)[0] not in names] + extra
     line = check_args(arguments)
     check_native_root(kernel, arguments)
-    trust = expand(args.trust_cache) if getattr(args, 'trust_cache', None) else None
+    owner_trust = getattr(args, 'owner_trust_cache', None)
+    trust = expand(owner_trust or args.trust_cache) if (owner_trust or getattr(args, 'trust_cache', None)) else None
     if trust:
         allowed = spec.get('trust_cache_sha256')
         if not trust.is_file():
             raise Error(f'trust cache not found: {trust}')
-        if allowed and sha256_file(trust) not in allowed:
+        if allowed and not owner_trust and sha256_file(trust) not in allowed:
             raise Error(f'{trust} is not one of the trust caches this board accepts (board.toml [payload] trust_cache_sha256)')
     data = expand(args.data_ramdisk) if getattr(args, 'data_ramdisk', None) else None
     if data and not data.is_file():

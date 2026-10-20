@@ -11,11 +11,13 @@
 | `no Mu-Silicium checkout` | `--uefi` 路径 | 传入含 `Resources/Scripts/mkbootimg.py` 的仓库 |
 | `is not a Mu-Silicium checkout` | 路径 | 指向仓库根目录 |
 | `no edk2 tree` | `--edk2` 或已拉取 edk2 | 运行 `unixnu fetch` 或传入 Mu_Basecore |
-| 内核步骤缺少静态库 | `build/<component>/lib<Name>.a` | 运行设备静态库脚本 |
+| 内核步骤缺少静态库 | `[kernel] archives` 和 `logs/archive-NN-*.log` | 修正脚本条目或提供静态库 |
+| `no builder makes it` | 指定的 `*_ARCHIVE` 路径 | 在 `[kernel] archives` 中加入脚本，或把静态库放入构建树 |
 | `kernelcache not found` | `--kernelcache` 或 IPSW | 拉取 IPSW 或传入文件 |
 | `does not match the kernelcache` | `[kernel.prelink] kernelcache_sha256` | 使用固定镜像 |
 | 固件卷大小不匹配 | `[uefi_fd] size` | 重新构建固件或修正配置 |
 | 负载超过 `size_mib` | `[payload] size_mib` | 提高大小或移除文件 |
+| `not one of the trust caches this board accepts` | `[payload] trust_cache_sha256` | 使用接受的包，或用 `--owner-trust-cache` 传入 owner 签名的包 |
 | `unsupported kernel argument` | 参数字符 | 使用字母、数字、`_`、`.`、`-` |
 | `command line is ... bytes` | 参数数量 | 缩短到 1000 字节 |
 
@@ -46,6 +48,7 @@
 | 内核入口 panic | 页表、内核窗口、启动参数 | 用 QEMU fixture 和启动进度日志 |
 | panic 给出 provider | 设备树节点或驱动静态库 | 加入节点或启用驱动 |
 | 无根设备 | userdata 镜像、UUID、容量 | 刷写镜像，检查 UUID 和窗口偏移 |
+| Data store 窗口被拒绝 | 种子大小、`sheng-log-reserve`、根镜像 | 增长种子使其适配 userdata，或调整 `sheng-log-reserve` |
 | 用户态显示断言 | 显示 provider 和启动参数 | 检查显示驱动和 focus 参数 |
 
 ## 日志

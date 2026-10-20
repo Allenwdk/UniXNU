@@ -43,6 +43,7 @@ python3 package/Scripts/qemu-run.py out/esp \
 | `--expect REGEX` | Pattern that must match the serial log |
 | `--reject REGEX` | Pattern that must not match |
 | `--no-gop` | No display device, text console only |
+| `--display-size WxH` | Virtio GPU display of this size instead of ramfb, for example `1080x2400` for a portrait panel. The firmware needs at least 640 pixels of width |
 | `--disk FILE` | Extra read-only raw disk |
 | `--timeout SECONDS` | Run timeout |
 | `--cpus N` | Virtual CPU count |
@@ -57,7 +58,7 @@ The runner exposes the ESP read-only through QEMU `vvfat`, captures the serial l
 JOBS=8 bash package/Scripts/smoke.sh
 ```
 
-The script builds the package and runs five scenarios:
+The script builds the package and runs six scenarios:
 
 | Scenario | Checks |
 | --- | --- |
@@ -66,6 +67,7 @@ The script builds the package and runs five scenarios:
 | Degraded | No GOP and no configuration, built-in entries, text console |
 | Block slice | Configuration on a FAT partition head, tail published as a block device |
 | Kext staging | Revision 2 handoff, revision 1 refusal, invalid bundles, duplicates |
+| Layout | A 1080x2400 display uses portrait, an 800x1000 display stays landscape |
 
 Logs and screenshots go to `package/Build/Smoke/`.
 

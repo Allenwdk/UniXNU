@@ -6,7 +6,7 @@ The build driver runs on macOS. The kernel step invokes `xcodebuild` with the `i
 
 | Tool | Used by | Install |
 | --- | --- | --- |
-| macOS with Xcode | kernel, skip-setup | App Store or developer.apple.com |
+| macOS with Xcode | kernel, skip-setup, seed-data-grow | App Store or developer.apple.com |
 | Python 3.11 or newer | every step | python.org or Homebrew |
 | git, make | fetch, firmware | Xcode command line tools or Homebrew |
 | cmake, ninja | kernel references | `brew install cmake ninja` |
@@ -14,6 +14,7 @@ The build driver runs on macOS. The kernel step invokes `xcodebuild` with the `i
 | LLVM with lld | kernel, firmware, boot image | `brew install llvm` |
 | mtools | payload volume | `brew install mtools` |
 | dtc | device tree properties | `brew install dtc` |
+| fastboot | seed-data-grow `--auto`, userdata flash | Android platform tools |
 | QEMU and AAVMF | optional smoke tests | `brew install qemu` |
 
 The driver finds the keg-only Homebrew LLVM at `/opt/homebrew/opt/llvm/bin` without `PATH` changes. Other tools must be on `PATH`.
@@ -31,12 +32,13 @@ These inputs live outside the UniXNU repositories.
 | Decompressed kernelcache | kernel prelink | `--kernelcache FILE` | `UNIXNU_KERNELCACHE` |
 | Compiled device tree | boot image | `--dtb FILE` | `UNIXNU_DTB` |
 | Trust cache bundle | payload | `--trust-cache FILE` | |
+| Owner trust cache bundle | payload | `--owner-trust-cache FILE` | |
 | Data ramdisk seed | payload | `--data-ramdisk FILE` | |
 | Platform seed | payload | `--unique-chip-id HEX` | `UNIXNU_UNIQUE_CHIP_ID` |
 | Prebuilt static archives | kernel | `--kernel FILE` for the payload, archives in the build tree | |
 | edk2 or Mu_Basecore tree | package, firmware | `--edk2 DIR` | `UNIXNU_EDK2` |
 
-The device repository supplies the board description, the kernel defconfig and the scripts that produce device-specific archives.
+The device repository supplies the board description, the kernel defconfig and the archive builders listed in `[kernel] archives`.
 
 ## Device
 

@@ -4,8 +4,11 @@ import json
 from pathlib import Path
 import struct
 import subprocess
+import sys
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'scripts'))
+from xnu_symbols import kernel_names
 SOURCE = ROOT / 'refer/libpthread'
 REVISION = 'c0e60fb5ecfc54cf379c261d3f9572cc22ded891'
 if subprocess.check_output(['git', '-C', SOURCE, 'rev-parse', 'HEAD'], text=True).strip() != REVISION:
@@ -84,8 +87,7 @@ for source in sources:
     destination = OUT / (source.stem + '.o')
     compile_one(source, destination)
     objects.append(destination)
-kernel = ROOT / 'build/xnu/checkpoints/native-4k-user-abi/kernel.macho'
-kernel_names = names(kernel, '-U', global_only=False)
+kernel_names = kernel_names(ROOT, global_only=False)
 definitions = set().union(*(names(path, '-U') for path in objects))
 collisions = definitions & kernel_names
 if collisions:

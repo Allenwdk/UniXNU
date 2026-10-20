@@ -26,6 +26,12 @@ def sha(path):
 
 
 plan_path = ROOT / 'build/gpu-analysis/ioaccelerator-base-abi.json'
+# The audit of the original base class needs the hardware-observed parent evidence of the audited kernel; its recorded result
+# ships with the scripts and seeds a fresh tree.
+recorded = ROOT / 'scripts/data/ioaccelerator-base-abi.json'
+if not plan_path.exists() and recorded.exists():
+    plan_path.parent.mkdir(parents=True, exist_ok=True)
+    plan_path.write_bytes(recorded.read_bytes())
 if not plan_path.exists():
     print(run(['python3', ROOT / 'scripts/audit-target-accelerator-base.py'], text=True), end='')
 plan = json.loads(plan_path.read_text())

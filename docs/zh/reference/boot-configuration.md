@@ -18,6 +18,8 @@ default = "xnu"
 title = "UniXNU"
 scale = 0
 logo = true
+layout = "auto"
+portrait_below = 800
 console = "auto"
 ```
 
@@ -38,7 +40,11 @@ console = "auto"
 | `title` | `UniXNU` | 菜单标题 |
 | `scale` | 0 | 字形缩放，0 自动 |
 | `logo` | true | 绘制标志 |
+| `layout` | `auto` | `auto`、`landscape` 或 `portrait` |
+| `portrait_below` | 800 | `auto` 时，宽 / 高乘以 1000 低于此值则使用竖屏 |
 | `console` | `auto` | `auto`、`graphics`、`text` 或 `none` |
+
+竖屏布局是为手机等竖向屏幕设计的单列版式：标志位于顶部，菜单项是底部带编号的卡片，状态行在分隔线下自动换行。标志自带 UniXNU 字标，所以只有 `logo` 为 false 或 `title` 不是 `UniXNU` 时才绘制标题文字。`auto` 下，1080x2400 的屏幕（比值 450）和 3:4 平板（750）使用竖屏，4:5（800）及更宽的屏幕保持横屏布局。未设置 `scale` 时，竖屏布局取 宽度 / 270 作为字形缩放，1080 像素宽的屏幕每行约 33 个字符。
 
 ### [[driver]]
 
@@ -137,6 +143,9 @@ type = "xnu"
 path = "Payloads/kernel.macho"
 args = "-v serial=3"
 initrd = "Payloads/scratch-data.img"
+confirm = "Boot the kernel?"
+confirm_titles = ["Normal", "Verbose"]
+confirm_args = ["", "debug=0x14e"]
 enabled = true
 ```
 
@@ -149,8 +158,15 @@ enabled = true
 | `args` | load options 或内核命令行 |
 | `dtb` | `firmware`、文件路径或省略 |
 | `initrd` | initrd 路径 |
+| `confirm` | 启动前显示的问题。该菜单项不会被倒计时启动 |
+| `confirm_titles` | 可选的选项标题。需要同时给出 `confirm` 和 `confirm_args` |
+| `confirm_args` | 每个选项一个参数字符串，选中项追加到 `args` |
 | `action` | `action` 类型的 `reset`、`shutdown` 或 `exit` |
 | `enabled` | `false` 跳过 |
+
+带 `confirm` 的菜单项只在按 Enter 时启动。没有选项时，其他按键取消；没有输入设备的机器也取消。给出 `confirm_titles` 时，上下键切换选项，Cancel 默认选中。选中的 `confirm_args` 追加到菜单项 `args` 的副本。
+
+默认项需要确认时，倒计时改用第一个不需要确认的菜单项。
 
 内置配置包含 `exit`、`reset` 和 `shutdown`。找不到文件时，可移动加载器会加在它们之前。
 

@@ -1157,6 +1157,35 @@ AddEntry (
 
   Entry->Path   = MakePath (UNIXNU_CONFIG_DIR, Path);
   Entry->Args   = UniXNUAsciiToUnicode (TomlGetString (Table, "args", NULL));
+  Entry->Confirm = UniXNUAsciiToUnicode (TomlGetString (Table, "confirm", NULL));
+  {
+    TOML_NODE  *Titles = TomlGet (Table, "confirm_titles");
+    TOML_NODE  *Extra  = TomlGet (Table, "confirm_args");
+    TOML_NODE  *T;
+    TOML_NODE  *A;
+    UINTN      N;
+
+    if ((Titles != NULL) && (Extra != NULL) && (Titles->Type == TomlArray) && (Extra->Type == TomlArray) &&
+        (TomlCount (Titles) == TomlCount (Extra)) && (TomlCount (Titles) > 0) && (Entry->Confirm != NULL))
+    {
+      N                    = TomlCount (Titles);
+      Entry->ConfirmTitles = AllocateZeroPool (N * sizeof (CHAR16 *));
+      Entry->ConfirmArgs   = AllocateZeroPool (N * sizeof (CHAR16 *));
+      if ((Entry->ConfirmTitles != NULL) && (Entry->ConfirmArgs != NULL)) {
+        for (T = Titles->Child, A = Extra->Child; (T != NULL) && (A != NULL); T = T->Next, A = A->Next) {
+          if ((T->Type != TomlString) || (A->Type != TomlString)) {
+            break;
+          }
+
+          Entry->ConfirmTitles[Entry->ConfirmCount] = UniXNUAsciiToUnicode (T->String);
+          Entry->ConfirmArgs[Entry->ConfirmCount]   = UniXNUAsciiToUnicode (A->String);
+          Entry->ConfirmCount++;
+        }
+      }
+    } else if ((Titles != NULL) || (Extra != NULL)) {
+      ConfigError (Config, "entry '%a': confirm_titles and confirm_args must be arrays of strings of equal length, with confirm", (Entry->Id != NULL) ? Entry->Id : "?");
+    }
+  }
   Entry->Initrd = MakePath (UNIXNU_CONFIG_DIR, TomlGetString (Table, "initrd", NULL));
   List = TomlGet (Table, "kext");
   if (List != NULL) {
@@ -1341,6 +1370,7 @@ ApplyRoot (
   TOML_NODE    *Acpi;
   TOML_NODE    *Default;
   CONST CHAR8  *Console;
+  CONST CHAR8  *Layout;
   UINTN        Index;
 
   if (TomlGetInteger (Root, "version", 0) != UNIXNU_SCHEMA_VERSION) {
@@ -1357,6 +1387,19 @@ ApplyRoot (
   Config->Title   = UniXNUAsciiToUnicode (TomlGetString (Ui, "title", "UniXNU"));
   Config->Scale   = (UINTN)MAX (0, TomlGetInteger (Ui, "scale", 0));
   Config->ShowLogo = TomlGetBoolean (Ui, "logo", TRUE);
+  Layout          = TomlGetString (Ui, "layout", "auto");
+  if (AsciiStrCmp (Layout, "landscape") == 0) {
+    Config->Layout = UniXNULayoutLandscape;
+  } else if (AsciiStrCmp (Layout, "portrait") == 0) {
+    Config->Layout = UniXNULayoutPortrait;
+  } else {
+    Config->Layout = UniXNULayoutAuto;
+    if (AsciiStrCmp (Layout, "auto") != 0) {
+      ConfigError (Config, "[ui] layout '%a' is not auto, landscape or portrait", Layout);
+    }
+  }
+
+  Config->PortraitBelow = (UINTN)MAX (1, TomlGetInteger (Ui, "portrait_below", UNIXNU_PORTRAIT_BELOW_DEFAULT));
   Console         = TomlGetString (Ui, "console", "auto");
   if (AsciiStrCmp (Console, "graphics") == 0) {
     Config->Console = UniXNUConsoleGraphics;
@@ -1566,5 +1609,20 @@ UniXNUConfigLoad (
 
   if (Config->DefaultIndex >= Config->EntryCount) {
     Config->DefaultIndex = 0;
+  }
+
+  //
+  // The countdown must never boot an entry that asks for confirmation: fall back to the first entry that does not.
+  //
+  if ((Config->EntryCount > 0) && (Config->Entries[Config->DefaultIndex].Confirm != NULL)) {
+    UINTN  Safe;
+
+    for (Safe = 0; Safe < Config->EntryCount; Safe++) {
+      if (Config->Entries[Safe].Confirm == NULL) {
+        ConfigError (Config, "default entry needs confirmation, using '%a'", (Config->Entries[Safe].Id != NULL) ? Config->Entries[Safe].Id : "?");
+        Config->DefaultIndex = Safe;
+        break;
+      }
+    }
   }
 }

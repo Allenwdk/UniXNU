@@ -10,7 +10,10 @@
 #   4. block slice: UniXNU on a bare ESP finds its config on a FAT volume
 #      at the start of a GPT partition named "userdata" and publishes the
 #      rest of that partition as its own block device (needs mtools, or a
-#      python with pyfatfs in FAT_PYTHON; skipped otherwise).
+#      python with pyfatfs in FAT_PYTHON; skipped otherwise);
+#   5. kext staging and the XNU loader protocol revisions;
+#   6. layout: a tall 1080x2400 display gets the portrait layout, and a
+#      800x1000 display (width/height exactly at the threshold) keeps landscape.
 # Logs and screenshots go to Build/Smoke/.
 set -euo pipefail
 
@@ -110,5 +113,16 @@ for variant in v2 v1 v1-empty missing-loader unknown nullboot missing-file bad-i
     --cpus 1 --finish-on-expect \
     --log "$SMOKE/kext-$variant.log" --expect "$expected" --reject "$reject" --reject 'ASSERT'
 done
+
+echo "== scenario 6: portrait and landscape layout by aspect ratio"
+python3 "$ROOT/Scripts/qemu-run.py" "$ESP" --display-size 1080x2400 --finish-on-expect \
+  --log "$SMOKE/portrait.log" --screenshot "$SMOKE/portrait.png" \
+  --expect 'UNIXNU: ui: graphics 1080x2400, scale 4, portrait layout' \
+  --expect 'UNIXNU: menu: shown 4 entries' \
+  --reject 'ASSERT'
+python3 "$ROOT/Scripts/qemu-run.py" "$ESP" --display-size 800x1000 --finish-on-expect \
+  --log "$SMOKE/threshold.log" \
+  --expect 'UNIXNU: ui: graphics 800x1000, scale 1, landscape layout' \
+  --reject 'ASSERT'
 
 echo "== smoke test passed; logs and menu.png in $SMOKE"

@@ -1,6 +1,6 @@
 # Boot arguments
 
-The kernel command line comes from `[payload] kernel_args` in the board file plus every `--kernel-arg`. The payload step writes the joined line into `unixnu.toml`, and DarwinBoot copies it into `boot_args`.
+The kernel command line comes from `[payload] kernel_args` in the board file. An extra `--kernel-arg NAME=VALUE` replaces the board argument with the same name. The payload step writes the joined line into `unixnu.toml`, and DarwinBoot copies it into `boot_args`.
 
 ## Format
 
@@ -55,6 +55,9 @@ Use `amfi_get_out_of_my_way=1` only in a diagnostic boot. It changes the securit
 | `sheng-gpu-power=<n>` | Selects the GPU power sequence |
 | `sheng-gpu-metal=1` | Enables the Metal path |
 | `sheng-gpu-addon=1` | Mounts the GPU addon content |
+| `sheng-data-persist=<n>` | 1 proves the Data store window read-only, 2 opens it for writes |
+| `sheng-data-reset=<n>` | 1 discards the Data overlay, 2 also asks for Setup |
+| `sheng-log-reserve=<mib>` | End-of-userdata reserve for the diagnostic log and export region, default 1024 |
 | `sheng-disable-watchdogd=1` | Stops the watchdog daemon |
 | `sheng-disable-jobs=<list>` | Skips the named launch jobs |
 | `offline-legacy-*=1` | Enables the legacy display and input probes |

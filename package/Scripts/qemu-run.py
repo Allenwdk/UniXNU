@@ -82,7 +82,10 @@ def ppm_to_png(ppm: Path, png: Path) -> None:
     if parts[0] != b"P6":
         raise ValueError("not a binary PPM")
     width, height = int(parts[1]), int(parts[2])
-    pixels = parts[4][: width * height * 3]
+    # The pixels are the last bytes of the file. Splitting them off the header
+    # would drop leading bytes that happen to be ASCII whitespace (0x09-0x0D,
+    # 0x20), and every channel after them would shift.
+    pixels = data[len(data) - width * height * 3:]
     raw = b"".join(b"\x00" + pixels[y * width * 3:(y + 1) * width * 3] for y in range(height))
 
     def chunk(tag, body):
@@ -106,6 +109,8 @@ def main() -> int:
     parser.add_argument("--expect", action="append", default=[], help="regex that must match the log")
     parser.add_argument("--reject", action="append", default=[], help="regex that must not match the log")
     parser.add_argument("--no-gop", action="store_true", help="no display device (text console only)")
+    parser.add_argument("--display-size", metavar="WxH",
+                        help="use a virtio-gpu display of this size instead of ramfb (for example 1080x2400)")
     parser.add_argument("--disk", action="append", default=[], type=Path, help="extra raw disk image (read-only)")
     parser.add_argument("--timeout", type=float, default=90.0)
     parser.add_argument("--cpus", type=int, default=2, help="number of virtual CPUs (default: 2)")
@@ -115,6 +120,14 @@ def main() -> int:
     args = parser.parse_args()
     if args.cpus < 1:
         parser.error("--cpus must be positive")
+    display = None
+    if args.display_size:
+        match = re.fullmatch(r"([0-9]+)x([0-9]+)", args.display_size)
+        if not match or not all(0 < int(v) <= 8192 for v in match.groups()):
+            parser.error("--display-size must be WxH with both sides in 1..8192")
+        if args.no_gop:
+            parser.error("--display-size conflicts with --no-gop")
+        display = tuple(int(v) for v in match.groups())
     if args.finish_on_expect and not args.expect:
         parser.error("--finish-on-expect requires --expect")
 
@@ -146,7 +159,9 @@ def main() -> int:
             "-drive", f"if=none,id=disk{index},format=raw,readonly=on,file={disk.resolve()}",
             "-device", f"virtio-blk-pci,drive=disk{index}",
         ]
-    if not args.no_gop:
+    if display:
+        cmd += ["-device", f"virtio-gpu-pci,xres={display[0]},yres={display[1]}"]
+    elif not args.no_gop:
         cmd += ["-device", "ramfb"]
     cmd += [
         "-device", "qemu-xhci", "-device", "usb-kbd",

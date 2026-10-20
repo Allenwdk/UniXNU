@@ -6,7 +6,7 @@
 
 | 工具 | 用途 | 安装方式 |
 | --- | --- | --- |
-| macOS 与 Xcode | 内核、skip-setup | App Store 或 developer.apple.com |
+| macOS 与 Xcode | 内核、skip-setup、seed-data-grow | App Store 或 developer.apple.com |
 | Python 3.11 或更新 | 所有步骤 | python.org 或 Homebrew |
 | git、make | 拉取、固件 | Xcode command line tools 或 Homebrew |
 | cmake、ninja | 内核参考源码 | `brew install cmake ninja` |
@@ -14,6 +14,7 @@
 | LLVM 与 lld | 内核、固件、启动镜像 | `brew install llvm` |
 | mtools | 负载卷 | `brew install mtools` |
 | dtc | 设备树属性 | `brew install dtc` |
+| fastboot | seed-data-grow `--auto`、userdata 刷写 | Android platform tools |
 | QEMU 与 AAVMF | 可选冒烟测试 | `brew install qemu` |
 
 驱动会直接找到 Homebrew 的 `/opt/homebrew/opt/llvm/bin`，无需修改 `PATH`。其他工具需要在 `PATH` 中。
@@ -31,12 +32,13 @@
 | 解压后的 kernelcache | 内核预链接 | `--kernelcache FILE` | `UNIXNU_KERNELCACHE` |
 | 编译后的设备树 | 启动镜像 | `--dtb FILE` | `UNIXNU_DTB` |
 | trust cache 包 | 负载 | `--trust-cache FILE` | |
+| owner trust cache 包 | 负载 | `--owner-trust-cache FILE` | |
 | Data ramdisk 种子 | 负载 | `--data-ramdisk FILE` | |
 | 平台种子 | 负载 | `--unique-chip-id HEX` | `UNIXNU_UNIQUE_CHIP_ID` |
 | 预编译静态库 | 内核 | 负载可用 `--kernel FILE` | |
 | edk2 或 Mu_Basecore 树 | package、固件 | `--edk2 DIR` | `UNIXNU_EDK2` |
 
-设备仓库提供板级描述、内核 defconfig 和生成设备静态库的脚本。
+设备仓库提供板级描述、内核 defconfig 和 `[kernel] archives` 中列出的静态库脚本。
 
 ## 设备
 

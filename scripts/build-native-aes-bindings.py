@@ -16,7 +16,20 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--objects-dir', type=Path, default=ROOT / 'build/native-aes')
 args = parser.parse_args()
 
-audit = json.loads((ROOT / 'build/image4-ignition/aes-interface-audit.json').read_text())
+audit_path = ROOT / 'build/image4-ignition/aes-interface-audit.json'
+recorded = ROOT / 'scripts/data/native-aes-original-bindings.S'
+if not audit_path.is_file() and recorded.is_file():
+    # Without the qualification evidence of the original kernelcache (kernel candidate, KDK annotations, live metadata),
+    # bind with the recorded result of that audit. The addresses belong to the kernelcache pinned in board.toml.
+    out = args.objects_dir
+    subprocess.run(['xcrun', 'clang', '-target', 'arm64-apple-ios17.0', '-Werror', '-Wno-incompatible-sysroot', '-c', recorded,
+                    '-o', out / 'original-bindings.o'], check=True)
+    archive = out / 'libNativeAES.a'
+    archive.unlink(missing_ok=True)
+    subprocess.run(['xcrun', 'ar', 'rcs', archive, out / 'NativeAES.o', out / 'original-bindings.o'], check=True)
+    print('PASS: native AES bound with the recorded original-kernelcache addresses')
+    raise SystemExit(0)
+audit = json.loads(audit_path.read_text())
 obj_path = args.objects_dir / 'NativeAES.o'
 obj = obj_path.read_bytes()
 obj_image = np.macho(obj)

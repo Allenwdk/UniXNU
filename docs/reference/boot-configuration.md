@@ -18,6 +18,8 @@ default = "xnu"
 title = "UniXNU"
 scale = 0
 logo = true
+layout = "auto"
+portrait_below = 800
 console = "auto"
 ```
 
@@ -38,7 +40,11 @@ console = "auto"
 | `title` | `UniXNU` | Menu title |
 | `scale` | 0 | Glyph scale. 0 selects automatically |
 | `logo` | true | Draws the logo |
+| `layout` | `auto` | `auto`, `landscape` or `portrait` |
+| `portrait_below` | 800 | With `auto`, portrait when width / height times 1000 is below this value |
 | `console` | `auto` | `auto`, `graphics`, `text` or `none` |
+
+The portrait layout is a column for a tall panel such as a phone. The logo floats at the top, the entries are numbered cards at the bottom, and the status lines wrap under a rule. The logo carries the UniXNU wordmark, so the title text appears only when `logo` is false or `title` is not `UniXNU`. With `auto`, a 1080x2400 panel (ratio 450) is portrait, a 3:4 tablet (750) is portrait, and a 4:5 panel (800) or any wider one keeps the landscape layout. Without a `scale` value, the portrait layout picks a glyph scale of width / 270, so a 1080 pixel wide panel shows about 33 characters per line.
 
 ### [[driver]]
 
@@ -137,6 +143,9 @@ type = "xnu"
 path = "Payloads/kernel.macho"
 args = "-v serial=3"
 initrd = "Payloads/scratch-data.img"
+confirm = "Boot the kernel?"
+confirm_titles = ["Normal", "Verbose"]
+confirm_args = ["", "debug=0x14e"]
 enabled = true
 ```
 
@@ -149,8 +158,15 @@ enabled = true
 | `args` | Load options or kernel command line |
 | `dtb` | `firmware`, a file path, or absent |
 | `initrd` | Initrd path |
+| `confirm` | Question shown before the entry boots. The entry never boots by countdown |
+| `confirm_titles` | Optional choice titles. Requires `confirm` and `confirm_args` |
+| `confirm_args` | One argument string per choice. The chosen string is appended to `args` |
 | `action` | `reset`, `shutdown` or `exit` for `action` entries |
 | `enabled` | `false` skips the entry |
+
+An entry with `confirm` boots only when Enter is pressed. Without choices, any other key cancels, and a machine without an input device cancels. With `confirm_titles`, Up and Down step through the choices and Cancel is selected first. The chosen `confirm_args` entry is appended to a copy of the entry's `args`.
+
+When the default entry requires confirmation, the countdown falls back to the first entry that does not.
 
 The built-in configuration has `exit`, `reset` and `shutdown` entries. When no file is found, removable loaders are added in front of them.
 

@@ -1,5 +1,6 @@
 """XNU kernel: build from the patched Apple source, then prelink against the original kernelcache."""
 import os
+import shlex
 from pathlib import Path
 
 from . import ipsw
@@ -36,6 +37,34 @@ def version_env(modules):
     return env
 
 
+def toolchain_path():
+    """PATH with the Homebrew LLVM and LLD first, as the archive builders expect."""
+    extra = [d for d in ('/opt/homebrew/opt/llvm/bin', '/opt/homebrew/opt/lld/bin', '/usr/local/opt/llvm/bin', '/usr/local/opt/lld/bin')
+             if Path(d).is_dir()]
+    return os.pathsep.join(extra + [os.environ.get('PATH', '')])
+
+
+def build_archives(ctx, env):
+    """Run the board's archive builders ([kernel] archives of board.toml), in order, then check the prebuilt archives.
+
+    Each entry is a script of the build tree with its arguments. The kernel link needs their archives, and some of
+    them read the compile records that an XNU pass leaves behind.
+    """
+    entries = ctx.board.get('kernel', {}).get('archives', [])
+    env = dict(env, PATH=toolchain_path())
+    for index, entry in enumerate(entries, 1):
+        parts = shlex.split(entry)
+        script = ctx.tree / 'scripts' / parts[0]
+        if not script.is_file():
+            raise Error(f'[kernel] archives: {script} missing')
+        log(f'kernel: archive {index}/{len(entries)}: {entry}')
+        run(['python3', script, *parts[1:]], cwd=ctx.tree, env=env, log_file=ctx.logs / f'archive-{index:02d}-{Path(parts[0]).stem}.log')
+    # Archives that no builder produces (they need inputs outside the repositories) must be supplied.
+    for key, value in sorted(xnu_env(ctx).items()):
+        if key.endswith('_ARCHIVE') and value.endswith('.a') and not Path(value).is_file():
+            raise Error(f'{key}: {value} not found; no builder makes it, supply the archive')
+
+
 def build(ctx, modules):
     log('kernel: XNU')
     for name in ('git', 'make', 'clang', 'cmake', 'ninja', 'unifdef'):
@@ -49,11 +78,18 @@ def build(ctx, modules):
     env.update(version_env(modules))
     env['JOBS'] = str(ctx.jobs)
     record = ctx.tree / 'build/xnu/ios-obj/DEVELOPMENT_ARM64_BCM2837/osfmk/DEVELOPMENT/startup.o.json'
-    if env.get('XNU_BOOT_PROGRESS') == '1' and not record.is_file():
-        # The boot progress layer is generated from the compile record of startup.o, which only a
-        # previous build leaves behind, so a first build from scratch runs once without it.
-        log('kernel: bootstrap pass without boot progress')
-        run(['bash', script], cwd=ctx.tree, env={**env, 'XNU_BOOT_PROGRESS': '0'}, log_file=ctx.logs / 'kernel-bootstrap.log')
+    if not record.is_file():
+        # The archive builders and the boot progress layer read compile records of the XNU build, which only an earlier
+        # pass leaves behind. A first build from scratch therefore runs one pass without them; it stops at the link,
+        # which needs their archives, so only the records are required of it.
+        log('kernel: bootstrap pass for the compile records')
+        subprocess_env = {**env, 'XNU_BOOT_PROGRESS': '0'}
+        try:
+            run(['bash', script], cwd=ctx.tree, env=subprocess_env, log_file=ctx.logs / 'kernel-bootstrap.log')
+        except Error:
+            if not record.is_file():
+                raise
+    build_archives(ctx, env)
     run(['bash', script], cwd=ctx.tree, env=env, log_file=ctx.logs / 'kernel.log')
 
 
@@ -77,6 +113,9 @@ def prelink(ctx):
         raise Error(f'{kernel} not found; run "unixnu build kernel" first')
     output = ctx.work / 'kernel/kernel.macho'
     output.parent.mkdir(parents=True, exist_ok=True)
+    # emit_prelink refuses to overwrite; a rebuild replaces the previous candidate and its record.
+    for stale in (output, output.with_suffix('.json')):
+        stale.unlink(missing_ok=True)
     command = ['python3', ctx.tree / spec['tool'], '--kernel', kernel, '--prelinked', cache,
                f'--slide={spec["slide"]}', '--output', output]
     for root in spec.get('roots', []):

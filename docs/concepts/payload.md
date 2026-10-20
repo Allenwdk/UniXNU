@@ -56,6 +56,7 @@ The ADT uses Apple's flattened node encoding. The board script named in `[payloa
 | `--packed-data-ramdisk` | `[payload.adt] packed_data_ramdisk` |
 | `--data-ramdisk` | a Data seed without packed delivery |
 | `--trust-cache` | a trust cache bundle |
+| `--owner-trust-cache` | an owner-signed bundle with the original caches and extra modules. It replaces `--trust-cache` and skips the board allow-list |
 | `--ipad-identity` | `[payload.adt] ipad_identity` |
 
 The ADT must reserve the following properties when the matching input exists:
@@ -74,6 +75,7 @@ DarwinBoot requires the placeholder to exist for every input it receives. A mism
 The payload checks the command line before writing the volume:
 
 - Every argument matches `[A-Za-z0-9_.\-]+` with an optional `=value` of `[A-Za-z0-9_.,\-]+`.
+- An extra `--kernel-arg NAME=VALUE` replaces the board argument with the same name.
 - The joined line is at most 1000 bytes. DarwinBoot copies it into a 1024-byte buffer.
 
 The command line is stored in `unixnu.toml` as `args`. DarwinBoot copies it into `boot_args` without modification.
@@ -91,6 +93,8 @@ The trust cache bundle is validated by DarwinBoot:
 
 The bundle is copied into the kernel window and its address and size replace the `TrustCache` placeholder.
 
+An `--owner-trust-cache` bundle is copied without the `[payload] trust_cache_sha256` check. It carries the original caches and extra modules such as the GPU plugin.
+
 ## Data ramdisk
 
 A Data seed can be delivered in two forms:
@@ -101,6 +105,8 @@ A Data seed can be delivered in two forms:
 | Packed | `PackedRAMDisk` | DarwinBoot validates the `DBRDISK1` extent table and copies the extents |
 
 The packed form carries a header with the magic `DBRDISK1`, version 1, the page size, the expanded size and an extent table of `(offset, length)` pairs. Omitted ranges are zeroed RAM.
+
+`scripts/seed-data-grow.py` grows a packed seed to the tablet's storage. The kernel accepts a Data disk of up to 1 TiB, and above 2 GiB the typed provider keeps only the nonzero pages of the seed.
 
 ## Determinism
 
