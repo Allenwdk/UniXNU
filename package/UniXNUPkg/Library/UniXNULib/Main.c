@@ -8,6 +8,7 @@
 #include "Internal.h"
 
 #include <Protocol/SerialIo.h>
+#include <UkeMemStatus.h>
 
 STATIC EFI_SERIAL_IO_PROTOCOL  *mSerial;
 
@@ -57,6 +58,7 @@ UniXNURun (
   UNIXNU_CONFIG        Config;
   UNIXNU_UI            Ui;
   UNIXNU_INJECT_STATS  Stats;
+  UKE_MEM_STATUS       *Mem;
   UINTN            Index;
   BOOLEAN          Countdown;
   UNIXNU_ENTRY         *Entry;
@@ -104,15 +106,38 @@ UniXNURun (
   UniXNUInjectAcpi (&Config, &Stats);
 
   UniXNUUiInit (&Config, &Ui);
-  UnicodeSPrint (
-    Ui.Info,
-    sizeof (Ui.Info),
-    L"drivers %u loaded / %u failed    kits %u    acpi %u",
-    (UINT32)Stats.DriversLoaded,
-    (UINT32)Stats.DriversFailed,
-    (UINT32)Config.KitsLoaded,
-    (UINT32)Stats.AcpiInstalled
-    );
+  Mem = NULL;
+  if (!EFI_ERROR (EfiGetSystemConfigurationTable (&gUkeMemStatusGuid, (VOID **)&Mem)) &&
+      (Mem != NULL) && (Mem->Magic == UKE_MEM_STATUS_MAGIC))
+  {
+    //
+    // A device memory driver published the DT/initrd result. Put it first:
+    // when the payload is missing, these two numbers are the diagnosis.
+    //
+    UnicodeSPrint (
+      Ui.Info,
+      sizeof (Ui.Info),
+      L"mem dt=%u ir=%u 0x%lx-0x%lx  drv %u/%u  kits %u  acpi %u",
+      Mem->DtbSource,
+      Mem->InitrdPublished,
+      Mem->InitrdStart,
+      Mem->InitrdEnd,
+      (UINT32)Stats.DriversLoaded,
+      (UINT32)Stats.DriversFailed,
+      (UINT32)Config.KitsLoaded,
+      (UINT32)Stats.AcpiInstalled
+      );
+  } else {
+    UnicodeSPrint (
+      Ui.Info,
+      sizeof (Ui.Info),
+      L"drivers %u loaded / %u failed    kits %u    acpi %u",
+      (UINT32)Stats.DriversLoaded,
+      (UINT32)Stats.DriversFailed,
+      (UINT32)Config.KitsLoaded,
+      (UINT32)Stats.AcpiInstalled
+      );
+  }
 
   Countdown = TRUE;
   for ( ; ;) {

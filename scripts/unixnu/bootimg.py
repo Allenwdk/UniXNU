@@ -47,7 +47,15 @@ def patch_dtb(dtb, nodes, scratch):
     work = scratch / 'device.dtb'
     work.write_bytes(dtb)
     for node in nodes:
-        run([fdtput, '-c', work, node['path']], capture=True)
+        try:
+            run([fdtput, '-c', work, node['path']], capture=True)
+        except Error as error:
+            #
+            # Stock device trees already carry /chosen; -c refuses to touch an
+            # existing node, but its properties still have to be set.
+            #
+            if 'FDT_ERR_EXISTS' not in str(error):
+                raise
         for prop in node.get('props', []):
             values = prop['value'] if isinstance(prop['value'], list) else [prop['value']]
             run([fdtput, '-t', prop.get('type', 's'), work, node['path'], prop['name'], *[str(v) for v in values]], capture=True)
@@ -117,17 +125,46 @@ def build(ctx, uefi, fd, dtb, ramdisk=None, output=None):
 def verify(path, combined, tree, ramdisk_path, image):
     """Unpack the image and compare every part with its input."""
     data = Path(path).read_bytes()
-    kernel_size, kernel_address, ramdisk_size, _, second_size, _, tags, page, version, _ = struct.unpack_from('<10I', data, 8)
-    if data[:8] != b'ANDROID!' or second_size or version != image['header_version'] or page != image['pagesize']:
+    if data[:8] != b'ANDROID!':
         raise Error('boot image header does not match the requested parameters')
-    if kernel_address != image['base'] + image['kernel_offset'] or tags != image['base'] + image['tags_offset']:
-        raise Error('boot image load addresses do not match the requested offsets')
-    kernel = data[page:page + kernel_size]
+    version = struct.unpack_from('<I', data, 40)[0]
+    if version != image['header_version']:
+        raise Error('boot image header version does not match the requested parameters')
+    if version >= 3:
+        # v3/v4 header: kernel and ramdisk sizes are the first two words, the
+        # header has no load addresses, and v4 adds a signature section.
+        if image['pagesize'] != 4096:
+            raise Error('Android boot v3/v4 requires a 4096-byte page size')
+        kernel_size, ramdisk_size = struct.unpack_from('<2I', data, 8)
+        header_size = struct.unpack_from('<I', data, 20)[0]
+        if header_size not in (1580, 1584):
+            raise Error(f'unexpected Android boot v{version} header size {header_size}')
+        signature_size = struct.unpack_from('<I', data, 1580)[0] if version >= 4 else 0
+        page = 4096
+        kernel = data[page:page + kernel_size]
+        start = page * (1 + -(-kernel_size // page))
+        # The v4 signature section follows the ramdisk; it does not shift it.
+        kernel_address = tags = None
+    else:
+        kernel_size, kernel_address, ramdisk_size, _, second_size, _, tags, page, _, _ = struct.unpack_from('<10I', data, 8)
+        if second_size or page != image['pagesize']:
+            raise Error('boot image header does not match the requested parameters')
+        if kernel_address != image['base'] + image['kernel_offset'] or tags != image['base'] + image['tags_offset']:
+            raise Error('boot image load addresses do not match the requested offsets')
+        signature_size = 0
+        kernel = data[page:page + kernel_size]
+        start = page * (1 + -(-kernel_size // page))
     unpacker = zlib.decompressobj(16 + zlib.MAX_WBITS)
     if unpacker.decompress(kernel) != combined or not unpacker.eof or unpacker.unused_data != tree:
         raise Error('gzip, firmware and appended device tree do not round-trip')
-    start = page * (1 + -(-kernel_size // page))
     if data[start:start + ramdisk_size] != Path(ramdisk_path).read_bytes():
         raise Error('ramdisk bytes differ')
-    return {'kernel_sha256': hashlib.sha256(kernel).hexdigest(), 'ramdisk_bytes': ramdisk_size,
-            'header_version': version, 'kernel_address': hex(kernel_address), 'tags_address': hex(tags)}
+    report = {'kernel_sha256': hashlib.sha256(kernel).hexdigest(), 'ramdisk_bytes': ramdisk_size,
+              'header_version': version}
+    if kernel_address is not None:
+        report['kernel_address'] = hex(kernel_address)
+    if tags is not None:
+        report['tags_address'] = hex(tags)
+    if signature_size:
+        report['signature_bytes'] = signature_size
+    return report
