@@ -5,12 +5,16 @@ probe runs it after the original IOGPUFamily kext has loaded. Same binding recip
 original constructor, destructor and metaclass addresses from build/gpu-analysis/ioaccelerator-base-abi.json)."""
 import hashlib
 import json
+import os
 from pathlib import Path
 import struct
 import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
+if os.environ.get('XNU_NATIVE_ADRENO', '0') != '1':
+    print('SKIP: NATIVE_ADRENO is off for this configuration')
+    raise SystemExit(0)
 OUT = ROOT / 'build/native-adreno-accelerator'
 OUT.mkdir(exist_ok=True)
 sys.path.insert(0, str(ROOT / 'kits/NativePrelink'))
