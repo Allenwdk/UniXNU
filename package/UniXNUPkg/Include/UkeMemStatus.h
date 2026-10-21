@@ -40,6 +40,7 @@ typedef struct {
   UINT64    InitrdStart;
   UINT64    InitrdEnd;
   UINT64    AddedBytes;
+  CHAR8     PanicLine[128];      ///< First line of the previous XNU panic log, or empty.
 } UKE_MEM_STATUS;
 
 extern EFI_GUID  gUkeMemStatusGuid;

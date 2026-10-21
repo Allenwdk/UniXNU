@@ -10,12 +10,6 @@
 #include <Protocol/SerialIo.h>
 #include <UkeMemStatus.h>
 
-// Must match the pram node and embedded-panic-log-size in make-uke-adt.py and
-// the reserved range in the uke MemoryMapLib.
-#define UKE_PANIC_LOG_BASE  0xC4000000ULL
-#define UKE_PANIC_LOG_SIZE  0x00400000U
-#define UKE_PANIC_MAGIC     0x46554E4BU  // 'FUNK'
-
 STATIC EFI_SERIAL_IO_PROTOCOL  *mSerial;
 
 VOID
@@ -147,37 +141,12 @@ UniXNURun (
   }
 
   //
-  // The kernel writes its embedded panic log into reserved RAM. Read the
-  // first line here, before the kernel clears the region, and show it in the
-  // footer so the previous reset reason survives a reboot.
+  // UkeBootMemoryDxe reads the previous XNU panic log through its own DXE
+  // mapping and publishes the first line in UKE_MEM_STATUS. Do not touch the
+  // physical panic region from the application.
   //
-  {
-    volatile UINT8  *Base   = (volatile UINT8 *)(UINTN)UKE_PANIC_LOG_BASE;
-    volatile UINT32 *Header = (volatile UINT32 *)(UINTN)UKE_PANIC_LOG_BASE;
-
-    if ((Header[0] == UKE_PANIC_MAGIC) && (UKE_PANIC_LOG_SIZE >= 0x28)) {
-      UINT32  Offset = *(volatile UINT32 *)(Base + 20);
-      UINT32  Length = *(volatile UINT32 *)(Base + 24);
-      CHAR8   Line[80];
-      UINTN   Index;
-
-      if ((Offset >= 0x28) && (Length != 0) &&
-          (Offset < UKE_PANIC_LOG_SIZE) && (Length < UKE_PANIC_LOG_SIZE) &&
-          (Offset + Length <= UKE_PANIC_LOG_SIZE))
-      {
-        for (Index = 0; (Index + 1 < sizeof (Line)) && (Index < Length); Index++) {
-          CHAR8  Ch = (CHAR8)Base[Offset + Index];
-          if ((Ch == '\0') || (Ch == '\r') || (Ch == '\n')) {
-            break;
-          }
-          Line[Index] = ((Ch >= 0x20) && (Ch < 0x7f)) ? Ch : ' ';
-        }
-        Line[Index] = '\0';
-        if (Line[0] != '\0') {
-          UnicodeSPrint (Ui.Info, sizeof (Ui.Info), L"last panic: %a", Line);
-        }
-      }
-    }
+  if ((Mem != NULL) && (Mem->Magic == UKE_MEM_STATUS_MAGIC) && (Mem->PanicLine[0] != '\0')) {
+    UnicodeSPrint (Ui.Info, sizeof (Ui.Info), L"last panic: %a", Mem->PanicLine);
   }
 
   Countdown = TRUE;
