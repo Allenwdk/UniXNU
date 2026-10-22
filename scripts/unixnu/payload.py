@@ -146,6 +146,8 @@ def build(ctx, kernel=None):
         if not re.fullmatch(r'[A-Za-z0-9_.\-]{1,63},[0-9a-fA-F]{1,16},(?:[0-9a-fA-F]{2}){1,16},(?:[0-9a-fA-F]{2}){1,16}', fixup) or len(fixup) >= 160:
             raise Error(f'malformed text fixup in board.toml [payload] text_fixups: {fixup}')
         command += ['--text-fixup', fixup]
+    if data and adt.get('persistent_data'):
+        command.append('--persistent-data')
     run(command, cwd=ctx.tree, env=dict(os.environ, UNIXNU_UEFI=str(ctx.uefi or '')), log_file=ctx.logs / 'payload-adt.log')
     initrd = 'initrd = "Payloads/scratch-data.img"\n' if data else ''
     loader = '' if spec.get('loader', 'firmware') == 'firmware' else '[[driver]]\npath = "Payloads/DarwinBoot.efi"\n'
