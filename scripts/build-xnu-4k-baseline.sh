@@ -118,6 +118,20 @@ if [ ! -f "$KERNEL_SDKROOT/.xnu-$XNU_VERSION-headers" ]; then
     SYMROOT="$ROOT/build/xnu/sym" DSTROOT="$KERNEL_SDKROOT"
   touch "$KERNEL_SDKROOT/.xnu-$XNU_VERSION-headers"
 fi
+# Linux: several xnu/libplatform headers include <TargetConditionals.h>, and the
+# SETUP host tools want the BSD/libSystem shims. The toolchain ships them in
+# $UNIXNU_HOST_COMPAT_INCLUDE; stage them into the SDK root so those includes
+# resolve. None of this comes from an Apple SDK.
+if [ -n "${UNIXNU_HOST_COMPAT_INCLUDE:-}" ] && [ -d "$UNIXNU_HOST_COMPAT_INCLUDE" ]; then
+  mkdir -p "$KERNEL_SDKROOT/usr/include/compat"
+  for _compat in . architecture libkern mach; do
+    [ -d "$UNIXNU_HOST_COMPAT_INCLUDE/$_compat" ] || continue
+    mkdir -p "$KERNEL_SDKROOT/usr/include/compat/$_compat"
+    cp -f "$UNIXNU_HOST_COMPAT_INCLUDE/$_compat"/*.h "$KERNEL_SDKROOT/usr/include/compat/$_compat/" 2>/dev/null || true
+  done
+  unset _compat
+  cp -f "$UNIXNU_HOST_COMPAT_INCLUDE/TargetConditionals.h" "$KERNEL_SDKROOT/usr/include/" 2>/dev/null || true
+fi
 if [ ! -f "$KERNEL_SDKROOT/usr/local/lib/kernel/libfirehose_kernel.a" ]; then
   bash scripts/build-firehose.sh
 fi
