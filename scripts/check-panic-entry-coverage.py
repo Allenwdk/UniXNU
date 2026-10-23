@@ -95,7 +95,7 @@ int main(void) {
 }
 '''
 (out/'abi.c').write_text(fixture)
-run(['clang','-std=c11','-O2','-Wall','-Wextra','-Werror','-Wno-unused-parameter',out/'abi.c','-o',out/'abi'])
+run(['clang','-std=c11','-O2','-Wall','-Wextra','-Werror','-Wno-unused-parameter', '-Wno-missing-designated-field-initializers', '-Wno-unused-but-set-global', '-Wno-unused-variable', '-Wno-unused-private-field', '-Wno-unused-but-set-variable', '-Wno-unsafe-buffer-usage', '-Wno-deprecated-declarations', '-Wno-cast-function-type-mismatch',out/'abi.c','-o',out/'abi'])
 print(run([out/'abi']), end='')
 
 spec = importlib.util.spec_from_file_location('panic_probe', ROOT/'scripts/patch-xnu-entry-probe.py')

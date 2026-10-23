@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
+if [ "$(uname -s)" != Darwin ]; then
+  exec bash "$(dirname "${BASH_SOURCE[0]}")/build-firehose-linux.sh" "$@"
+fi
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$ROOT"
 if [ ! -d .cache/libdispatch-work/.git ]; then

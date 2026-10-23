@@ -207,7 +207,7 @@ def kernelcache(ctx, source):
     payload = im4p_payload(source.read('KernelCache'))
     packed, raw = source.cache / 'kernelcache.lzfse', source.cache / 'kernelcache.fat'
     packed.write_bytes(payload)
-    result = subprocess.run(['/usr/bin/compression_tool', '-decode', '-a', 'lzfse', '-i', packed, '-o', raw], capture_output=True, text=True)
+    result = subprocess.run(['compression_tool', '-decode', '-a', 'lzfse', '-i', packed, '-o', raw], capture_output=True, text=True)
     if result.returncode:
         raise Error(f'compression_tool failed: {result.stderr.strip()}')
     fat = raw.read_bytes()

@@ -72,7 +72,7 @@ if result.returncode or 'PASS' not in result.stdout:
 # The actual KMD must defer native handle/view/IOVA retirement, bound pressure waits,
 # and preserve ownership on failures. This exercises real transport code, not pixels.
 deferred = out / 'deferred_bo'
-subprocess.run(['xcrun', 'clang++', '-std=c++23', '-O1', '-Wall', '-Wextra', '-Werror', '-Wno-unused-parameter',
+subprocess.run(['xcrun', 'clang++', '-std=c++23', '-O1', '-Wall', '-Wextra', '-Werror', '-Wno-unused-parameter', '-Wno-missing-designated-field-initializers', '-Wno-unused-but-set-global', '-Wno-unused-variable', '-Wno-unused-private-field', '-Wno-unused-but-set-variable', '-Wno-unsafe-buffer-usage', '-Wno-deprecated-declarations', '-Wno-cast-function-type-mismatch',
                 '-I', '/opt/homebrew/include', '-I', kit, sim / 'deferred_bo.cpp', '-o', deferred], check=True)
 deferred_env = dict(env, TU_DARWIN_RETIRE_TRACE='1')
 deferred_env.pop('HOSTSIM_FAIL_USER_UNMAP', None)

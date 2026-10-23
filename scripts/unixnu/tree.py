@@ -20,8 +20,13 @@ def _clear_links(directory):
 
 def _link(target, link):
     link.parent.mkdir(parents=True, exist_ok=True)
-    if link.is_symlink() or link.exists():
+    # A real directory here is a source clone the build scripts made (or that
+    # the operator placed) -- refer/corecrypto-2023 is one. Leave it alone; only
+    # a previous link gets replaced.
+    if link.is_symlink():
         link.unlink()
+    elif link.exists():
+        return
     link.symlink_to(Path(target).resolve())
 
 

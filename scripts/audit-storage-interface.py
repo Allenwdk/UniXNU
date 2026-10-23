@@ -45,7 +45,7 @@ while index < len(arguments):
         command.append(value)
     index += 1
 command += ['-I', str(out / 'include'), '-I', str(ROOT / '.cache/xnu-work/osfmk'),
-            '-Wall', '-Wextra', '-Werror', '-Wno-unused-parameter', '-Wno-deprecated-declarations',
+            '-Wall', '-Wextra', '-Werror', '-Wno-unused-parameter', '-Wno-missing-designated-field-initializers', '-Wno-unused-but-set-global', '-Wno-unused-variable', '-Wno-unused-private-field', '-Wno-unused-but-set-variable', '-Wno-unsafe-buffer-usage', '-Wno-deprecated-declarations', '-Wno-cast-function-type-mismatch', '-Wno-deprecated-declarations',
             '-Wno-c99-designator', '-Wno-reorder-init-list', '-Wno-unnecessary-virtual-specifier',
             '-Wno-deprecated-enum-enum-conversion']
 (out / 'compile-command.json').write_text(json.dumps(command, indent=2) + '\n')

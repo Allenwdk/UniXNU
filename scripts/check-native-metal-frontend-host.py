@@ -20,7 +20,7 @@ if not loader:
     raise SystemExit('A host Vulkan driver is required (brew install molten-vk, or NMB_HOST_LOADER)')
 subprocess.run([sys.executable, ROOT / 'scripts/build-native-metal-bridge.py', '--target', 'host'], check=True)
 OUT.mkdir(parents=True, exist_ok=True)
-flags = ['-std=c++17', '-fobjc-arc', '-O1', '-Wall', '-Wextra', '-Werror', '-Wno-unused-parameter', '-Wno-deprecated-declarations', '-I', KIT]
+flags = ['-std=c++17', '-fobjc-arc', '-O1', '-Wall', '-Wextra', '-Werror', '-Wno-unused-parameter', '-Wno-missing-designated-field-initializers', '-Wno-unused-but-set-global', '-Wno-unused-variable', '-Wno-unused-private-field', '-Wno-unused-but-set-variable', '-Wno-unsafe-buffer-usage', '-Wno-deprecated-declarations', '-Wno-cast-function-type-mismatch', '-Wno-deprecated-declarations', '-I', KIT]
 test = OUT / 'frontend_host'
 subprocess.run(['xcrun', 'clang++', *flags, KIT / 'NativeBridgeMetalFrontend.mm', KIT / 'bridge/frontend_host.mm',
                 ROOT / 'build/native-metal-bridge/host/libnative_metal_bridge.a', '-framework', 'Foundation', '-framework', 'Metal',

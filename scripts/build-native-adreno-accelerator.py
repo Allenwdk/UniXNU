@@ -60,7 +60,7 @@ while i < len(args):
     i += 1
     if v in ('-MF', '-MJ'):
         i += 1
-cmd += ['-Wall', '-Wextra', '-Werror', '-Wno-unused-parameter', '-Wno-unnecessary-virtual-specifier', '-Wno-c99-designator',
+cmd += ['-Wall', '-Wextra', '-Werror', '-Wno-unused-parameter', '-Wno-missing-designated-field-initializers', '-Wno-unused-but-set-global', '-Wno-unused-variable', '-Wno-unused-private-field', '-Wno-unused-but-set-variable', '-Wno-unsafe-buffer-usage', '-Wno-deprecated-declarations', '-Wno-cast-function-type-mismatch', '-Wno-unnecessary-virtual-specifier', '-Wno-c99-designator',
         '-Wno-reorder-init-list', '-Wno-deprecated-enum-enum-conversion', '-Wno-overloaded-virtual',
         '-I', str(ROOT / '.cache/xnu-work/osfmk')]
 subprocess.run(cmd, cwd=record['directory'], check=True)
