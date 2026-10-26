@@ -15,6 +15,8 @@ OUT = ROOT / 'build/adreno740-accelerator'
 OUT.mkdir(exist_ok=True)
 sys.path.insert(0, str(ROOT / 'kits/XnuPrelink'))
 from native_prelink import macho
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from kernel_target import TRIPLE
 
 
 def run(cmd, **kw):
@@ -79,7 +81,7 @@ if extra or not undefined & set(bindings):
 asm = OUT / 'original-bindings.S'
 asm.write_text(''.join(f'.globl {n}\n.set {n}, {a:#x}\n' for n, a in sorted(bindings.items()) if n in undefined))
 sdk = run(['xcrun', '--sdk', 'iphoneos', '--show-sdk-path'], text=True).strip()
-run(['xcrun', 'clang', '-target', 'arm64-apple-ios17.0', '-isysroot', sdk, '-c', asm, '-o', OUT / 'original-bindings.o'])
+run(['xcrun', 'clang', '-target', TRIPLE, '-isysroot', sdk, '-c', asm, '-o', OUT / 'original-bindings.o'])
 
 llvm = Path(run(['brew', '--prefix', 'llvm'], text=True).strip()) / 'bin'
 late = OUT / 'NativeAdrenoAccelerator.late.o'
