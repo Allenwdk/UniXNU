@@ -100,6 +100,8 @@ Follow [Build and boot](/building), [porting steps](/porting/steps) and [log cap
 | [Xiaomi Pad 8 Pro \(piano\)](/devices/piano) | SM8750 | 1 | Device notes | [code002-2/UniXNU-piano](https://github.com/code002-2/UniXNU-piano) |
 | [Redmi K30 5G \(picasso\)](/devices/picasso) | SM7250 | 1 | Device notes | [YinCQL/UniXNU-picasso](https://github.com/YinCQL/UniXNU-picasso) |
 | [Redmi K30 5G \(minhtritt1996\)](/devices/picasso-minhtritt1996) | SM7250 | 1 | Repository link | [minhtritt1996/UniXNU-picasso](https://github.com/minhtritt1996/UniXNU-picasso) |
+| [Redmi K30 5G \(silenzio111\)](/devices/picasso-silenzio111) | SM7250 | 1 | Repository link | [silenzio111/UniXNU-picasso](https://github.com/silenzio111/UniXNU-picasso) |
+| [Redmi K30 5G targeting iPhone X iOS 16; Darwin 22 ABI and firmware pending \(SuzukiR1n\)](/devices/picasso-suzukir1n) | SM7250 | 2 | Porting record | [SuzukiR1n/UniXNU-Picasso](https://github.com/SuzukiR1n/UniXNU-Picasso) |
 | [Xiaomi Pad 6 \(pipa\)](/devices/pipa) | SM8250 | 1 | Device notes | [xVanTuring/uefi-pipa](https://github.com/xVanTuring/uefi-pipa) |
 | [Xiaomi Pad 6 \(FFT-infra\)](/devices/pipa-fft-infra) | SM8250 | 1 | Repository link | [FFT-infra/UniXNU-alioth-ARCHIVE](https://github.com/FFT-infra/UniXNU-alioth-ARCHIVE) |
 | [Xiaomi Pad 6 \(xVanTuring\)](/devices/pipa-xvanturing) | SM8250 | 1 | Repository link | [xVanTuring/UniXNU-pipa](https://github.com/xVanTuring/UniXNU-pipa) |

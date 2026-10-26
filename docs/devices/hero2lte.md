@@ -4,21 +4,21 @@
 
 <div v-pre>
 
-Samsung Galaxy S7 Edge \(SM-G935F\) on Exynos 8890. Phase 1 is a Mu-Silicium UEFI firmware with display and keypad input. XNU requires GICv2 support in ArmCpu, native storage, display, input and power drivers, and verified EFS/CPEFS backups before any wipe.
+Samsung Galaxy S7 Edge \(SM-G935F\) on Exynos 8890. Phase 1 is a Mu-Silicium UEFI firmware with display and keypad input. XNU uses ArmCpu's GICv2 path and still requires native storage, display, input and power drivers, plus verified EFS/CPEFS backups before any wipe.
 
-Source record: [porting.toml](https://github.com/DokuroMitsukai/UniXNU-hero2lte/blob/53ccc853aefa388215504ddc75ca8f602917e6e3/porting.toml), `53ccc853aefa388215504ddc75ca8f602917e6e3`.
+Source record: [porting.toml](https://github.com/DokuroMitsukai/UniXNU-hero2lte/blob/4086db3a4029a18ea089e7ce6355c089c58a2b09/porting.toml), `4086db3a4029a18ea089e7ce6355c089c58a2b09`.
 
 This page is generated from the device record.
 
 | Area | Status |
 | --- | --- |
 | [Configuration](#configuration) | `host-verified` |
-| [Firmware and boot](#firmware) | `host-verified` |
-| [CPU and interrupts](#cpu) | `planned` |
+| [Firmware and boot](#firmware) | `device-verified` |
+| [CPU and interrupts](#cpu) | `implemented` |
 | [Memory and DMA](#memory) | `planned` |
 | [Storage and root](#storage) | `planned` |
-| [Display](#display) | `planned` |
-| [Input](#input) | `planned` |
+| [Display](#display) | `device-verified` |
+| [Input](#input) | `device-verified` |
 | [GPU](#gpu) | `planned` |
 | [Network](#network) | `planned` |
 | [Audio](#audio) | `planned` |
@@ -58,7 +58,7 @@ This page is generated from the device record.
 ### Current limits
 
 - The published SoC feed is pinned in feeds.toml and unixnu.lock; fetch succeeds without a local source override.
-- No hardware checkpoint exists for this board.
+- The UEFI checkpoint exists; no XNU kernel, payload or storage checkpoint exists yet.
 
 ### Next action
 
@@ -66,19 +66,19 @@ This page is generated from the device record.
 
 ### Evidence
 
-- `source`: [Board identity, component selection, firmware paths and boot image parameters](https://github.com/DokuroMitsukai/UniXNU-hero2lte/blob/53ccc853aefa388215504ddc75ca8f602917e6e3/board.toml)
-- `host`: [schema\_version 2 resolved the arch, exynos8890, iPadOS and device profiles with the selected components and patch series](https://github.com/DokuroMitsukai/UniXNU-hero2lte/blob/53ccc853aefa388215504ddc75ca8f602917e6e3/unixnu.lock)
+- `source`: [Board identity, component selection, firmware paths and boot image parameters](https://github.com/DokuroMitsukai/UniXNU-hero2lte/blob/4086db3a4029a18ea089e7ce6355c089c58a2b09/board.toml)
+- `host`: [schema\_version 2 resolved the arch, exynos8890, iPadOS and device profiles with the selected components and patch series](https://github.com/DokuroMitsukai/UniXNU-hero2lte/blob/4086db3a4029a18ea089e7ce6355c089c58a2b09/unixnu.lock)
   Command: <code>./unixnu status --json -D ../UniXNU-hero2lte</code>. Revision: `e9fb02f99c4cc2e6c882b1c2b6443fd342bc85e0`.
 
 ## Firmware and boot {#firmware}
 
-`host-verified`
+`device-verified`
 
 Components: `DarwinBoot`.
 
 ### Hardware and dependencies
 
-- Mu-Silicium hero2lte firmware, S-Boot framebuffer at 0xE2A00000 with size 0xE10000, UEFI FD base 0xC9000000 and size 0x200000.
+- Mu-Silicium hero2lte firmware, S-Boot framebuffer at 0xE2A00000 with size 0xE10000, UEFI FD base 0xB1200000 and size 0x200000.
 - Firmware version G935FXXS6ESI4 and the five Mu\_Basecore patches used by the package.
 
 ### Configuration
@@ -91,13 +91,15 @@ Components: `DarwinBoot`.
 - The standalone build runs ./build-hero2lte.sh -c at the workspace root; test\_bootshim.py and test\_hero2lte\_keypad.py pass.
 - The DSC and DXE.inc add UniXNU.inf, UniXNUDxe.inf, UniXNURamDiskDxe.inf, DarwinBoot.inf, DiskIoDxe, PartitionDxe, EnglishDxe and Fat behind UNIXNU\_PAYLOAD=1.
 - ./unixnu build firmware --uefi ../Mu-Silicium --target RELEASE -D ../UniXNU-hero2lte applies the five base patches and builds the 2 MiB FD.
+- Flash the 40 MiB Android v0 boot image to BOOT from TWRP, verify the partition readback hash, and boot it.
 
 ### Development findings
 
 - The standalone image is an Android v0 header at 0x10000000 with kernel at 0x10008000 and tags at 0x10000100; the kernel field is exactly BootShim plus the 2 MiB FD.
-- The standalone image omits the stock DTBH table and SEANDROIDENFORCE footer. S-Boot acceptance is untested.
+- S-Boot accepts both the stock-form image with DTBH and footer and the standalone v0 image; both reached the UEFI UI.
 - The standalone build is bit-for-bit reproducible and the DECON trigger is preserved instead of writing the Exynos 8895 value 0x1281.
 - With UNIXNU\_PAYLOAD=1 the UniXNU firmware build links UniXNU, UniXNUDxe, UniXNURamDiskDxe and DarwinBoot. FVMAIN grows from 0x20a000 to 0x235000 inside the 2 MiB FD.
+- The safemem image with FD, stack and heap at 0xB1200000-0xBFF40000 reached UEFI. The bring-up image then toggled the timer block, accepted volume, home and power keys, and advanced the counter.
 
 ### Completion criteria
 
@@ -105,22 +107,24 @@ Components: `DarwinBoot`.
 
 ### Current limits
 
-- No hardware boot attempt yet.
-- The integrated firmware has no payload or boot image yet.
+- The UniXNU-integrated firmware \(UNIXNU\_PAYLOAD=1\) has not been booted; no payload or boot image exists yet.
+- No ARM generic-timer interrupt has been delivered through the XNU path.
 
 ### Next action
 
-- Boot the integrated firmware and verify the UniXNU menu and payload FAT.
+- Boot each firmware change to the UEFI UI; the next milestone is the XNU handoff with the GICv2 path now implemented.
 
 ### Evidence
 
 - `source`: [hero2lte firmware package, keypad library, host tests and optional UniXNU payload integration](https://github.com/DokuroMitsukai/Mu-Silicium/commit/5790015a98714044d72d5037cea300b40f66a2e0)
-- `host`: [2 MiB SILICIUM\_UEFI.fd contains UniXNU, UniXNUDxe, UniXNURamDiskDxe and DarwinBoot; FVMAIN used 0x235000 and FVMAIN\_COMPACT kept 0x194998 free](https://github.com/DokuroMitsukai/UniXNU-hero2lte/blob/53ccc853aefa388215504ddc75ca8f602917e6e3/board.toml)
+- `host`: [2 MiB SILICIUM\_UEFI.fd contains UniXNU, UniXNUDxe, UniXNURamDiskDxe and DarwinBoot; FVMAIN used 0x235000 and FVMAIN\_COMPACT kept 0x194998 free](https://github.com/DokuroMitsukai/UniXNU-hero2lte/blob/4086db3a4029a18ea089e7ce6355c089c58a2b09/board.toml)
   Command: <code>./unixnu build firmware --uefi ../Mu-Silicium --target RELEASE -D ../UniXNU-hero2lte</code>. Revision: `5790015a98714044d72d5037cea300b40f66a2e0`.
+- `device`: [readback matched 011d3abf...; timer block toggled magenta/cyan, volume/home/power keys were accepted, counter advanced, manual reboot to TWRP](https://github.com/DokuroMitsukai/UniXNU-hero2lte/blob/4086db3a4029a18ea089e7ce6355c089c58a2b09/evidence/uefi-bringup-20261026.txt)
+  Command: <code>adb push out/boot-uefi-samsung-bringup.img /tmp/boot-bringup.img; adb shell 'dd if=/tmp/boot-bringup.img of=/dev/block/sda5 bs=1M; sync; sha256sum /dev/block/sda5'; adb reboot</code>. Revision: `9f984f86636492269fff9297163d98b89c3cea65`.
 
 ## CPU and interrupts {#cpu}
 
-`planned`
+`implemented`
 
 Components: `ArmCpu`, `ArmDTPlatform`, `SoftwareAES`.
 
@@ -141,9 +145,10 @@ Components: `ArmCpu`, `ArmDTPlatform`, `SoftwareAES`.
 
 ### Development findings
 
-- ArmCpu registers only the compatible string arm,gic-v3 and requires a 32-byte reg property with a distributor and redistributors. GIC-400 exposes four ranges, so mapGic rejects this tree.
-- The stock timer node sets use-clocksource-only and Android uses MCT ticks for events. The architectural timer PPI is unvalidated.
+- ArmCpu accepts arm,cortex-a15-gic and maps the distributor plus the banked GICC, uses PPI 27 for the virtual timer, sends SGI 0 through GICD\_SGIR, and leaves GICD\_IGROUPR to firmware. A standalone QEMU GIC-400 test passes the timer and self-SGI path.
+- The stock timer node sets use-clocksource-only and Android uses MCT ticks for events. The architectural timer PPI is unvalidated on hardware.
 - Cluster 0 is Mongoose and cluster 1 is Cortex-A53 on this SoC, the opposite of the usual big-little numbering.
+- UEFI's ArmGicDxe path handled the GIC-400 and timer interrupts during the bring-up test: the probe toggled every 200 ms and key notifies arrived.
 
 ### Completion criteria
 
@@ -151,16 +156,19 @@ Components: `ArmCpu`, `ArmDTPlatform`, `SoftwareAES`.
 
 ### Current limits
 
-- GICv2 MMIO support and the timer interrupt path are not implemented.
+- ArmCpu's GICv2 path enables only the boot CPU interface; secondary-core bring-up is not implemented.
+- The XNU kernel handoff and timer delivery through ArmCpu have not been observed on hardware.
 - Only one CPU is enabled.
 
 ### Next action
 
-- Add GICv2 distributor, CPU-interface and timer handling to ArmCpu before enabling secondary CPUs.
+- Build and boot the XNU image with the GICv2 ArmCpu path, then extend GICv2 secondary-core startup.
 
 ### Evidence
 
-- `source`: [Board CPU selection on top of the shared exynos8890.dtsi](https://github.com/DokuroMitsukai/UniXNU-hero2lte/blob/53ccc853aefa388215504ddc75ca8f602917e6e3/dts/hero2lte.dts)
+- `source`: [Board CPU selection on top of the shared exynos8890.dtsi](https://github.com/DokuroMitsukai/UniXNU-hero2lte/blob/4086db3a4029a18ea089e7ce6355c089c58a2b09/dts/hero2lte.dts)
+- `source`: [UEFI GICv2 and timer interrupt handling observed on hardware; ArmCpu's own GIC path was not used](https://github.com/DokuroMitsukai/UniXNU-hero2lte/blob/4086db3a4029a18ea089e7ce6355c089c58a2b09/evidence/uefi-bringup-20261026.txt)
+- `source`: [Four-range GICv2 device tree and identity arm-io ranges, distributor, banked CPU interface, PPI 27 timer, GICD\_SGIR IPI, firmware-owned interrupt group and QEMU GIC-400 test](https://github.com/DokuroMitsukai/ArmCpu/commit/fba847bd4488e8b7bb715a91ba87e59d8fffbb66)
 
 ## Memory and DMA {#memory}
 
@@ -183,8 +191,8 @@ Components: `ArmCpu`, `ArmDTPlatform`, `SoftwareAES`.
 
 ### Development findings
 
-- The provisional Mu-Silicium MemoryMapLib overlaps the DT video\_frame and video\_scaler pools; safety is unproven.
-- The framebuffer lies inside the low RAM range, so the PMAP must reserve it before XNU maps RAM.
+- The earlier Mu-Silicium MemoryMapLib overlapped the DT video\_frame and video\_scaler pools. The safemem build now places the UEFI FD, stack and heap in the 0xB1200000-0xBFF40000 gap and reached UEFI on hardware.
+- The framebuffer lies inside the low RAM range, so the XNU PMAP must reserve it before XNU maps RAM.
 
 ### Completion criteria
 
@@ -193,15 +201,17 @@ Components: `ArmCpu`, `ArmDTPlatform`, `SoftwareAES`.
 ### Current limits
 
 - Upper 2 GiB RAM is unused.
-- Reserved-memory conversion and framebuffer exclusion are unverified.
+- The UEFI relocation is validated, but XNU reserved-memory conversion and framebuffer exclusion are unverified.
 
 ### Next action
 
-- Decide how the ADT generator represents the second RAM range and the display reservations.
+- Decide how the ADT generator represents the second RAM range and the display reservations, then verify the XNU PMAP.
 
 ### Evidence
 
-- `source`: [Memory range and framebuffer reservation](https://github.com/DokuroMitsukai/UniXNU-hero2lte/blob/53ccc853aefa388215504ddc75ca8f602917e6e3/dts/hero2lte.dts)
+- `source`: [Memory range and framebuffer reservation](https://github.com/DokuroMitsukai/UniXNU-hero2lte/blob/4086db3a4029a18ea089e7ce6355c089c58a2b09/dts/hero2lte.dts)
+- `device`: [the 0xB1200000-0xBFF40000 UEFI layout reached the logo and missing-OS screen](https://github.com/DokuroMitsukai/UniXNU-hero2lte/blob/4086db3a4029a18ea089e7ce6355c089c58a2b09/evidence/uefi-bringup-20261026.txt)
+  Command: <code>adb shell 'sha256sum /dev/block/sda5'; observe UEFI after booting out/boot-uefi-samsung-safemem.img</code>. Revision: `9f984f86636492269fff9297163d98b89c3cea65`.
 
 ## Storage and root {#storage}
 
@@ -215,7 +225,7 @@ Components: `ArmCpu`, `ArmDTPlatform`, `SoftwareAES`.
 ### Configuration
 
 - The SoC DTSI describes the UFS controller and leaves it disabled.
-- userdata geometry is deliberately absent from board.toml until the EFS and CPEFS backups are verified.
+- userdata geometry remains absent from board.toml until the storage milestone and wipe approval. EFS and CPEFS backups are now captured and verified.
 
 ### Procedure
 
@@ -225,7 +235,7 @@ Components: `ArmCpu`, `ArmDTPlatform`, `SoftwareAES`.
 ### Development findings
 
 - ShengUfs targets Qualcomm UFS and cannot be reused directly.
-- KernelSU is installed but adb shell has no root, so the critical backup needs TWRP or a root grant.
+- EFS and CPEFS were captured from TWRP and integrity-checked. The EFS images differ only in ext4 superblock counters; e2fsck reports the same 181 files and no errors.
 
 ### Completion criteria
 
@@ -233,20 +243,20 @@ Components: `ArmCpu`, `ArmDTPlatform`, `SoftwareAES`.
 
 ### Current limits
 
-- No storage driver and no verified EFS/CPEFS backup.
-- No wipe or repartition is allowed in this state.
+- No storage driver.
+- No wipe or repartition is allowed until the restore procedure is tested.
 
 ### Next action
 
-- Obtain the EFS/CPEFS backup, then select or implement the UFS host driver.
+- Select or implement the Exynos UFS host driver, then validate read-only access before any mount or write.
 
 ### Evidence
 
-Collect evidence using the next action.
+- `source`: [EFS and CPEFS captured from TWRP, hash-verified and checked with e2fsck](https://github.com/DokuroMitsukai/UniXNU-hero2lte/blob/4086db3a4029a18ea089e7ce6355c089c58a2b09/evidence/efs-cpefs-backup-20261026.txt)
 
 ## Display {#display}
 
-`planned`
+`device-verified`
 
 ### Hardware and dependencies
 
@@ -259,12 +269,12 @@ Collect evidence using the next action.
 
 ### Procedure
 
-- Build the Phase 1 firmware and capture the menu on the panel.
+- Build the Phase 1 firmware and boot it on the panel.
 - Record geometry, colors and backlight behavior before adding a native driver.
 
 ### Development findings
 
-- The standalone firmware builds, but the display path has no hardware checkpoint.
+- The standalone firmware rendered the Project Silicium UI and the missing-OS screen on hardware. BringupTestDxe drew its timer, key bars and counter at the expected top-left positions.
 - DECON's trigger register is logged and left untouched because the Exynos 8895 value is not evidence for 8890.
 
 ### Completion criteria
@@ -273,20 +283,21 @@ Collect evidence using the next action.
 
 ### Current limits
 
-- No display hardware checkpoint.
-- No brightness or native scanout driver.
+- Only the S-Boot framebuffer path is validated.
+- No brightness, panel power or native scanout driver.
 
 ### Next action
 
-- Boot the Phase 1 firmware and record the display result.
+- Add panel power and backlight control, then validate a native scanout path.
 
 ### Evidence
 
-Collect evidence using the next action.
+- `device`: [logo, missing-OS screen and the diagnostic timer/key/counter graphics appeared on the panel](https://github.com/DokuroMitsukai/UniXNU-hero2lte/blob/4086db3a4029a18ea089e7ce6355c089c58a2b09/evidence/uefi-bringup-20261026.txt)
+  Command: <code>boot out/boot-uefi-samsung-bringup.img and observe the panel</code>. Revision: `9f984f86636492269fff9297163d98b89c3cea65`.
 
 ## Input {#input}
 
-`planned`
+`device-verified`
 
 ### Hardware and dependencies
 
@@ -301,11 +312,11 @@ Collect evidence using the next action.
 ### Procedure
 
 - Run Resources/Scripts/test\_hero2lte\_keypad.py in the firmware checkout.
-- Hold Volume Up at reset and record the menu response on hardware.
+- Press volume up, volume down, home and power in the Phase 1 firmware and record the response on hardware.
 
 ### Development findings
 
-- The keypad host test passes. Device input is untested.
+- The keypad host test passes. On hardware each key produced its expected BringupTestDxe bar and advanced the accepted-event counter.
 - Touch needs a separate component and has no driver yet.
 
 ### Completion criteria
@@ -314,15 +325,17 @@ Collect evidence using the next action.
 
 ### Current limits
 
-- Only keypad logic exists; touch and XNU gpio-keys integration are pending.
+- The keypad path is validated only through BringupTestDxe; XNU gpio-keys integration is pending.
+- Touch has no driver.
 
 ### Next action
 
-- Validate keypad input in the Phase 1 firmware menu.
+- Add the XNU gpio-keys path and validate release events; then inventory the touch controller.
 
 ### Evidence
 
-Collect evidence using the next action.
+- `device`: [red, green, blue and white bars appeared and the accepted-event counter advanced](https://github.com/DokuroMitsukai/UniXNU-hero2lte/blob/4086db3a4029a18ea089e7ce6355c089c58a2b09/evidence/uefi-bringup-20261026.txt)
+  Command: <code>press Volume Up, Volume Down, Home and Power while BringupTestDxe runs</code>. Revision: `9f984f86636492269fff9297163d98b89c3cea65`.
 
 ## GPU {#gpu}
 
@@ -496,7 +509,8 @@ Components: `XnuPrelink`.
 
 ### Development findings
 
-- The standalone Mu-Silicium boot image already uses the v0 layout and passes the BootShim host tests.
+- The standalone Mu-Silicium boot image uses the v0 layout and passes the BootShim host tests.
+- A 40 MiB standalone image was written to BOOT, read back byte-for-byte and accepted by S-Boot, reaching UEFI.
 - No XNU kernel, payload or UniXNU boot image has been built for this board.
 
 ### Completion criteria
@@ -506,10 +520,11 @@ Components: `XnuPrelink`.
 ### Current limits
 
 - No kernelcache, trust cache or data ramdisk is available.
+- The UEFI container is validated, but no XNU payload image exists.
 
 ### Next action
 
-- Build the kernel after ArmCpu GICv2 support and the first hardware checkpoint.
+- Build the kernel now that ArmCpu GICv2 support exists, then supply the kernelcache, trust cache and data ramdisk for the first XNU hardware checkpoint.
 
 ### Evidence
 
@@ -534,7 +549,8 @@ Collect evidence using the next action.
 
 ### Development findings
 
-- Host build logs exist locally; no firmware or kernel log has been captured from the device.
+- Host build logs exist locally. The UEFI checkpoint was observed on the panel; no persistent firmware log was captured.
+- The bring-up probe provided visual timer, key and counter evidence without a storage or serial log path.
 
 ### Completion criteria
 
@@ -543,10 +559,11 @@ Collect evidence using the next action.
 ### Current limits
 
 - No QR log exporter or persistent capture in the firmware yet.
+- XNU handoff and kernel logs cannot be captured on this board yet.
 
 ### Next action
 
-- Add the firmware log exporter before the first hardware boot.
+- Add a persistent firmware log path before the first XNU handoff.
 
 ### Evidence
 

@@ -100,6 +100,8 @@
 | [小米平板 8 Pro（piano）](/zh/devices/piano) | SM8750 | 1 | 设备说明 | [code002-2/UniXNU-piano](https://github.com/code002-2/UniXNU-piano) |
 | [Redmi K30 5G（picasso）](/zh/devices/picasso) | SM7250 | 1 | 设备说明 | [YinCQL/UniXNU-picasso](https://github.com/YinCQL/UniXNU-picasso) |
 | [Redmi K30 5G \(minhtritt1996\)](/zh/devices/picasso-minhtritt1996) | SM7250 | 1 | 仓库链接 | [minhtritt1996/UniXNU-picasso](https://github.com/minhtritt1996/UniXNU-picasso) |
+| [Redmi K30 5G \(silenzio111\)](/zh/devices/picasso-silenzio111) | SM7250 | 1 | 仓库链接 | [silenzio111/UniXNU-picasso](https://github.com/silenzio111/UniXNU-picasso) |
+| [Redmi K30 5G targeting iPhone X iOS 16; Darwin 22 ABI and firmware pending \(SuzukiR1n\)](/zh/devices/picasso-suzukir1n) | SM7250 | 2 | 适配记录 | [SuzukiR1n/UniXNU-Picasso](https://github.com/SuzukiR1n/UniXNU-Picasso) |
 | [小米平板 6（pipa）](/zh/devices/pipa) | SM8250 | 1 | 设备说明 | [xVanTuring/uefi-pipa](https://github.com/xVanTuring/uefi-pipa) |
 | [Xiaomi Pad 6 \(FFT-infra\)](/zh/devices/pipa-fft-infra) | SM8250 | 1 | 仓库链接 | [FFT-infra/UniXNU-alioth-ARCHIVE](https://github.com/FFT-infra/UniXNU-alioth-ARCHIVE) |
 | [Xiaomi Pad 6 \(xVanTuring\)](/zh/devices/pipa-xvanturing) | SM8250 | 1 | 仓库链接 | [xVanTuring/UniXNU-pipa](https://github.com/xVanTuring/UniXNU-pipa) |
