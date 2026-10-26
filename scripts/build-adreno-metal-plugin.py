@@ -10,6 +10,7 @@ import plistlib
 import re
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -27,7 +28,11 @@ if not TURNIP.is_file():
     raise SystemExit('Build Turnip first: python3 scripts/build-turnip-darwin.py --target ios')
 subprocess.run(['python3', ROOT / 'scripts/gen-turnip-smoke-shaders.py'], check=True)
 # Turnip's first submission, recorded on the host, for the plugin's prefix replay (build/turnip-smoke/TurnipReplay.h).
-subprocess.run(['python3', ROOT / 'scripts/gen-turnip-replay.py'], check=True)
+# The recording runs the macOS host simulation; a Linux host builds the plugin without it (the header is optional).
+if sys.platform == 'darwin':
+    subprocess.run(['python3', ROOT / 'scripts/gen-turnip-replay.py'], check=True)
+else:
+    (ROOT / 'build/turnip-smoke/TurnipReplay.h').unlink(missing_ok=True)
 subprocess.run(['python3', ROOT / 'scripts/build-native-metal-bridge.py', '--target', 'ios'], check=True)
 BRIDGE = ROOT / 'build/native-metal-bridge/ios/libnative_metal_bridge.a'
 pm4 = OUT / 'AdrenoPM4.o'
