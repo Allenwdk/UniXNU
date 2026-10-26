@@ -94,10 +94,6 @@ PHY、复位、时钟和电源序列。
 first_lba = 3094592
 last_lba = 64007162
 lba_bytes = 4096
-windows = [
-  { name = "OS", component = "OS" },
-  { name = "SystemOS", component = "Cryptex1,SystemOS" },
-]
 
 [payload.adt]
 root_match_volume_uuid = "04769D26-2CA0-4825-B443-E2E5F88300F2"
