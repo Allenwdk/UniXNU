@@ -11,8 +11,9 @@ Manifest (little endian): "SHNGROOT", u32 version=1, u32 count, u64 image_bytes,
 {char name[32], u64 offset, u64 size, u32 block_size=512, u32 flags(1=read-only), u8 sha256[32], 40 reserved},
 and at byte 4064 the SHA-256 of bytes 0..4063.
 
-The images come from the IPSW (a local file or a remote URL, see ipsw.py) and are checked against the pins of
-board.toml. The raw disk of each disk image is read without mounting: attached read-only with hdiutil on macOS,
+The OS profile lists the windows ([userdata] windows; optional ones are skipped when the IPSW lacks them) and the
+device sets the partition geometry. The images come from the IPSW (a local file or a remote URL, see ipsw.py),
+are decrypted when the IPSW ships them as AEA, and are checked against the pins of board.toml. The raw disk of each disk image is read without mounting: attached read-only with hdiutil on macOS,
 decoded by udif.py on other hosts. Nothing is flashed: the report prints the fastboot command, to be run by the user.
 """
 import contextlib
@@ -85,13 +86,25 @@ def build(ctx, dry_run=False):
         tool('hdiutil', 'the disk images are attached with macOS hdiutil')
     source = Ipsw(ctx)
     capacity = (spec['last_lba'] - spec['first_lba'] + 1) * spec.get('lba_bytes', 4096)
+    windows = []
+    for window in spec.get('windows', []):
+        try:
+            source.member(window['component'])
+        except Error:
+            if not window.get('optional'):
+                raise
+            log(f'userdata: {window["name"]} skipped, {window["component"]} is not in this IPSW')
+            continue
+        windows.append(window)
+    if not windows:
+        raise Error('[userdata] windows selects no disk image; the OS profile defines them')
     if dry_run:
-        for window in spec['windows']:
+        for window in windows:
             name, size, _ = source.info(window['component'])
             log(f'userdata: {window["name"]} would be extracted from {name} ({size >> 20} MiB)')
         log('userdata: dry run, nothing extracted or written')
         return None
-    sources = [(window['name'], source.extract(window['component'])) for window in spec['windows']]
+    sources = [(window['name'], source.disk_image(window['component'])) for window in windows]
     layout, cursor = [], MIB
     for name, dmg in sources:
         size = image_size(dmg)

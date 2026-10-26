@@ -85,3 +85,7 @@ kind = "refer"
 git = "https://github.com/apple-oss-distributions/libpthread.git"
 ref = "libpthread-539.100.4"
 commit = "1f4f5265b319111142f1bf3a27d4484ef5a98314"
+
+[userdata]
+# Disk images of this OS, in window order; the device sets the partition geometry.
+windows = [{ name = "OS", component = "OS" }, { name = "SystemOS", component = "Cryptex1,SystemOS", optional = true }]
