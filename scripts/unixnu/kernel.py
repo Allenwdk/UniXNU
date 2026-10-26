@@ -44,6 +44,9 @@ def version_env(modules, ctx=None):
                 env[variable] = profile[key]
         if profile.get('xnu_version'):
             env['UNIXNU_XNU_TAG'] = 'xnu-' + profile['xnu_version']
+        if profile.get('ios_version'):
+            env['UNIXNU_IOS_VERSION'] = profile['ios_version']
+        env['UNIXNU_XNU_ARCH'] = ctx.board.get('arch', {}).get('name', 'arm64')
     return env
 
 
