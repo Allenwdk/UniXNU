@@ -12,12 +12,15 @@ import json
 from pathlib import Path
 import struct
 
+from kernel_target import ARCH, SUBTYPE
+
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('kernel', type=Path)
 args = parser.parse_args()
 data = bytearray(args.kernel.read_bytes())
-if struct.unpack_from('<4I', data) != (0xfeedfacf, 0x100000c, 0, 2):
-    raise SystemExit('Expected a source-built ordinary ARM64 MH_EXECUTE kernel')
+magic, cpu, subtype, kind = struct.unpack_from('<4I', data)
+if (magic, cpu, subtype & 0xff, kind) != (0xfeedfacf, 0x100000c, SUBTYPE, 2):
+    raise SystemExit(f'Expected a source-built {ARCH} MH_EXECUTE kernel')
 if b'_source_corecrypto14_bootstrap\0' not in data:
     raise SystemExit('Input does not contain the explicit source-provider bootstrap')
 offset = 32

@@ -25,3 +25,6 @@
 ../../../../../patches/xnu-12377/public-pmap-without-monitor.patch
 ../../../../../patches/xnu-12377/optional-kernel-support-archive.patch
 ../../../../../patches/xnu-12377/public-missing-definitions.patch
+../../../../../patches/xnu-12377/source-corecrypto14-bootstrap.patch
+../../../../../patches/xnu-12377/source-pthread-bootstrap.patch
+../../../../../patches/xnu-12377/native-arm-pan.patch

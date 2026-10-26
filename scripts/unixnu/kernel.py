@@ -23,7 +23,7 @@ def xnu_env(ctx):
 def version_env(modules, ctx=None):
     """Source versions of the Apple references, from feeds.toml, for the kernel scripts."""
     env = {}
-    for name, prefix in (('xnu', 'XNU'), ('libplatform', 'LIBPLATFORM'), ('libdispatch', 'LIBDISPATCH'), ('AvailabilityVersions', 'AVAILABILITYVERSIONS')):
+    for name, prefix in (('xnu', 'XNU'), ('libplatform', 'LIBPLATFORM'), ('libdispatch', 'LIBDISPATCH'), ('AvailabilityVersions', 'AVAILABILITYVERSIONS'), ('libpthread', 'LIBPTHREAD')):
         module = modules.get(('refer', name))
         entry = module.source if module and module.source else {}
         if entry.get('ref'):

@@ -4,8 +4,9 @@ import argparse
 import json
 import tomllib
 from pathlib import Path
-import struct
 import subprocess
+
+from kernel_target import TRIPLE, check_object
 
 ROOT = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser(description=__doc__)
@@ -103,20 +104,8 @@ result = subprocess.run(command, cwd=record['directory'], stdout=subprocess.PIPE
 (out / 'compile.log').write_text(result.stdout)
 if result.returncode:
     raise SystemExit(result.stdout[-3500:])
-data = destination.read_bytes()
-magic, cpu, subtype, kind, count, size = struct.unpack_from('<6I', data)
-if (magic, cpu, subtype, kind) != (0xfeedfacf, 0x100000c, 0, 1):
-    raise SystemExit('Unexpected platform object architecture')
-offset = 32
-deployment = None
-for _ in range(count):
-    cmd, length = struct.unpack_from('<II', data, offset)
-    if cmd == 0x32:
-        deployment = struct.unpack_from('<II', data, offset + 8)
-    offset += length
-if deployment != (2, 0x110000):
-    raise SystemExit(f'Unexpected platform deployment {deployment}')
+check_object(destination.read_bytes(), component)
 archive = out / ('lib' + identifier + '.a')
 archive.unlink(missing_ok=True)
 subprocess.run(['xcrun', 'ar', 'rcs', archive, destination], check=True)
-print(f'{identifier}: -Werror build and actual ARM64/iOS 17 object audit passed')
+print(f'{identifier}: -Werror build and {TRIPLE} object audit passed')
