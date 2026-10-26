@@ -67,6 +67,8 @@ SM8550 没有 SME。iPadOS 26.5.2 的 dyld cache 在以 SME 命名的函数中�
 
 - iPad17,1 至 iPad17,4 的 iPadOS 26.5.2 kernelcache 报告 `xnu-12377.122.8`，最接近的公开源码是 `xnu-12377.121.6`。
 - 公开的 `xnu-12377.121.6` 源码在 `osfmk/arm/pmap` 中保留非 SPTM 的 pmap。
+- arm64e 内核使用 `BCM2837` 机器配置和非 SPTM 的 pmap 编译，并关闭 Apple CPU 计数器。
+- iPadOS 26.5.2 的 kernelcache 是 `MH_FILESET`，符号表已删除。kext 代码直接跳转到内核，所以 iPadOS 17 的 prelink 步骤不适用。
 
 待确认：
 

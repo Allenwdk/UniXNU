@@ -76,6 +76,8 @@ Facts:
 
 - The iPadOS 26.5.2 kernelcache for iPad17,1 to iPad17,4 reports `xnu-12377.122.8`. The closest public source is `xnu-12377.121.6`.
 - The public `xnu-12377.121.6` tree keeps the non-SPTM pmap in `osfmk/arm/pmap`.
+- The arm64e kernel builds with the `BCM2837` machine config, the non-SPTM pmap and Apple CPU counters disabled.
+- The iPadOS 26.5.2 kernelcache is an `MH_FILESET` with stripped symbol tables. Its kext code branches directly into the kernel, so the iPadOS 17 prelink step does not apply.
 
 Open questions:
 
