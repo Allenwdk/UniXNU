@@ -4,4 +4,4 @@
 
 Complete and validate [porting.toml](/porting/records) in the device repository to publish its subsystem record.
 
-FFT-infra/UniXNU-alioth: components without an area: \['AppleKeyStoreState', 'RamBlock', 'ShengUfs', 'VerifiedRoot', 'VirtioMmioBlock'\]
+FFT-infra/UniXNU-alioth: components without an area: \['AppleKeyStoreState', 'GopFramebuffer', 'QcomXnuUsbDebug', 'RamBlock', 'ShengUfs', 'VerifiedRoot', 'VirtioMmioBlock'\]

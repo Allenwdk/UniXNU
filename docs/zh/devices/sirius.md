@@ -6,7 +6,7 @@
 
 Xiaomi Mi 8 SE running the UniXNU source kernel through its own U-Boot UEFI: entry, MMU, timer, PSCI, platform expert and the boot-progress console work on hardware; IOKit is blocked on AppleARMCPU claiming /cpus.
 
-源记录: [porting.toml](https://github.com/57UU/UniXNU-sirius/blob/e51069a970f81a3c48588041a0caa3087a1ebbbc/porting.toml), `e51069a970f81a3c48588041a0caa3087a1ebbbc`.
+源记录: [porting.toml](https://github.com/57UU/UniXNU-sirius/blob/fa01d37141be41c9911d981423a76d3b9f85e085/porting.toml), `fa01d37141be41c9911d981423a76d3b9f85e085`.
 
 本页按设备记录自动生成。
 
@@ -54,6 +54,8 @@ Xiaomi Mi 8 SE running the UniXNU source kernel through its own U-Boot UEFI: ent
 
 ### 开发经验
 
+- board.toml gained build-sirius-emmc.py in the archive list next to the USB console entry.
+- board.toml lists build-sirius-emmc.py alongside the other archives, because the SDCC1 probe is compiled the same way as the USB console and joins the same force-loaded archive.
 - Format 2 replaced the hand-written ADT generator of the legacy port \(scripts/make-sirius-adt.py\) with a board DTS: the payload step compiles the tree and derives kernel.macho.adt from it.
 - The arm-io base is derived from the exported nodes, not written by hand: the GIC at 0x17a00000 makes the window start at 0x17000000, which XNU reads as the SoC base.
 - The legacy port set ipad\_identity = true; in format 2 the same identity is the OS profile's \[adt\] tables, so the board only states its deviations.
@@ -75,7 +77,7 @@ Xiaomi Mi 8 SE running the UniXNU source kernel through its own U-Boot UEFI: ent
 
 ### 证据
 
-- `source`: [Hardware values, the boot chain and the bring-up history of the legacy port, from which this configuration is carried over.](https://github.com/57UU/UniXNU-sirius/blob/e51069a970f81a3c48588041a0caa3087a1ebbbc/docs/HANDOFF.zh-CN.md)
+- `source`: [Hardware values, the boot chain and the bring-up history of the legacy port, from which this configuration is carried over.](https://github.com/57UU/UniXNU-sirius/blob/fa01d37141be41c9911d981423a76d3b9f85e085/docs/HANDOFF.zh-CN.md)
 
 ## 固件与启动 {#firmware}
 
@@ -102,6 +104,7 @@ Xiaomi Mi 8 SE running the UniXNU source kernel through its own U-Boot UEFI: ent
 
 ### 开发经验
 
+- The eMMC work adds no firmware component: the payload still boots through U-Boot with the same marker file.
 - U-Boot's UEFI services are enough for UniXNU, DarwinBoot and XNU: no Mu-Silicium platform port is needed for this board.
 - DarwinBoot's GIC-500 pre-configuration \(the iBoot role\) is what lets the kernel pass lockdown and start kexts on this SoC.
 - The pre-configuration must not enable the EL1 virtual timer PPI early: on SDM710 that is INTID 19 and it fires before ArmCpu installs its handler.
@@ -120,7 +123,7 @@ Xiaomi Mi 8 SE running the UniXNU source kernel through its own U-Boot UEFI: ent
 
 ### 证据
 
-- `source`: [Boot-chain diagram, the marker-file boot rule and the DarwinBoot GIC pre-configuration rationale.](https://github.com/57UU/UniXNU-sirius/blob/e51069a970f81a3c48588041a0caa3087a1ebbbc/docs/HANDOFF.zh-CN.md)
+- `source`: [Boot-chain diagram, the marker-file boot rule and the DarwinBoot GIC pre-configuration rationale.](https://github.com/57UU/UniXNU-sirius/blob/fa01d37141be41c9911d981423a76d3b9f85e085/docs/HANDOFF.zh-CN.md)
 
 ## CPU 与中断 {#cpu}
 
@@ -146,6 +149,7 @@ Xiaomi Mi 8 SE running the UniXNU source kernel through its own U-Boot UEFI: ent
 
 ### 开发经验
 
+- The eMMC bring-up does not touch the CPU selection or the ArmCpu driver; board.toml only gained an archive entry.
 - The boot-progress TOPO row confirms the kernel topology on hardware: boot=0 max=7 nums=01234567.
 - With sheng-smp=1 the native ArmCpu claims every /cpus nub; without it the kernelcache AppleARMCPU takes the nubs and panics with "CPU configuration in device tree is invalid" because it requires /cpus/max\_cpus.
 - AppleARMCPU still wins the nubs at the current stage, which is the open IOKit blocker.
@@ -164,7 +168,7 @@ Xiaomi Mi 8 SE running the UniXNU source kernel through its own U-Boot UEFI: ent
 
 ### 证据
 
-- `source`: [Timer INTID measurement, the TOPO checkpoint and the AppleARMCPU panic analysis.](https://github.com/57UU/UniXNU-sirius/blob/e51069a970f81a3c48588041a0caa3087a1ebbbc/docs/HANDOFF.zh-CN.md)
+- `source`: [Timer INTID measurement, the TOPO checkpoint and the AppleARMCPU panic analysis.](https://github.com/57UU/UniXNU-sirius/blob/fa01d37141be41c9911d981423a76d3b9f85e085/docs/HANDOFF.zh-CN.md)
 
 ## 内存与 DMA {#memory}
 
@@ -186,6 +190,7 @@ Xiaomi Mi 8 SE running the UniXNU source kernel through its own U-Boot UEFI: ent
 
 ### 开发经验
 
+- The eMMC probe maps two register windows \(GCC and SDCC1\) and reads only; the payload memory map is unchanged.
 - The single contiguous range is what DarwinBoot's window allocation and the ADT handoff require; the two physical banks are described as one range on purpose.
 
 ### 完成条件
@@ -202,7 +207,7 @@ Xiaomi Mi 8 SE running the UniXNU source kernel through its own U-Boot UEFI: ent
 
 ### 证据
 
-- `source`: [DRAM split, framebuffer address and the memory-map checkpoint.](https://github.com/57UU/UniXNU-sirius/blob/e51069a970f81a3c48588041a0caa3087a1ebbbc/docs/HANDOFF.zh-CN.md)
+- `source`: [DRAM split, framebuffer address and the memory-map checkpoint.](https://github.com/57UU/UniXNU-sirius/blob/fa01d37141be41c9911d981423a76d3b9f85e085/docs/HANDOFF.zh-CN.md)
 
 ## 存储与根卷 {#storage}
 
@@ -223,7 +228,12 @@ Xiaomi Mi 8 SE running the UniXNU source kernel through its own U-Boot UEFI: ent
 
 ### 开发经验
 
+- The SDCC1 probe is the first storage code on this port; it identifies the card but does not mount anything yet.
+- SDCC1 at 0x7c4000 is reachable as an SDHCI 3.0 host \(ver=6c02\) and the boot chain leaves its clocks, power and bus width programmed; the register window, capabilities and present state all read plausibly.
+- The card clock was the first real blocker: gcc\_sdcc1\_apps\_clk\_src sat in MND mode with M=0 N=0 D=0xff, so no valid card clock reached the eMMC and every command timed out with a floating response. Programming the Linux 400 kHz entry \(BI\_TCXO/12\*1/4\) made the card answer CMD1 with OCR 0x40ff8080.
+- CMD2 and CMD3 still get no response while CMD1 works, so identification stops before the CID/RCA are known; the next checks are DAT0-busy before CMD2 and the inter-command clock delays.
 - The legacy port deliberately kept every UFS and owner-root flag off; the boot-progress interlock of UniXNU had to be relaxed for that reason.
+- The CDC console work lives in package/sirius\_usb.c and does not change the storage blocker: the kernel still stops at the root device because no eMMC driver exists.
 
 ### 完成条件
 
@@ -261,6 +271,8 @@ Xiaomi Mi 8 SE running the UniXNU source kernel through its own U-Boot UEFI: ent
 
 ### 开发经验
 
+- The panel gained an EMMC row \(step, version, capabilities, state, clock, power, clock-branch halts\) next to the USB row, so the storage bring-up is visible without a serial link.
+- The USB row \(drawn by this panel\) labels its six values after what they now carry - step, txev, rxev, chars, echo, poll - because they were first wired to register names and had drifted.
 - The panel is the readable kernel log of this port: it renders the console, the TOPO/PROBE rows and panic\(\) output.
 - Since the panic snapshot patch the panel re-renders at panic time, so the rows are not a stale frame.
 
@@ -278,7 +290,7 @@ Xiaomi Mi 8 SE running the UniXNU source kernel through its own U-Boot UEFI: ent
 
 ### 证据
 
-- `source`: [Boot-progress panel behaviour, the panic snapshot fix and the geometry of the U-Boot framebuffer.](https://github.com/57UU/UniXNU-sirius/blob/e51069a970f81a3c48588041a0caa3087a1ebbbc/docs/HANDOFF.zh-CN.md)
+- `source`: [Boot-progress panel behaviour, the panic snapshot fix and the geometry of the U-Boot framebuffer.](https://github.com/57UU/UniXNU-sirius/blob/fa01d37141be41c9911d981423a76d3b9f85e085/docs/HANDOFF.zh-CN.md)
 
 ## 输入 {#input}
 
@@ -299,6 +311,7 @@ Xiaomi Mi 8 SE running the UniXNU source kernel through its own U-Boot UEFI: ent
 
 ### 开发经验
 
+- The SDCC1 probe does not touch the ADT buttons, so the input row and its hold/voldown/volup mapping are unchanged.
 - No input component is selected; the button node exists so that BSPlatform and MobileGestalt read a coherent product.
 
 ### 完成条件
@@ -444,6 +457,7 @@ Xiaomi Mi 8 SE running the UniXNU source kernel through its own U-Boot UEFI: ent
 
 ### 开发经验
 
+- The eMMC probe does not vote any RPMH resource; it re-enables the GCC SDCC1 branches that the boot chain had already set.
 - Reset works through PSCI \(the stage-3 reset loop proved it\).
 
 ### 完成条件
@@ -460,7 +474,7 @@ Xiaomi Mi 8 SE running the UniXNU source kernel through its own U-Boot UEFI: ent
 
 ### 证据
 
-- `source`: [PSCI reset evidence and the reason sleep is disabled.](https://github.com/57UU/UniXNU-sirius/blob/e51069a970f81a3c48588041a0caa3087a1ebbbc/docs/HANDOFF.zh-CN.md)
+- `source`: [PSCI reset evidence and the reason sleep is disabled.](https://github.com/57UU/UniXNU-sirius/blob/fa01d37141be41c9911d981423a76d3b9f85e085/docs/HANDOFF.zh-CN.md)
 
 ## 镜像组装 {#packaging}
 
@@ -484,6 +498,7 @@ Xiaomi Mi 8 SE running the UniXNU source kernel through its own U-Boot UEFI: ent
 
 ### 开发经验
 
+- The eMMC probe ships in the same force-loaded archive as the USB console, so the package list and payload layout are unchanged.
 - Format 2 generates kernel.macho.adt from the DTS, so the legacy ADT script is retired; make-uboot-payload.py still finishes the volume because U-Boot needs the EFI binaries inside it.
 - scripts/build-xnu-4k-baseline.sh is a copy of the UniXNU script with one board deviation: the boot-progress interlock only requires the source crypto provider.
 - The legacy build applied patches/xnu/\*.patch by glob \(56 files\); format 2 applies only what the series list names, and the ARM64 and OS series assume the two files they omit are present. native-smp-secondary.patch sets MAX\_CPUS 8 and Affinity1 core numbering; sheng-platform-power.patch supplies the bsd\_init.c block that zzz-boot-progress.patch quotes as context \(CONFIG\_XNU\_SHENG\_PMGR is off, so its code compiles to nothing\). Both now live in the sdm710 SoC series, which applies before the OS series.
@@ -515,7 +530,7 @@ Xiaomi Mi 8 SE running the UniXNU source kernel through its own U-Boot UEFI: ent
 
 ### 证据
 
-- `source`: [Build and deploy loop, the CI kernel artifact and the payload layout on the vendor partition.](https://github.com/57UU/UniXNU-sirius/blob/e51069a970f81a3c48588041a0caa3087a1ebbbc/docs/HANDOFF.zh-CN.md)
+- `source`: [Build and deploy loop, the CI kernel artifact and the payload layout on the vendor partition.](https://github.com/57UU/UniXNU-sirius/blob/fa01d37141be41c9911d981423a76d3b9f85e085/docs/HANDOFF.zh-CN.md)
 
 ## 诊断 {#diagnostics}
 
@@ -523,7 +538,7 @@ Xiaomi Mi 8 SE running the UniXNU source kernel through its own U-Boot UEFI: ent
 
 ### 硬件与依赖
 
-- The panel and the serial console are the two evidence channels; there is no storage for logs yet.
+- The panel and the serial console are the two evidence channels; since the DWC3 CDC console works, the host captures the kernel log directly and photographs are only a fallback.
 
 ### 配置
 
@@ -536,8 +551,13 @@ Xiaomi Mi 8 SE running the UniXNU source kernel through its own U-Boot UEFI: ent
 
 ### 开发经验
 
+- A register write-and-read-back test is the next diagnostic for the eMMC data phase, because SDHCI\_TRANSFER\_MODE reads back 0x33 after writing 0x13, which separates a write the vendor layer ignores from a command that is never sent.
+- The eMMC probe reports every step \(controller registers, the clock tree, the response registers around CMD0/CMD1 and each failure\) into the USB console ring, which is how the card clock and CMD2 findings above were obtained without a photograph.
+- The eMMC probe reports through sirius\_usb\_log\_char\(\) straight into the USB console ring, because kernel console output stops reaching the ring long before bsd\_init runs.
 - Stage bands \(entry, pre-MMU, panic\) and the TOPO/PROBE/MEM rows replaced the LED and UART guessing of earlier bring-up.
 - A panic snapshot forces a panel re-render at panic time; before it, rows could show a stale frame.
+- The USB panel row names its fields after what they hold \(step, txev, rxev, chars, echo, poll\) instead of the register names they were first wired to, so a photograph can be read without the source.
+- The CDC console hands the console ring to the host once per attach: the pump timing that works \(a short inline poll loop that breaks after the ring is drained\) delivered the 3813-byte boot log on every attempt, while longer loops and a DTR-gated pump delivered nothing, so that timing is treated as load-bearing until the periodic path runs during bsd\_init.
 
 ### 完成条件
 
@@ -545,14 +565,16 @@ Xiaomi Mi 8 SE running the UniXNU source kernel through its own U-Boot UEFI: ent
 
 ### 当前范围
 
-- No persistent log capture: the evidence lives in photographs of the panel and in the run's hashes.
+- The CDC console delivers the console ring as it stood when the host attached; making the whole boot stream live is the remaining work.
 
 ### 下一步
 
-- Add the boot row and hash triple to every hardware result recorded here.
+- Add the boot row and hash triple to every hardware result recorded here, and attach the captured console log rather than a photograph whenever one exists.
 
 ### 证据
 
-- `source`: [Entry probe, panic screen, panel rows and the evidence convention of the port.](https://github.com/57UU/UniXNU-sirius/blob/e51069a970f81a3c48588041a0caa3087a1ebbbc/docs/HANDOFF.zh-CN.md)
+- `source`: [Entry probe, panic screen, panel rows and the evidence convention of the port.](https://github.com/57UU/UniXNU-sirius/blob/fa01d37141be41c9911d981423a76d3b9f85e085/docs/HANDOFF.zh-CN.md)
+- `device`: [3813 bytes of kernel log read from /dev/ttyACM0 over the DWC3 CDC console.](https://github.com/57UU/UniXNU-sirius/blob/fa01d37141be41c9911d981423a76d3b9f85e085/docs/evidence/sirius-usb-console-20261026-1605.log)
+  Command: <code>sudo python3 scripts/capture-usb-console.py --wait 60 --duration 190 --output /tmp/boot.log</code>. Revision: `366abe2948fdb0c1554f7e0b89b731160f4527a4`.
 
 </div>
