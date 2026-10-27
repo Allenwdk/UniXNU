@@ -79,7 +79,7 @@ assembly = out / 'original-bindings.S'
 assembly.write_text(''.join(f'.globl {name}\n.set {name}, {value:#x}\n' for name, value in sorted(bindings.items())))
 subprocess.run(['xcrun', 'clang', '-target', 'arm64-apple-ios17.0', '-Werror', '-Wno-incompatible-sysroot',
                 '-c', assembly, '-o', out / 'original-bindings.o'], check=True)
-archive = out / ('lib' + component + '.a')
+archive = out / ('lib' + {'NativeUfs':'ShengUfs','NativeRamBlock':'RamBlock','NativeVirtioBlock':'VirtioMmioBlock','NativeVirtioConsole':'VirtioMmioConsole'}.get(component, component) + '.a')
 archive.unlink(missing_ok=True)
 subprocess.run(['xcrun', 'ar', 'rcs', archive, obj_path, out / 'original-bindings.o'], check=True)
 (out / 'bindings.json').write_text(json.dumps(dict(original_candidate_sha256=audit['candidate_sha256'],
