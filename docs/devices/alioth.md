@@ -6,7 +6,7 @@
 
 Device template. Complete each area with board-specific inputs and evidence.
 
-Source record: [porting.toml](https://github.com/FFT-infra/UniXNU-alioth/blob/aed29c3ba15003062375eca41e90bf830920d765/porting.toml), `aed29c3ba15003062375eca41e90bf830920d765`.
+Source record: [porting.toml](https://github.com/FFT-infra/UniXNU-alioth/blob/695a35bd11337a27473a1ef6687977c0527b6878/porting.toml), `695a35bd11337a27473a1ef6687977c0527b6878`.
 
 This page is generated from the device record.
 
@@ -216,7 +216,7 @@ Components: `ShengUfs`, `VerifiedRoot`, `VirtioMmioBlock`, `RamBlock`.
 
 ### Evidence
 
-- `device`: [The kernel reports cryptexd aborting with mkdirat ENOSPC while the Data volume reports 31 MiB free, which places the failing write on a mount other than /private/var.](https://github.com/FFT-infra/UniXNU-alioth/blob/aed29c3ba15003062375eca41e90bf830920d765/docs/evidence/2026-10-27-boot-diagnostics.md)
+- `device`: [The kernel reports cryptexd aborting with mkdirat ENOSPC while the Data volume reports 31 MiB free, which places the failing write on a mount other than /private/var.](https://github.com/FFT-infra/UniXNU-alioth/blob/695a35bd11337a27473a1ef6687977c0527b6878/docs/evidence/2026-10-27-boot-diagnostics.md)
   Command: <code>read /dev/tty.usbmodem&lt;N&gt; at 115200 8N1 and collect EXITLOG records</code>. Revision: `24d127c47217eb580dbe3f3a94c32ad25cbaae00`.
 
 ## Display {#display}
@@ -242,7 +242,7 @@ Components: `GopFramebuffer`.
 
 ### Development findings
 
-- The diagnostic page reaches DISPLAY stage=10 and a real client connects: CLIENT calls=4 with class=IOMobileFramebufferUserClient. No frame is ever submitted: SWAP calls=0.
+- Measured 2026-10-27 on boot-usb34: the lock screen is stable, SWAP calls=7 ok=7 rej=0, and backboardd creates its resources with kret=0. Earlier builds never submitted a frame at all.
 - The panel is driven directly by the kernel's own renderer, which is why the boot-progress page and the colour bands are visible before any userspace renderer runs.
 
 ### Completion criteria
@@ -251,8 +251,7 @@ Components: `GopFramebuffer`.
 
 ### Current limits
 
-- SWAP calls=0: nothing has ever presented a frame through this client. The panel shows only what the kernel draws.
-- backboardd, the render server, has not been started in any recent boot, so a userspace presentation path has never been exercised.
+- No wallpaper: the lock screen draws its date and time over a black field, so composition reaches the text layer only. gpu offered=0 confirms the GPU stack takes no part.
 
 ### Next action
 
@@ -260,7 +259,7 @@ Components: `GopFramebuffer`.
 
 ### Evidence
 
-- `device`: [DISPLAY stage=10 with CLIENT calls=4 class=IOMobileFramebufferUserClient, and SWAP calls=0: a client connects but no frame is submitted.](https://github.com/FFT-infra/UniXNU-alioth/blob/aed29c3ba15003062375eca41e90bf830920d765/docs/evidence/2026-10-27-boot-diagnostics.md)
+- `device`: [DISPLAY stage=10 with CLIENT calls=4 class=IOMobileFramebufferUserClient, and SWAP calls=0: a client connects but no frame is submitted.](https://github.com/FFT-infra/UniXNU-alioth/blob/695a35bd11337a27473a1ef6687977c0527b6878/docs/evidence/2026-10-27-boot-diagnostics.md)
   Command: <code>read the diagnostic page and the USB console after booting the image</code>. Revision: `24d127c47217eb580dbe3f3a94c32ad25cbaae00`.
 
 ## Input {#input}
@@ -529,9 +528,9 @@ Components: `QcomXnuUsbDebug`.
 
 ### Evidence
 
-- `device`: [Console enumerated as 1209:316d named QcomXnuUsbDebug; STATUS returned usb=3 er=0 with the worker polling, so the port is live in both directions.](https://github.com/FFT-infra/UniXNU-alioth/blob/aed29c3ba15003062375eca41e90bf830920d765/docs/evidence/2026-10-27-boot-diagnostics.md)
+- `device`: [Console enumerated as 1209:316d named QcomXnuUsbDebug; STATUS returned usb=3 er=0 with the worker polling, so the port is live in both directions.](https://github.com/FFT-infra/UniXNU-alioth/blob/695a35bd11337a27473a1ef6687977c0527b6878/docs/evidence/2026-10-27-boot-diagnostics.md)
   Command: <code>read /dev/tty.usbmodem&lt;N&gt; at 115200 8N1 and send SXNU1 ... HELLO / STATUS</code>. Revision: `15a15d7cc526262a64531ff56b3a33bdbc46379c`.
-- `device`: [215 exit records captured. 180 xpcproxy status=0 \(normal\), 13 cryptexd ns=18 code=2, 11 liveactivitiesd sig5, 2 lsd sig11; each process repeats one fixed crash PC, so the faults are deterministic.](https://github.com/FFT-infra/UniXNU-alioth/blob/aed29c3ba15003062375eca41e90bf830920d765/docs/evidence/2026-10-27-serial-exit-records.log)
+- `device`: [215 exit records captured. 180 xpcproxy status=0 \(normal\), 13 cryptexd ns=18 code=2, 11 liveactivitiesd sig5, 2 lsd sig11; each process repeats one fixed crash PC, so the faults are deterministic.](https://github.com/FFT-infra/UniXNU-alioth/blob/695a35bd11337a27473a1ef6687977c0527b6878/docs/evidence/2026-10-27-serial-exit-records.log)
   Command: <code>./unixnu build kernel; ./unixnu bootimg; fastboot flash boot_b; read the CDC-ACM console for 420 s</code>. Revision: `15a15d7cc526262a64531ff56b3a33bdbc46379c`.
 
 </div>

@@ -6,7 +6,7 @@
 
 Nothing Phone \(3a\) runs the unchanged iPad7,1 iPadOS 17.7.11 image from its UFS userdata partition, with shared SM7635 support and board-owned storage, GPU, input and power integration. Bring-up runs as numbered staged tests; their results are in docs/asteroids-gpu-gen8.md and docs/asteroids-touch.md of rootstockos/iosonandng.
 
-源记录: [porting.toml](https://github.com/rootstockos/UniXNU-asteroids/blob/decbdedfe9469322fbccc950a1a7248bca89b6e7/porting.toml), `decbdedfe9469322fbccc950a1a7248bca89b6e7`.
+源记录: [porting.toml](https://github.com/rootstockos/UniXNU-asteroids/blob/2b7e5f9bc7ca01eaa1f36f44b0de3485e5998b6b/porting.toml), `2b7e5f9bc7ca01eaa1f36f44b0de3485e5998b6b`.
 
 本页按设备记录自动生成。
 
@@ -55,6 +55,7 @@ Nothing Phone \(3a\) runs the unchanged iPad7,1 iPadOS 17.7.11 image from its UF
 - The ADT from the shared generator matches the former make-asteroids-adt.py output except for the OS profile's additions \(J120AP first in the root compatible, product-id, /product/audio\) and the arm-io window, which now covers UFS.
 - T40a \(2026-10-27\): every fork has one working branch, asteroids \(former branches are archive/\* tags\); drivers/ArmDTPlatform became the submodule fork rootstockos/ArmDTPlatform; the record check runs rootstockos/UniXNU's workflow and catalog, since UniXNU main's catalog does not know Sm7635Platform or QcomPmicRtc.
 - T40c \(2026-10-27\): build tag T40; the GPU governor and fence spin are board defaults \(see gpu\).
+- T40d \(2026-10-27\): sheng-lite=1 as on sheng; sheng-disable-jobs keeps only bluetoothd and coreduetd \(the lite list holds the XPC wait cycle\). The kernel from fork asteroids-dev 0d215db carries native-union-root-checkdirs.patch: the SystemOS union over / no longer leaves the OS root one usecount short \(T40c's shutdown panic in vnode\_rele\_ext\).
 
 ### 完成条件
 
@@ -70,7 +71,7 @@ Nothing Phone \(3a\) runs the unchanged iPad7,1 iPadOS 17.7.11 image from its UF
 
 ### 证据
 
-- `source`: [Format 2 board configuration with the SM7635 SoC and 21H461 OS profiles.](https://github.com/rootstockos/UniXNU-asteroids/blob/decbdedfe9469322fbccc950a1a7248bca89b6e7/board.toml)
+- `source`: [Format 2 board configuration with the SM7635 SoC and 21H461 OS profiles.](https://github.com/rootstockos/UniXNU-asteroids/blob/2b7e5f9bc7ca01eaa1f36f44b0de3485e5998b6b/board.toml)
 
 ## 固件与启动 {#firmware}
 
@@ -110,7 +111,7 @@ Nothing Phone \(3a\) runs the unchanged iPad7,1 iPadOS 17.7.11 image from its UF
 
 ### 证据
 
-- `source`: [\[bootimg\] and \[firmware\] select uefi-asteroids and the payload in the kernel image.](https://github.com/rootstockos/UniXNU-asteroids/blob/decbdedfe9469322fbccc950a1a7248bca89b6e7/board.toml)
+- `source`: [\[bootimg\] and \[firmware\] select uefi-asteroids and the payload in the kernel image.](https://github.com/rootstockos/UniXNU-asteroids/blob/2b7e5f9bc7ca01eaa1f36f44b0de3485e5998b6b/board.toml)
 
 ## CPU 与中断 {#cpu}
 
@@ -151,7 +152,7 @@ Nothing Phone \(3a\) runs the unchanged iPad7,1 iPadOS 17.7.11 image from its UF
 
 ### 证据
 
-- `source`: [EPSS CPU governor with touch boost and frame floor.](https://github.com/rootstockos/UniXNU-asteroids/blob/decbdedfe9469322fbccc950a1a7248bca89b6e7/package/CpuFreqProbe.cpp)
+- `source`: [EPSS CPU governor with touch boost and frame floor.](https://github.com/rootstockos/UniXNU-asteroids/blob/2b7e5f9bc7ca01eaa1f36f44b0de3485e5998b6b/package/CpuFreqProbe.cpp)
 
 ## 内存与 DMA {#memory}
 
@@ -188,7 +189,7 @@ Nothing Phone \(3a\) runs the unchanged iPad7,1 iPadOS 17.7.11 image from its UF
 
 ### 证据
 
-- `source`: [Memory node for the XNU window's DRAM bank.](https://github.com/rootstockos/UniXNU-asteroids/blob/decbdedfe9469322fbccc950a1a7248bca89b6e7/dts/asteroids.dts)
+- `source`: [Memory node for the XNU window's DRAM bank.](https://github.com/rootstockos/UniXNU-asteroids/blob/2b7e5f9bc7ca01eaa1f36f44b0de3485e5998b6b/dts/asteroids.dts)
 
 ## 存储与根卷 {#storage}
 
@@ -228,7 +229,7 @@ Nothing Phone \(3a\) runs the unchanged iPad7,1 iPadOS 17.7.11 image from its UF
 
 ### 证据
 
-- `device`: [T29 booted iPadOS 17.7.11 from the UFS root with persistent Data to the first picture.](https://github.com/rootstockos/UniXNU-asteroids/blob/decbdedfe9469322fbccc950a1a7248bca89b6e7/board.toml)
+- `device`: [T29 booted iPadOS 17.7.11 from the UFS root with persistent Data to the first picture.](https://github.com/rootstockos/UniXNU-asteroids/blob/2b7e5f9bc7ca01eaa1f36f44b0de3485e5998b6b/board.toml)
   Command: <code>fastboot boot local/unixnu-asteroids-t29-boot.img</code>. Revision: `adf900cf453a6b318864913757f588c9f661596f`.
 
 ## 显示 {#display}
@@ -271,7 +272,7 @@ Nothing Phone \(3a\) runs the unchanged iPad7,1 iPadOS 17.7.11 image from its UF
 
 ### 证据
 
-- `device`: [T34b: GPU copy to the panel, no tearing or stale patches, stable.](https://github.com/rootstockos/UniXNU-asteroids/blob/decbdedfe9469322fbccc950a1a7248bca89b6e7/board.toml)
+- `device`: [T34b: GPU copy to the panel, no tearing or stale patches, stable.](https://github.com/rootstockos/UniXNU-asteroids/blob/2b7e5f9bc7ca01eaa1f36f44b0de3485e5998b6b/board.toml)
   Command: <code>fastboot boot local/unixnu-asteroids-t34b-boot.img</code>. Revision: `e022e84a9721ea6408ea12665b5a23e9b89fc5f6`.
 
 ## 输入 {#input}
@@ -312,7 +313,7 @@ Nothing Phone \(3a\) runs the unchanged iPad7,1 iPadOS 17.7.11 image from its UF
 
 ### 证据
 
-- `device`: [Touch input works on the desktop \(stage 6\).](https://github.com/rootstockos/UniXNU-asteroids/blob/decbdedfe9469322fbccc950a1a7248bca89b6e7/package/AsteroidsTouchProbe.cpp)
+- `device`: [Touch input works on the desktop \(stage 6\).](https://github.com/rootstockos/UniXNU-asteroids/blob/2b7e5f9bc7ca01eaa1f36f44b0de3485e5998b6b/package/AsteroidsTouchProbe.cpp)
   Command: <code>fastboot boot local/unixnu-asteroids-t34b-boot.img</code>. Revision: `e022e84a9721ea6408ea12665b5a23e9b89fc5f6`.
 
 ## GPU {#gpu}
@@ -341,6 +342,7 @@ Nothing Phone \(3a\) runs the unchanged iPad7,1 iPadOS 17.7.11 image from its UF
 - The GPU clock does not limit the frame rate: 1050 MHz was barely faster than 763 MHz.
 - T40b \(2026-10-27\): drivers/Adreno740 is UniXNU Adreno740 main \(5c8c145\) merged into our gen8 fork \(rootstockos/NativeAdreno asteroids 60f16a6\): ABI v2 \(128 buffers per submission\), no full GPU TLB flush per submission, owned and exclusive imports mapped without alias scans. The board's GPU probe keeps its ABI structures and native\_adreno\_publish signature; it passes no GMU AHB fence status to the ring \(the new optional fence\_cookie/fence\_status\), so WPTR writes stay unchecked as before.
 - T40c \(2026-10-27\): sheng's GPU governor is on by default in board.toml \(sheng-gpu-dcvs=1\) with the 3a's range: floor level 6 \(763 MHz, the former fixed level; sheng's floor 3 is 510 MHz here and held every frame in T39b\), ceiling level 7 \(895 MHz; no GPU thermal throttle yet\). Fence waits spin \(sheng-gpu-irq=0\) as a board default.
+- T40d \(2026-10-27\): IO coherence. Nothing here set native\_adreno\_io\_coherent, so the merged driver cleaned and invalidated every imported page around every submission \(T40c log: 18 s and 361 GiB of maintenance for about 3000 submissions\). GpuPowerProbe now runs UniXNU-sheng's coherenceProbe \(08cde20\) before publishing: a kernel page mapped write-back inner-shareable, GPU reads of CPU-dirty lines and CPU reads of GPU writes both proved against DRAM; only then is it on \(sheng-gpu-coherent=0 skips it\). The driver keeps GPU-written imports non-coherent \(myron 5bbeb3b\). Turnip's 1 ms waits \(pandora 6265e2d\) were already fixed upstream \(100 ms slices in turnip-darwin-kmd.patch\); kern.maxvnodes is 66560 from upstream's iPadOS profile.
 
 ### 完成条件
 
@@ -348,15 +350,15 @@ Nothing Phone \(3a\) runs the unchanged iPad7,1 iPadOS 17.7.11 image from its UF
 
 ### 当前范围
 
-- Turnip runs without GMEM \(TU\_DEBUG=sysmem,nocb\); Sm8550Platform is linked as Adreno740's dependency and not used.
+- T40e: Turnip picks GMEM or system memory per pass \(TU\_DEBUG=nocb, as AdrenoMetal 461a842\); not yet booted on the 3a. Sm8550Platform is linked as Adreno740's dependency and not used.
 
 ### 下一步
 
-- Try GMEM rendering.
+- Boot T40e and compare frame rate and GPU stalls with GMEM against T40d.
 
 ### 证据
 
-- `device`: [GPU compositing and the GPU panel copy run stable.](https://github.com/rootstockos/UniXNU-asteroids/blob/decbdedfe9469322fbccc950a1a7248bca89b6e7/package/GpuPowerProbe.cpp)
+- `device`: [GPU compositing and the GPU panel copy run stable.](https://github.com/rootstockos/UniXNU-asteroids/blob/2b7e5f9bc7ca01eaa1f36f44b0de3485e5998b6b/package/GpuPowerProbe.cpp)
   Command: <code>fastboot boot local/unixnu-asteroids-t34b-boot.img</code>. Revision: `e022e84a9721ea6408ea12665b5a23e9b89fc5f6`.
 
 ## clock {#clock}
@@ -397,7 +399,7 @@ Nothing Phone \(3a\) runs the unchanged iPad7,1 iPadOS 17.7.11 image from its UF
 
 ### 证据
 
-- `device`: [T39e: the time set in Settings survived a restart; Settings &gt; Date &amp; Time opens.](https://github.com/rootstockos/UniXNU-asteroids/blob/decbdedfe9469322fbccc950a1a7248bca89b6e7/board.toml)
+- `device`: [T39e: the time set in Settings survived a restart; Settings &gt; Date &amp; Time opens.](https://github.com/rootstockos/UniXNU-asteroids/blob/2b7e5f9bc7ca01eaa1f36f44b0de3485e5998b6b/board.toml)
   Command: <code>fastboot boot local/unixnu-asteroids-t39e-boot.img</code>. Revision: `e4d1092cc3d051617ee88858b153ed2ba0d456fd`.
 
 ## 网络 {#network}
@@ -510,7 +512,7 @@ Nothing Phone \(3a\) runs the unchanged iPad7,1 iPadOS 17.7.11 image from its UF
 
 ### 证据
 
-- `device`: [T29: with the stand-in, SpringBoard boots to the first picture.](https://github.com/rootstockos/UniXNU-asteroids/blob/decbdedfe9469322fbccc950a1a7248bca89b6e7/package/KeyStoreProbe.cpp)
+- `device`: [T29: with the stand-in, SpringBoard boots to the first picture.](https://github.com/rootstockos/UniXNU-asteroids/blob/2b7e5f9bc7ca01eaa1f36f44b0de3485e5998b6b/package/KeyStoreProbe.cpp)
   Command: <code>fastboot boot local/unixnu-asteroids-t29-boot.img</code>. Revision: `adf900cf453a6b318864913757f588c9f661596f`.
 
 ## 镜像组装 {#packaging}
@@ -547,7 +549,7 @@ Nothing Phone \(3a\) runs the unchanged iPad7,1 iPadOS 17.7.11 image from its UF
 
 ### 证据
 
-- `source`: [Board patch series after the arch, SoC and OS series.](https://github.com/rootstockos/UniXNU-asteroids/blob/decbdedfe9469322fbccc950a1a7248bca89b6e7/patches/xnu/series)
+- `source`: [Board patch series after the arch, SoC and OS series.](https://github.com/rootstockos/UniXNU-asteroids/blob/2b7e5f9bc7ca01eaa1f36f44b0de3485e5998b6b/patches/xnu/series)
 
 ## 诊断 {#diagnostics}
 
@@ -584,6 +586,6 @@ Nothing Phone \(3a\) runs the unchanged iPad7,1 iPadOS 17.7.11 image from its UF
 
 ### 证据
 
-- `source`: [Live page and banner rows.](https://github.com/rootstockos/UniXNU-asteroids/blob/decbdedfe9469322fbccc950a1a7248bca89b6e7/package/BootProgress.c)
+- `source`: [Live page and banner rows.](https://github.com/rootstockos/UniXNU-asteroids/blob/2b7e5f9bc7ca01eaa1f36f44b0de3485e5998b6b/package/BootProgress.c)
 
 </div>
