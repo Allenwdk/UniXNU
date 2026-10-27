@@ -16,10 +16,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
-<<<<<<< HEAD
-=======
 import pbxproj
->>>>>>> origin/main
 from xnu_symbols import kernel_names
 SOURCE = ROOT / 'refer/corecrypto-2023'
 REVISION = '11fba65b12d8830630e248dfa8344caf8b065f26'

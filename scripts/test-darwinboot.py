@@ -47,11 +47,7 @@ if args.packed_ramdisk:
     pack(raw, packed)
     packed.replace(raw)
 (ESP / 'EFI/BOOT').mkdir(exist_ok=True)
-<<<<<<< HEAD
-shutil.copyfile(ROOT / 'unixnu/Build/Out/AARCH64-DEBUG/UniXNU.efi', ESP / 'EFI/BOOT/BOOTAA64.EFI')
-=======
 shutil.copyfile(output_dir(ROOT) / 'UniXNU.efi', ESP / 'EFI/BOOT/BOOTAA64.EFI')
->>>>>>> origin/main
 for name in ('DarwinBoot', 'DarwinBootValidation'):
     shutil.copyfile(ROOT / f'build/DarwinBoot/DEBUG_CLANGPDB/AARCH64/{name}.efi', PAYLOADS / f'{name}.efi')
 (ESP / 'EFI/UniXNU/unixnu.toml').write_text('''version = 1
