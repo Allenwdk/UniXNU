@@ -18,6 +18,7 @@ parser.add_argument('--negative-aes-kat', action='store_true', help='Isolated ow
 parser.add_argument('--verified-root', action='store_true', help='Authenticate all actual disk reads against an independently signed immutable policy')
 parser.add_argument('--verified-root-bundle', action='store_true', help='Select exactly one capacity-matching policy per device, then independently authenticate it')
 parser.add_argument('--negative-verified-block', action='store_true', help='Negative own-buffer control: corrupt only the completed DMA snapshot')
+parser.add_argument('--unverified', action='store_true', help='NativeUfs: compile the bring-up transport without the verified-root policy bundle')
 args = parser.parse_args()
 identifier = aliases.get(args.component, args.component)
 metadata = catalog.get(identifier, {})
@@ -29,6 +30,8 @@ if args.verified_root_bundle and args.negative_verified_block:
     parser.error('Select either bundle policy qualification or the isolated DMA snapshot fault')
 if (args.verified_root or args.negative_verified_block) and args.component != 'NativeVirtioBlock':
     parser.error('Verified block mode requires the concrete read-only block transport')
+if args.unverified and args.component != 'NativeUfs':
+    parser.error('--unverified currently applies to the NativeUfs bring-up transport only')
 if args.negative_verified_block and not args.verified_root:
     parser.error('The isolated input fault requires verified block mode')
 component = args.component
@@ -89,14 +92,17 @@ if component in ('NativeVirtioBlock', 'NativeRamBlock', 'NativeUfs'):
         command += ['-DNATIVE_VERIFIED_BLOCK_MULTI_POLICY=1']
 if component == 'NativeUfs':
     command += ['-I', str(ROOT / 'kits/VerifiedRoot/include'), '-I', str(ROOT / 'drivers/VirtioMmioBlock'),
-                '-DNATIVE_VERIFIED_BLOCK=1', '-DNATIVE_VERIFIED_BLOCK_MULTI_POLICY=1', '-mgeneral-regs-only']
+                '-mgeneral-regs-only']
+    if not args.unverified:
+        command += ['-DNATIVE_VERIFIED_BLOCK=1', '-DNATIVE_VERIFIED_BLOCK_MULTI_POLICY=1']
 if component=='NativeOfflineGPU':
     command += ['-I',str(ROOT/'drivers/VirtioMmioConsole')]
 if component in ('NativeLegacyDisplay','NativeHidInput'):
     command += ['-I', str(out)]
 if component == 'NativeAdreno':
     command += ['-I', str(ROOT / 'kits/ArmSmmu4K'), '-I', str(ROOT / 'kits/AdrenoPM4'),
-                '-I', str(ROOT / 'kits/sheng'), '-I', str(ROOT / 'kits/Sm8550Platform'), '-I', str(ROOT / 'kits/AdrenoFirmware'),
+                '-I', str(ROOT / 'kits/sheng'), '-I', str(ROOT / 'kits/Sm8550Platform'), '-I', str(ROOT / 'kits/uke'),
+                '-I', str(ROOT / 'kits/AdrenoFirmware'),
                 '-I', str(ROOT / 'build/sheng-gmu'), '-I', str(ROOT / 'build/adreno740/include')]
 (out / 'compile-command.json').write_text(json.dumps(command, indent=2) + '\n')
 result = subprocess.run(command, cwd=record['directory'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)

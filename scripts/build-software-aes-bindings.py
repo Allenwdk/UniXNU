@@ -9,11 +9,11 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / 'kits/NativePrelink'))
+sys.path.insert(0, str(ROOT / 'kits/XnuPrelink'))
 import native_prelink as np
 
 parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument('--objects-dir', type=Path, default=ROOT / 'build/native-aes')
+parser.add_argument('--objects-dir', type=Path, default=ROOT / 'build/software-aes')
 args = parser.parse_args()
 
 audit_path = ROOT / 'build/image4-ignition/aes-interface-audit.json'
@@ -24,7 +24,7 @@ if not audit_path.is_file() and recorded.is_file():
     out = args.objects_dir
     subprocess.run(['xcrun', 'clang', '-target', 'arm64-apple-ios17.0', '-Werror', '-Wno-incompatible-sysroot', '-c', recorded,
                     '-o', out / 'original-bindings.o'], check=True)
-    archive = out / 'libNativeAES.a'
+    archive = out / 'libSoftwareAES.a'
     archive.unlink(missing_ok=True)
     subprocess.run(['xcrun', 'ar', 'rcs', archive, out / 'NativeAES.o', out / 'original-bindings.o'], check=True)
     print('PASS: native AES bound with the recorded original-kernelcache addresses')
@@ -59,11 +59,11 @@ for row in audit['methods']:
         raise SystemExit(f'Compiled native subclass dispatch mismatch at slot {row["slot"]}')
 if own_vtable + 16 + len(audit['methods']) * 8 in relocations:
     raise SystemExit('Unexpected additional native subclass method')
-kernel = (ROOT / 'build/native-prelink/native-defaults-candidate.macho').read_bytes()
+kernel = (ROOT / 'build/xnu-prelink/native-defaults-candidate.macho').read_bytes()
 if hashlib.sha256(kernel).hexdigest() != audit['candidate_sha256'] or not audit['live_native_4k']:
     raise SystemExit('First qualify the original AES interface and live metadata')
 image = np.macho(kernel)
-plan = json.loads((ROOT / 'build/native-prelink/native-defaults-candidate.json').read_text())
+plan = json.loads((ROOT / 'build/xnu-prelink/native-defaults-candidate.json').read_text())
 text = next(e for e in plan['extents'] if e['module'] == 'com.apple.iokit.IOCryptoAcceleratorFamily' and e['segment'] == '__TEXT_EXEC')
 
 
@@ -126,7 +126,7 @@ source = out / 'original-bindings.S'
 source.write_text(''.join(f'.globl {name}\n.set {name}, {address:#x}\n' for name, address in sorted(bindings.items())))
 subprocess.run(['xcrun', 'clang', '-target', 'arm64-apple-ios17.0', '-Werror', '-Wno-incompatible-sysroot', '-c', source,
                 '-o', out / 'original-bindings.o'], check=True)
-archive = out / 'libNativeAES.a'
+archive = out / 'libSoftwareAES.a'
 archive.unlink(missing_ok=True)
 subprocess.run(['xcrun', 'ar', 'rcs', archive, out / 'NativeAES.o', out / 'original-bindings.o'], check=True)
 (out / 'bindings.json').write_text(json.dumps(dict(original_sha256=audit['original_sha256'],

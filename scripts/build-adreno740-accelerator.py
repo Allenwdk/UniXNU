@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the staged AGXAccelerator class (drivers/NativeAdreno/NativeAdrenoAccelerator.cpp) against the audited original
+"""Build the staged AGXAccelerator class (drivers/Adreno740/NativeAdrenoAccelerator.cpp) against the audited original
 IOAcceleratorES imports, as a "late" archive: its static initializer is removed from __mod_init_func and exported so the board
 probe runs it after the original IOGPUFamily kext has loaded. Same binding recipe as build-native-accelerator-abi.py (exact
 original constructor, destructor and metaclass addresses from build/gpu-analysis/ioaccelerator-base-abi.json)."""
@@ -15,9 +15,9 @@ ROOT = Path(__file__).resolve().parents[1]
 if os.environ.get('XNU_NATIVE_ADRENO', '0') != '1':
     print('SKIP: NATIVE_ADRENO is off for this configuration')
     raise SystemExit(0)
-OUT = ROOT / 'build/native-adreno-accelerator'
+OUT = ROOT / 'build/adreno740-accelerator'
 OUT.mkdir(exist_ok=True)
-sys.path.insert(0, str(ROOT / 'kits/NativePrelink'))
+sys.path.insert(0, str(ROOT / 'kits/XnuPrelink'))
 from native_prelink import macho
 
 
@@ -43,7 +43,7 @@ if plan['operational_overrides'] or plan['instance_bytes'] != 136 or plan['virtu
     sys.exit('The audited original base is not the expected 136-byte, 168-entry class without operational overrides')
 
 record = json.loads((ROOT / 'build/xnu/ios-obj/DEVELOPMENT_ARM64_BCM2837/iokit/DEVELOPMENT/IOPlatformExpert.cpo.json').read_text().strip().rstrip(','))
-source = ROOT / 'drivers/NativeAdreno/NativeAdrenoAccelerator.cpp'
+source = ROOT / 'drivers/Adreno740/NativeAdrenoAccelerator.cpp'
 obj = OUT / 'NativeAdrenoAccelerator.o'
 cmd, i, args = [], 0, record['arguments']
 while i < len(args):
@@ -103,15 +103,15 @@ def code(p):
 
 if code(obj) != code(late):
     sys.exit('Only the owned initializer registration may change')
-archive = OUT / 'libNativeAdrenoAccelerator.late.a'
+archive = OUT / 'libAdreno740Accelerator.late.a'
 archive.unlink(missing_ok=True)
 run(['xcrun', 'ar', 'rcs', archive, late, OUT / 'original-bindings.o'])
-# The kernel links libNativeAdreno.a; the staged class rides in it (its initializer is not in __mod_init_func).
-native = ROOT / 'build/native-adreno/libNativeAdreno.a'
+# The kernel links libAdreno740.a; the staged class rides in it (its initializer is not in __mod_init_func).
+native = ROOT / 'build/adreno740/libAdreno740.a'
 if native.exists():
     run(['xcrun', 'ar', 'rcs', native, late, OUT / 'original-bindings.o'])
 (OUT / 'build-report.json').write_text(json.dumps(dict(
-    source_sha256={str(p.relative_to(ROOT)): sha(p) for p in (source, ROOT / 'drivers/NativeMetal/OriginalAcceleratorABI.h')},
+    source_sha256={str(p.relative_to(ROOT)): sha(p) for p in (source, ROOT / 'drivers/AdrenoMetal/OriginalAcceleratorABI.h')},
     archive_sha256=sha(archive), original_abi_sha256=sha(plan_path), bindings={n: hex(a) for n, a in bindings.items()},
     original_instructions_modified=False, runtime_qualified=False), indent=2) + '\n')
 print('PASS: staged AGXAccelerator builds against the audited original IOAcceleratorES imports')
