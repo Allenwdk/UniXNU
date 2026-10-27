@@ -151,6 +151,8 @@ def build(ctx, modules):
     if not script.is_file():
         raise Error(f'{script} missing')
     env = dict(os.environ)
+    # The shared patch set is read from this repository; the board's patches/xnu module shadows it in the tree.
+    env['UNIXNU_ROOT'] = str(ctx.root)
     if platform.system() == 'Linux':
         for name in ('git', 'make', 'cmake', 'ninja', 'unifdef'):
             tool(name, 'run sudo scripts/linux/setup-toolchain.py')

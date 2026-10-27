@@ -33,26 +33,18 @@ if [ ! -x .cache/fakeroot/usr/local/libexec/availability.pl ]; then
 fi
 # Format 2 prepares its ordered patch series through the shared resolver.
 if [ -z "${UNIXNU_PATCH_LIST:-}" ]; then
-# The optional observation hooks overlap existing root/exec patch context.
-# Remove them first so earlier independent patches retain their idempotent checks.
-# The same holds for the boot-time GPU addon mount and the staged system apps copy (zzy), which edit the owner Data mount function
-# inside the systemos patch. Reverse newest first; the loop below re-applies them in name order.
-for LATE_PATCH in "$ROOT/patches/xnu/zzz-boot-progress.patch" "$ROOT/patches/xnu/zzyb-native-cryptex-os-view.patch" \
-    "$ROOT/patches/xnu/zzy-staged-system-apps.patch" "$ROOT/patches/xnu/zzy-native-gpu-addon-mount.patch" \
-    "$ROOT/patches/xnu/zzyc-owner-skip-launch-constraints.patch"; do
-  if git -C .cache/xnu-work apply --reverse --check "$LATE_PATCH" >/dev/null 2>&1; then
-    git -C .cache/xnu-work apply --reverse "$LATE_PATCH"
-  fi
-done
+# Format 1 replays the whole patch set on a fresh work copy: the board's follow-up patches edit inside the
+# shared ones, so an incremental re-apply has no consistent order. The shared patches are read from this
+# repository ($UNIXNU_ROOT) because the board's own patches/xnu module shadows them in the tree.
 # Seven shared-layer patches postdate the validated uke patch set; the migration applies that set unchanged
 # (host-only verification cannot re-validate kernel content). The device series adopts them explicitly later.
+rm -rf .cache/xnu-work
+git clone --quiet --shared refer/xnu .cache/xnu-work
 FORMAT2_ONLY=" native-lookup-trace.patch native-union-lower-directory.patch native-work-interval-instance.patch zzwb-native-sandbox-grant-set-properties.patch zzyb-native-cryptex-os-view.patch zzyc-owner-skip-launch-constraints.patch zzy-staged-system-apps.patch "
-for PATCH in "$ROOT"/patches/xnu/*.patch "$ROOT"/kits/NativePrelink/patches/*.patch; do
+for PATCH in "$UNIXNU_ROOT"/patches/xnu/*.patch "$ROOT"/patches/xnu/*.patch "$ROOT"/kits/NativePrelink/patches/*.patch; do
   case "$FORMAT2_ONLY" in *" $(basename "$PATCH") "*) continue;; esac
-  if ! git -C .cache/xnu-work apply --reverse --check "$PATCH" >/dev/null 2>&1; then
-    git -C .cache/xnu-work apply --check "$PATCH"
-    git -C .cache/xnu-work apply "$PATCH"
-  fi
+  git -C .cache/xnu-work apply --check "$PATCH"
+  git -C .cache/xnu-work apply "$PATCH"
 done
 fi
 export XNU_AVAILABILITY_PL=$ROOT/.cache/fakeroot/usr/local/libexec/availability.pl
