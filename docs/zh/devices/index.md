@@ -8,13 +8,13 @@
 | --- | --- | --- | --- | --- |
 | [小米平板 6S Pro（sheng）](/zh/devices/sheng) | SM8550 | 2 | 适配记录 | [UniXNU/UniXNU-sheng](https://github.com/UniXNU/UniXNU-sheng) |
 | [Benesse TAB-A04-BR3（a04br3）](/zh/devices/a04br3) | MT8167 | 1 | 设备说明 | [mouseos/UniXNU-a04br3](https://github.com/mouseos/UniXNU-a04br3) |
-| [Redmi K40（alioth）](/zh/devices/alioth) | SM8250 | 2 | 记录待补齐 | [FFT-infra/UniXNU-alioth](https://github.com/FFT-infra/UniXNU-alioth) |
+| [Redmi K40（alioth）](/zh/devices/alioth) | SM8250 | 2 | 适配记录 | [FFT-infra/UniXNU-alioth](https://github.com/FFT-infra/UniXNU-alioth) |
 | [Xiaomi Redmi K40 \(alioth, M2012K11AC\) \(fjcx555\)](/zh/devices/alioth-fjcx555) | SM8250 | 2 | 记录待补齐 | [fjcx555/UniXNU-alioth](https://github.com/fjcx555/UniXNU-alioth) |
 | [Xiaomi Redmi K40 \(alioth, M2012K11AC\) \(songchiyu\)](/zh/devices/alioth-songchiyu) | SM8250 | 2 | 记录待补齐 | [songchiyu/UniXNU-alioth](https://github.com/songchiyu/UniXNU-alioth) |
 | [Xiaomi Redmi K40 \(alioth, M2012K11AC\) \(yang232138\)](/zh/devices/alioth-yang232138) | SM8250 | 2 | 记录待补齐 | [yang232138/UniXNU-alioth](https://github.com/yang232138/UniXNU-alioth) |
 | [Redmi Note 14 Pro+ 5G（amethyst）](/zh/devices/amethyst) | SM7635 | 1 | 设备说明 | [andr0d1v/UniXNU-amethyst](https://github.com/andr0d1v/UniXNU-amethyst) |
 | [Xiaomi Redmi Note 14 Pro+ 5G \(BluedMC-Amethyst\)](/zh/devices/amethyst-bluedmc-amethyst) | SM7635 | 1 | 仓库链接 | [BluedMC-Amethyst/UniXNU-amethyst](https://github.com/BluedMC-Amethyst/UniXNU-amethyst) |
-| [Nothing Phone \(3a\)（asteroids）](/zh/devices/asteroids) | SM7635 | 1 | 设备说明 | [rootstockos/UniXNU-asteroids](https://github.com/rootstockos/UniXNU-asteroids) |
+| [Nothing Phone \(3a\)（asteroids）](/zh/devices/asteroids) | SM7635 | 2 | 适配记录 | [rootstockos/UniXNU-asteroids](https://github.com/rootstockos/UniXNU-asteroids) |
 | [BBK/EEBBK A2, X2 and X2P tablet \(ums512\_1h190, Unisoc T610 / UMS512 SharkL5Pro\)](/zh/devices/bbk-a2) | UMS512 | 2 | 记录待补齐 | [woshimaniubi8/unixnu-eebbk-a2_x2-ums512](https://github.com/woshimaniubi8/unixnu-eebbk-a2_x2-ums512) |
 | [Brave Ark 平板（braveark）](/zh/devices/braveark) | SM8635 | 1 | 设备说明 | [tattwamashi/UniXNU-braveark](https://github.com/tattwamashi/UniXNU-braveark) |
 | [一加平板 Pro（caihong）](/zh/devices/caihong) | SM8650 | 1 | 设备说明 | [Axiang-dev/UniXNU-caihong](https://github.com/Axiang-dev/UniXNU-caihong) |

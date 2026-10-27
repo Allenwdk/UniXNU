@@ -8,13 +8,13 @@ Follow [Build and boot](/building), [porting steps](/porting/steps) and [log cap
 | --- | --- | --- | --- | --- |
 | [Xiaomi Pad 6S Pro \(sheng\)](/devices/sheng) | SM8550 | 2 | Porting record | [UniXNU/UniXNU-sheng](https://github.com/UniXNU/UniXNU-sheng) |
 | [Benesse TAB-A04-BR3 \(a04br3\)](/devices/a04br3) | MT8167 | 1 | Device notes | [mouseos/UniXNU-a04br3](https://github.com/mouseos/UniXNU-a04br3) |
-| [Redmi K40 \(alioth\)](/devices/alioth) | SM8250 | 2 | Record pending | [FFT-infra/UniXNU-alioth](https://github.com/FFT-infra/UniXNU-alioth) |
+| [Redmi K40 \(alioth\)](/devices/alioth) | SM8250 | 2 | Porting record | [FFT-infra/UniXNU-alioth](https://github.com/FFT-infra/UniXNU-alioth) |
 | [Xiaomi Redmi K40 \(alioth, M2012K11AC\) \(fjcx555\)](/devices/alioth-fjcx555) | SM8250 | 2 | Record pending | [fjcx555/UniXNU-alioth](https://github.com/fjcx555/UniXNU-alioth) |
 | [Xiaomi Redmi K40 \(alioth, M2012K11AC\) \(songchiyu\)](/devices/alioth-songchiyu) | SM8250 | 2 | Record pending | [songchiyu/UniXNU-alioth](https://github.com/songchiyu/UniXNU-alioth) |
 | [Xiaomi Redmi K40 \(alioth, M2012K11AC\) \(yang232138\)](/devices/alioth-yang232138) | SM8250 | 2 | Record pending | [yang232138/UniXNU-alioth](https://github.com/yang232138/UniXNU-alioth) |
 | [Redmi Note 14 Pro+ 5G \(amethyst\)](/devices/amethyst) | SM7635 | 1 | Device notes | [andr0d1v/UniXNU-amethyst](https://github.com/andr0d1v/UniXNU-amethyst) |
 | [Xiaomi Redmi Note 14 Pro+ 5G \(BluedMC-Amethyst\)](/devices/amethyst-bluedmc-amethyst) | SM7635 | 1 | Repository link | [BluedMC-Amethyst/UniXNU-amethyst](https://github.com/BluedMC-Amethyst/UniXNU-amethyst) |
-| [Nothing Phone \(3a\) \(asteroids\)](/devices/asteroids) | SM7635 | 1 | Device notes | [rootstockos/UniXNU-asteroids](https://github.com/rootstockos/UniXNU-asteroids) |
+| [Nothing Phone \(3a\) \(asteroids\)](/devices/asteroids) | SM7635 | 2 | Porting record | [rootstockos/UniXNU-asteroids](https://github.com/rootstockos/UniXNU-asteroids) |
 | [BBK/EEBBK A2, X2 and X2P tablet \(ums512\_1h190, Unisoc T610 / UMS512 SharkL5Pro\)](/devices/bbk-a2) | UMS512 | 2 | Record pending | [woshimaniubi8/unixnu-eebbk-a2_x2-ums512](https://github.com/woshimaniubi8/unixnu-eebbk-a2_x2-ums512) |
 | [Brave Ark tablet \(braveark\)](/devices/braveark) | SM8635 | 1 | Device notes | [tattwamashi/UniXNU-braveark](https://github.com/tattwamashi/UniXNU-braveark) |
 | [OnePlus Pad Pro \(caihong\)](/devices/caihong) | SM8650 | 1 | Device notes | [Axiang-dev/UniXNU-caihong](https://github.com/Axiang-dev/UniXNU-caihong) |

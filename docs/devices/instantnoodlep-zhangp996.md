@@ -6,7 +6,7 @@
 
 OnePlus 8 Pro IN2020 bring-up. Own device repository, official UniXNU flow.
 
-Source record: [porting.toml](https://github.com/zhangp996/UniXNU-instantnoodlep-own/blob/715c44ee72dc13fb640e1863262cf884d970f7e9/porting.toml), `715c44ee72dc13fb640e1863262cf884d970f7e9`.
+Source record: [porting.toml](https://github.com/zhangp996/UniXNU-instantnoodlep-own/blob/1b0484e4aedde02418291863dd48f1586ec201a1/porting.toml), `1b0484e4aedde02418291863dd48f1586ec201a1`.
 
 This page is generated from the device record.
 

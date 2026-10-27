@@ -6,7 +6,7 @@
 
 Xiaomi Mi 8 SE running the UniXNU source kernel through its own U-Boot UEFI: entry, MMU, timer, PSCI, platform expert and the boot-progress console work on hardware; IOKit is blocked on AppleARMCPU claiming /cpus.
 
-Source record: [porting.toml](https://github.com/57UU/UniXNU-sirius/blob/fa01d37141be41c9911d981423a76d3b9f85e085/porting.toml), `fa01d37141be41c9911d981423a76d3b9f85e085`.
+Source record: [porting.toml](https://github.com/57UU/UniXNU-sirius/blob/6b74b537dbb0fcb05a958974097fce2600218437/porting.toml), `6b74b537dbb0fcb05a958974097fce2600218437`.
 
 This page is generated from the device record.
 
@@ -16,7 +16,7 @@ This page is generated from the device record.
 | [Firmware and boot](#firmware) | `implemented` |
 | [CPU and interrupts](#cpu) | `implemented` |
 | [Memory and DMA](#memory) | `implemented` |
-| [Storage and root](#storage) | `planned` |
+| [Storage and root](#storage) | `device-verified` |
 | [Display](#display) | `implemented` |
 | [Input](#input) | `planned` |
 | [GPU](#gpu) | `planned` |
@@ -77,7 +77,7 @@ Components: `ArmDTPlatform`, `DarwinBoot`.
 
 ### Evidence
 
-- `source`: [Hardware values, the boot chain and the bring-up history of the legacy port, from which this configuration is carried over.](https://github.com/57UU/UniXNU-sirius/blob/fa01d37141be41c9911d981423a76d3b9f85e085/docs/HANDOFF.zh-CN.md)
+- `source`: [Hardware values, the boot chain and the bring-up history of the legacy port, from which this configuration is carried over.](https://github.com/57UU/UniXNU-sirius/blob/6b74b537dbb0fcb05a958974097fce2600218437/docs/HANDOFF.zh-CN.md)
 
 ## Firmware and boot {#firmware}
 
@@ -123,7 +123,7 @@ Components: `DarwinBoot`.
 
 ### Evidence
 
-- `source`: [Boot-chain diagram, the marker-file boot rule and the DarwinBoot GIC pre-configuration rationale.](https://github.com/57UU/UniXNU-sirius/blob/fa01d37141be41c9911d981423a76d3b9f85e085/docs/HANDOFF.zh-CN.md)
+- `source`: [Boot-chain diagram, the marker-file boot rule and the DarwinBoot GIC pre-configuration rationale.](https://github.com/57UU/UniXNU-sirius/blob/6b74b537dbb0fcb05a958974097fce2600218437/docs/HANDOFF.zh-CN.md)
 
 ## CPU and interrupts {#cpu}
 
@@ -168,7 +168,7 @@ Components: `ArmCpu`.
 
 ### Evidence
 
-- `source`: [Timer INTID measurement, the TOPO checkpoint and the AppleARMCPU panic analysis.](https://github.com/57UU/UniXNU-sirius/blob/fa01d37141be41c9911d981423a76d3b9f85e085/docs/HANDOFF.zh-CN.md)
+- `source`: [Timer INTID measurement, the TOPO checkpoint and the AppleARMCPU panic analysis.](https://github.com/57UU/UniXNU-sirius/blob/6b74b537dbb0fcb05a958974097fce2600218437/docs/HANDOFF.zh-CN.md)
 
 ## Memory and DMA {#memory}
 
@@ -207,33 +207,36 @@ Components: `ArmCpu`.
 
 ### Evidence
 
-- `source`: [DRAM split, framebuffer address and the memory-map checkpoint.](https://github.com/57UU/UniXNU-sirius/blob/fa01d37141be41c9911d981423a76d3b9f85e085/docs/HANDOFF.zh-CN.md)
+- `source`: [DRAM split, framebuffer address and the memory-map checkpoint.](https://github.com/57UU/UniXNU-sirius/blob/6b74b537dbb0fcb05a958974097fce2600218437/docs/HANDOFF.zh-CN.md)
 
 ## Storage and root {#storage}
 
-`planned`
+`device-verified`
 
 ### Hardware and dependencies
 
 - The reference unit is eMMC, not UFS: the UFS transport and its sheng integration points do not apply to this board.
-- No native storage driver exists yet; the expected first stop of the kernel is the root device wait.
+- The original kernelcache is the only source of IOStorageFamily's addresses; its kext images carry no symbol table, so they are derived from the dispatch table itself.
 
 ### Configuration
 
-- No storage component is selected in board.toml; CONFIG\_XNU\_NATIVE\_UFS is off in the defconfig.
+- board.toml lists build-sirius-emmc.py \(the SDCC1 probe\) and build-native-emmc.py \(the IOKit block driver\) in \[kernel\] archives; CONFIG\_XNU\_NATIVE\_UFS stays off.
+- \[userdata\] carries the 512-byte geometry and the OS/SystemOS windows read from the device's own GPT.
 
 ### Procedure
 
-- Follow the storage guide to choose an eMMC driver path, then select it and record the checkpoint.
+- Build the kernel with that archive list: the driver's storage imports are bound at the prelink slide and archived with it.
+- Read the evidence off the boot-progress console: the probe prints the GPT rows, the driver logs the block count it publishes.
 
 ### Development findings
 
-- The SDCC1 probe is the first storage code on this port; it identifies the card but does not mount anything yet.
-- SDCC1 at 0x7c4000 is reachable as an SDHCI 3.0 host \(ver=6c02\) and the boot chain leaves its clocks, power and bus width programmed; the register window, capabilities and present state all read plausibly.
-- The card clock was the first real blocker: gcc\_sdcc1\_apps\_clk\_src sat in MND mode with M=0 N=0 D=0xff, so no valid card clock reached the eMMC and every command timed out with a floating response. Programming the Linux 400 kHz entry \(BI\_TCXO/12\*1/4\) made the card answer CMD1 with OCR 0x40ff8080.
-- CMD2 and CMD3 still get no response while CMD1 works, so identification stops before the CID/RCA are known; the next checks are DAT0-busy before CMD2 and the inter-command clock delays.
-- The legacy port deliberately kept every UFS and owner-root flag off; the boot-progress interlock of UniXNU had to be relaxed for that reason.
-- The CDC console work lives in package/sirius\_usb.c and does not change the storage blocker: the kernel still stops at the root device because no eMMC driver exists.
+- The data path works: ADMA2 reads return EFI PART from LBA 1, the GPT header parses \(entries\_lba=2, count=84, size=128\) and 81 partitions with geometry are listed; boot 1179648..1310719, vendor 11010048..17301503, userdata 17301504..122142686.
+- Five conditions had to hold at once: the RCG2 encoding \(CFG=0x2017, M=1, N=0xfc, D=0xfb\), 1.8 V I/O \(the board's vqmmc\), the 32-bit interrupt/error map at 0x30/0x32/0x36, the ADMA descriptor address at 0x58/0x5c rather than 0x00, and cache maintenance \(flush\_dcache64\) because the engine reads memory and not the CPU cache.
+- SMMU is not the blocker: the boot chain leaves it disabled \(scr0=0x00230406, bit0=0\) and writing S2CR hung the SoC twice, so the driver only reads SMMU state.
+- IOStorageFamily is a kext of the original kernelcache, so the archive form of the driver left IOBlockStorageDevice undefined at the kernel link \(ld: 'a missing vtable usually means the first non-inline virtual member function has no definition'\).
+- The prelink slides every component by a constant: extents\[\].va = original + slide for each segment and bindings\[\] carries new\_site = site + slide, so the addresses the driver needs are the kernelcache's plus the slide.
+- The dispatch table is identifiable without a live snapshot: of the 190 pinned slot names 176 are kernel exports, exactly one \_\_DATA\_CONST table matches all of them, the other 14 slots point at the kext's own BRK traps, the single constructor that stores table+16 forwards to the actual IOService constructor and the base destructor resolves to IOService's.
+- Eleven imports are bound \(dispatch table, metaclass, protected constructor, base destructor and seven methods\); when the prelinked kernel exists the derivation also checks it holds the same constructor at the slid address, so a wrong slide cannot pass.
 
 ### Completion criteria
 
@@ -241,15 +244,22 @@ Components: `ArmCpu`.
 
 ### Current limits
 
-- No storage driver and no root filesystem: the port currently stops before the root device.
+- Read-only: the transfer path has no write command and reportWriteProtection\(\) says so.
+- IOStorageFamily parses the partition table through the driver, but the OS/SystemOS windows are not published as their own media yet, so the boot still ends at the root-device wait.
+- The heartbeat thread keeps ticking with the transfer count fixed at seven, so the kernel is alive and idle there rather than stuck.
+- CMD7 still answers r1=00000000 while reads work, because the boot chain leaves the card selected.
 
 ### Next action
 
-- Inventory the eMMC controller \(SDCC/MSDC\) registers and interrupt lines from the vendor tree before selecting an implementation.
+- Publish the OS and SystemOS userdata windows as their own media with the window UUID of \[userdata\], so the root device the OS profile asks for exists.
 
 ### Evidence
 
-Collect evidence using the next action.
+- `device`: [NativeEmmc starts from bsd\_init, publishes 0x747BFDF blocks of 512 bytes, and IOStorageFamily reads block 0, block 1 and block 2 with 21 sectors \(the 84 GPT entries\) through doAsyncReadWrite; the heartbeat keeps ticking with the transfer count fixed at seven, so the boot ends at the root-device wait. Log in docs/HANDOFF.zh-CN.md.](https://github.com/57UU/UniXNU-sirius/blob/6b74b537dbb0fcb05a958974097fce2600218437/docs/HANDOFF.zh-CN.md)
+  Command: <code>fastboot flash vendor sirius-obs.img; fastboot reboot; capture-usb-console.py --duration 240</code>. Revision: `d867b1d6498dc4d0f4ae4e18060762dcae6c5847`.
+- `host`: [The kernel links with NativeEmmc in the image \(kernel.macho sha256 372820eb1b2cd9ecee15d769d1296771d0c8141c2681626d54651a62473446b8\); the GitHub macOS runner builds the same archive \(kernel workflow run 40386710258\).](https://github.com/57UU/UniXNU-sirius/blob/6b74b537dbb0fcb05a958974097fce2600218437/docs/HANDOFF.zh-CN.md)
+  Command: <code>./scripts/xnu-container.sh run bash -lc './unixnu build kernel --skip-setup -D ../sirius'</code>. Revision: `a47f0d6b4615c3cdebf92102400a1bc302eb6d73`.
+- `source`: [SDCC1 bring-up, the ADMA2 read path and the GPT parse.](https://github.com/57UU/UniXNU-sirius/blob/6b74b537dbb0fcb05a958974097fce2600218437/package/sirius_emmc.c)
 
 ## Display {#display}
 
@@ -290,7 +300,7 @@ Collect evidence using the next action.
 
 ### Evidence
 
-- `source`: [Boot-progress panel behaviour, the panic snapshot fix and the geometry of the U-Boot framebuffer.](https://github.com/57UU/UniXNU-sirius/blob/fa01d37141be41c9911d981423a76d3b9f85e085/docs/HANDOFF.zh-CN.md)
+- `source`: [Boot-progress panel behaviour, the panic snapshot fix and the geometry of the U-Boot framebuffer.](https://github.com/57UU/UniXNU-sirius/blob/6b74b537dbb0fcb05a958974097fce2600218437/docs/HANDOFF.zh-CN.md)
 
 ## Input {#input}
 
@@ -474,7 +484,7 @@ Collect evidence using the next action.
 
 ### Evidence
 
-- `source`: [PSCI reset evidence and the reason sleep is disabled.](https://github.com/57UU/UniXNU-sirius/blob/fa01d37141be41c9911d981423a76d3b9f85e085/docs/HANDOFF.zh-CN.md)
+- `source`: [PSCI reset evidence and the reason sleep is disabled.](https://github.com/57UU/UniXNU-sirius/blob/6b74b537dbb0fcb05a958974097fce2600218437/docs/HANDOFF.zh-CN.md)
 
 ## Image assembly {#packaging}
 
@@ -530,7 +540,7 @@ Components: `XnuPrelink`.
 
 ### Evidence
 
-- `source`: [Build and deploy loop, the CI kernel artifact and the payload layout on the vendor partition.](https://github.com/57UU/UniXNU-sirius/blob/fa01d37141be41c9911d981423a76d3b9f85e085/docs/HANDOFF.zh-CN.md)
+- `source`: [Build and deploy loop, the CI kernel artifact and the payload layout on the vendor partition.](https://github.com/57UU/UniXNU-sirius/blob/6b74b537dbb0fcb05a958974097fce2600218437/docs/HANDOFF.zh-CN.md)
 
 ## Diagnostics {#diagnostics}
 
@@ -573,8 +583,8 @@ Components: `XnuPrelink`.
 
 ### Evidence
 
-- `source`: [Entry probe, panic screen, panel rows and the evidence convention of the port.](https://github.com/57UU/UniXNU-sirius/blob/fa01d37141be41c9911d981423a76d3b9f85e085/docs/HANDOFF.zh-CN.md)
-- `device`: [3813 bytes of kernel log read from /dev/ttyACM0 over the DWC3 CDC console.](https://github.com/57UU/UniXNU-sirius/blob/fa01d37141be41c9911d981423a76d3b9f85e085/docs/evidence/sirius-usb-console-20261026-1605.log)
+- `source`: [Entry probe, panic screen, panel rows and the evidence convention of the port.](https://github.com/57UU/UniXNU-sirius/blob/6b74b537dbb0fcb05a958974097fce2600218437/docs/HANDOFF.zh-CN.md)
+- `device`: [3813 bytes of kernel log read from /dev/ttyACM0 over the DWC3 CDC console.](https://github.com/57UU/UniXNU-sirius/blob/6b74b537dbb0fcb05a958974097fce2600218437/docs/evidence/sirius-usb-console-20261026-1605.log)
   Command: <code>sudo python3 scripts/capture-usb-console.py --wait 60 --duration 190 --output /tmp/boot.log</code>. Revision: `366abe2948fdb0c1554f7e0b89b731160f4527a4`.
 
 </div>
