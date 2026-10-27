@@ -61,3 +61,35 @@
 [submodule "kits/VerifiedRoot"]
 	path = kits/VerifiedRoot
 	url = https://github.com/UniXNU/VerifiedRoot.git
+
+# Format-2 canonical module paths (migration keeps both name sets until the device repo switches).
+[submodule "drivers/SoftwareAES"]
+	path = drivers/SoftwareAES
+	url = https://github.com/UniXNU/SoftwareAES.git
+[submodule "drivers/Adreno740"]
+	path = drivers/Adreno740
+	url = https://github.com/UniXNU/Adreno740.git
+[submodule "drivers/QcomGeniSpi"]
+	path = drivers/QcomGeniSpi
+	url = https://github.com/UniXNU/QcomGeniSpi.git
+[submodule "drivers/AppleKeyStoreState"]
+	path = drivers/AppleKeyStoreState
+	url = https://github.com/UniXNU/AppleKeyStoreState.git
+[submodule "drivers/AdrenoMetal"]
+	path = drivers/AdrenoMetal
+	url = https://github.com/UniXNU/AdrenoMetal.git
+[submodule "drivers/GopFramebuffer"]
+	path = drivers/GopFramebuffer
+	url = https://github.com/UniXNU/GopFramebuffer.git
+[submodule "drivers/RamBlock"]
+	path = drivers/RamBlock
+	url = https://github.com/UniXNU/RamBlock.git
+[submodule "drivers/VirtioMmioBlock"]
+	path = drivers/VirtioMmioBlock
+	url = https://github.com/UniXNU/VirtioMmioBlock.git
+[submodule "drivers/VirtioMmioConsole"]
+	path = drivers/VirtioMmioConsole
+	url = https://github.com/UniXNU/VirtioMmioConsole.git
+[submodule "kits/XnuPrelink"]
+	path = kits/XnuPrelink
+	url = https://github.com/UniXNU/XnuPrelink.git

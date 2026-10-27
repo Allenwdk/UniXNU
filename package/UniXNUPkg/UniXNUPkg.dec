@@ -29,13 +29,16 @@
   #  (Include/Guid/UniXNUBlockSlice.h).
   gUniXNUBlockSliceGuid    = { 0x63e1d76a, 0x715f, 0x4b8c, { 0x85, 0x0a, 0xe1, 0x58, 0xd1, 0x27, 0x0f, 0x9f } }
 
+[Protocols]
+  ## Optional loader for `type = "xnu"` entries. DarwinBoot implements it.
+  gUniXNULoaderProtocolGuid   = { 0x0f0a492e, 0x5a6a, 0x49f6, { 0xa1, 0xbf, 0x74, 0x3c, 0x87, 0xab, 0x1c, 0xfe } }
+
   ## DT/initrd setup status of a platform memory driver
   #  (Include/UkeMemStatus.h). The boot manager displays it when present.
   gUkeMemStatusGuid        = { 0x5d0e2c31, 0x8a4f, 0x4b3e, { 0x9c, 0x21, 0x7e, 0x44, 0x6a, 0x0d, 0xb8, 0xf2 } }
 
-[Protocols]
-  ## Optional loader for `type = "xnu"` entries. DarwinBoot implements it.
-  gUniXNULoaderProtocolGuid   = { 0x0f0a492e, 0x5a6a, 0x49f6, { 0xa1, 0xbf, 0x74, 0x3c, 0x87, 0xab, 0x1c, 0xfe } }
+  ## Optional protocol for tools listed in UniXNU's Tools menu.
+  gUniXNUMenuPluginProtocolGuid = { 0x1a9b2c4d, 0x5e6f, 0x4789, { 0xab, 0xcd, 0xef, 0x12, 0x34, 0x56, 0x78, 0x9a } }
 
 [PcdsFixedAtBuild]
   ## DEBUG() level used for UniXNU's own log lines. Platforms whose debug
@@ -48,3 +51,6 @@
   ## FV file name (GUID) of the UniXNU application that UniXNUDxe
   #  registers as a boot option. Defaults to UniXNU.inf's FILE_GUID.
   gUniXNUPkgTokenSpaceGuid.PcdUniXNUApplicationFile|{ GUID("9B665204-A133-47A2-9396-9E2B370A4E25") }|VOID*|0x00000003
+
+  ## ASCII model name reported by menu plugins that export device files.
+  gUniXNUPkgTokenSpaceGuid.PcdUniXNUDeviceModel|"UniXNU"|VOID*|0x00000004

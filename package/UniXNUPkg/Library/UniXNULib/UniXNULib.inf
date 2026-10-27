@@ -50,7 +50,6 @@
   gFdtTableGuid                   ## SOMETIMES_CONSUMES ## SOMETIMES_PRODUCES
   gLinuxEfiInitrdMediaGuid        ## SOMETIMES_PRODUCES
   gUniXNUBlockSliceGuid        ## SOMETIMES_PRODUCES
-  gUkeMemStatusGuid               ## CONSUMES
 
 [Protocols]
   gEfiAcpiTableProtocolGuid         ## SOMETIMES_CONSUMES
@@ -65,6 +64,8 @@
   gEfiSimpleFileSystemProtocolGuid  ## SOMETIMES_CONSUMES
   gEfiSimpleTextInProtocolGuid      ## SOMETIMES_CONSUMES
   gUniXNULoaderProtocolGuid   ## SOMETIMES_CONSUMES
+  gUkeMemStatusGuid               ## CONSUMES
+  gUniXNUMenuPluginProtocolGuid ## SOMETIMES_CONSUMES
 
 [Pcd]
   gUniXNUPkgTokenSpaceGuid.PcdUniXNUDebugLevel
