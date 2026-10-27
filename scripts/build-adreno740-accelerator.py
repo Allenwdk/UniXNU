@@ -87,8 +87,9 @@ run(['xcrun', 'clang', '-target', 'arm64-apple-ios17.0', '-isysroot', sdk, '-c',
 
 # llvm-objcopy: the toolchain's LLVM, else the host's, else Homebrew's on a Mac.
 llvm = next((p for p in (Path(os.environ.get('UNIXNU_TOOLCHAIN', '/opt/unixnu-linux')) / 'llvm/bin',
-                         Path('/usr/local/bin'), Path('/usr/bin')) if (p / 'llvm-objcopy').is_file()),
-            Path(run(['brew', '--prefix', 'llvm'], text=True).strip()) / 'bin')
+                         Path('/usr/local/bin'), Path('/usr/bin')) if (p / 'llvm-objcopy').is_file()), None)
+if llvm is None:
+    llvm = Path(run(['brew', '--prefix', 'llvm'], text=True).strip()) / 'bin'
 late = OUT / 'NativeAdrenoAccelerator.late.o'
 run([llvm / 'llvm-objcopy', '--remove-section=__DATA,__mod_init_func',
      '--globalize-symbol=__GLOBAL__sub_I_NativeAdrenoAccelerator.cpp', obj, late])
