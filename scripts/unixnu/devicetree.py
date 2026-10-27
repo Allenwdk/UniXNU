@@ -373,7 +373,7 @@ def generate(dtb, config, *, unique_chip_id=None, data=False, trust=False, addon
     children.append(node('arm-io', [('device_type', b'arm-io\0'), ('#address-cells', struct.pack('<I', 2)),
                          ('#size-cells', struct.pack('<I', 2)), ('ranges', struct.pack('<QQQ', 0, base, size))],
                          [node(name, hardware_properties(entry, handles, base)) for name, entry in zip(names, hardware)]))
-    for name in ('defaults', 'options', 'product', 'buttons'):
+    for name in ('defaults', 'options', 'product', 'buttons', 'pram', 'gmu-memory'):
         if name in platform or name in ('defaults', 'options', 'product'):
             children.append(platform_node(name, platform.get(name, {})))
     # A configured root 'compatible' goes before the hardware DTS's own entries: an OS identity's board name comes first (the OS
