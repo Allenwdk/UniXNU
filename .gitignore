@@ -50,3 +50,7 @@ __pycache__/
 .env
 local.toml
 unixnu.local.toml
+
+# Local build wiring (symlinks into the sibling checkout).
+/.cache
+/refer
