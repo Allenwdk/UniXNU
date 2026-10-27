@@ -120,6 +120,11 @@
     "title_zh": "小米 15（dada）"
   },
   {
+    "name": "dada2",
+    "title": "Redmi K80 Pro",
+    "title_zh": "Redmi K80 Pro"
+  },
+  {
     "name": "dali",
     "title": "Redmi K80 Ultra (dali)",
     "title_zh": "Redmi K80 Ultra（dali）"
@@ -335,6 +340,11 @@
     "title_zh": "Xiaomi 13 Ultra - XNU (iOS 18) (markakash)"
   },
   {
+    "name": "ishtar-peter8889",
+    "title": "Xiaomi 13 Ultra - XNU (iOS 18) (peter8889)",
+    "title_zh": "Xiaomi 13 Ultra - XNU (iOS 18) (peter8889)"
+  },
+  {
     "name": "j716f",
     "title": "Lenovo Xiaoxin Pad Pro 2021 (j716f)",
     "title_zh": "联想小新 Pad Pro 2021（j716f）"
@@ -413,6 +423,11 @@
     "name": "merlinx",
     "title": "Xiaomi Redmi Note 9 (merlinx)",
     "title_zh": "Redmi Note 9（merlinx）"
+  },
+  {
+    "name": "mondrian",
+    "title": "Redmi K60 (mondrian/SM8475): UniXNU UEFI bring-up",
+    "title_zh": "Redmi K60 (mondrian/SM8475): UniXNU UEFI bring-up"
   },
   {
     "name": "myron",
@@ -550,6 +565,11 @@
     "title_zh": "小米 MIX 2S（polaris）"
   },
   {
+    "name": "polaris-puszekreksio",
+    "title": "Xiaomi Mi MIX 2S (PuszekReksio)",
+    "title_zh": "Xiaomi Mi MIX 2S (PuszekReksio)"
+  },
+  {
     "name": "pong",
     "title": "Nothing Phone (2) (pong)",
     "title_zh": "Nothing Phone (2)（pong）"
@@ -650,9 +670,19 @@
     "title_zh": "Xiaomi Pad 6S Pro (yuyaukong)"
   },
   {
+    "name": "shennong",
+    "title": "Xiaomi 14 Pro 23116PN5BC",
+    "title_zh": "Xiaomi 14 Pro 23116PN5BC"
+  },
+  {
     "name": "sirius",
     "title": "Xiaomi Mi 8 SE (sirius)",
     "title_zh": "小米 8 SE（sirius）"
+  },
+  {
+    "name": "sirius-huajifruit",
+    "title": "Xiaomi Mi 8 SE (HuajiFruit)",
+    "title_zh": "Xiaomi Mi 8 SE (HuajiFruit)"
   },
   {
     "name": "sirius-yooglery",
@@ -668,6 +698,16 @@
     "name": "songyuan",
     "title": "REDMI K100 Pro Max (songyuan, SM8850 Canoe)",
     "title_zh": "REDMI K100 Pro Max (songyuan, SM8850 Canoe)"
+  },
+  {
+    "name": "songyuan-aogg2023",
+    "title": "Redmi K90 Pro Max (songyuan) (aogg2023)",
+    "title_zh": "Redmi K90 Pro Max (songyuan) (aogg2023)"
+  },
+  {
+    "name": "songyuan-wukawl",
+    "title": "Redmi K90 Pro Max (songyuan) (WUKAWL)",
+    "title_zh": "Redmi K90 Pro Max (songyuan) (WUKAWL)"
   },
   {
     "name": "sweet",
@@ -698,6 +738,11 @@
     "name": "thyme-coryyi",
     "title": "Xiaomi Mi 10S / SM8250-AC UniXNU bring-up (measured 2026-10-24) (Coryyi)",
     "title_zh": "Xiaomi Mi 10S / SM8250-AC UniXNU bring-up (measured 2026-10-24) (Coryyi)"
+  },
+  {
+    "name": "tundra",
+    "title": "Motorola moto s30 pro (tundra)",
+    "title_zh": "Motorola moto s30 pro (tundra)"
   },
   {
     "name": "udon",
