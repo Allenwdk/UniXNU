@@ -274,7 +274,7 @@ new file mode 100644
 index 0000000..b03c6ee
 --- /dev/null
 +++ b/src/freedreno/vulkan/tu_knl_darwin.cc
-@@ -0,0 +1,1504 @@
+@@ -0,0 +1,1522 @@
 +/*
 + * Native Darwin kernel backend for Turnip: talks to the NativeAdreno IOKit user client (NativeAdrenoABI.h, version 1).
 + * Modelled on tu_knl_kgsl.cc (no libdrm) and tu_knl_drm_msm.cc (the client chooses GPU addresses).
@@ -891,31 +891,49 @@ index 0000000..b03c6ee
 +      return retire->failure;
 +   /* Cache only within this sweep. Persisting a bare 32-bit fence across sweeps
 +    * could mistake a later wrapped value for an old observed completion. */
-+   uint32_t completed_fence = 0;
-+   bool have_completed_fence = false;
-+   while (retire->count) {
-+      struct darwin_retired_bo *bo = &retire->entries[retire->head];
-+      if (bo->fence && (!have_completed_fence || bo->fence != completed_fence)) {
-+         VkResult result = dw_wait_fence_raw(dev, bo->fence, 0);
-+         if (result == VK_TIMEOUT)
-+            return VK_SUCCESS;
-+         if (result != VK_SUCCESS)
-+            return retire->failure = result;
-+         have_completed_fence = true;
-+         completed_fence = bo->fence;
++   uint32_t completed_fence = 0, pending_fence = 0;
++   bool have_completed_fence = false, have_pending_fence = false;
++   /* Every entry is looked at, not only the oldest: one BO behind a fence still in flight must not hold back the completed ones queued
++    * after it (they would miss the cache). Entries that are not done yet keep their order at the front of the ring. */
++   const unsigned total = retire->count;
++   unsigned kept = 0;
++   for (unsigned i = 0; i < total; ++i) {
++      struct darwin_retired_bo *bo = &retire->entries[(retire->head + i) % DARWIN_RETIRED_BOS];
++      bool ready = true;
++      if (bo->fence) {
++         if (have_pending_fence && bo->fence == pending_fence) {
++            ready = false;
++         } else if (!have_completed_fence || bo->fence != completed_fence) {
++            VkResult result = dw_wait_fence_raw(dev, bo->fence, 0);
++            if (result == VK_TIMEOUT) {
++               ready = false;
++               have_pending_fence = true;
++               pending_fence = bo->fence;
++            } else if (result != VK_SUCCESS) {
++               return retire->failure = result;
++            } else {
++               have_completed_fence = true;
++               completed_fence = bo->fence;
++            }
++         }
 +      }
-+      if (!(bo->cacheable && darwin_cache_put(dev, retire, bo))) {
++      if (ready && !(bo->cacheable && darwin_cache_put(dev, retire, bo))) {
 +         VkResult released = darwin_release_native(dev, retire, bo->handle, bo->iova, bo->size, &bo->mapping, &bo->token);
 +         if (released == VK_NOT_READY)
-+            return VK_SUCCESS;
-+         if (released != VK_SUCCESS)
++            ready = false;   /* the kernel still holds it: try again at the next sweep */
++         else if (released != VK_SUCCESS)
 +            return released;
 +      }
-+      *bo = {};
-+      retire->head = (retire->head + 1) % DARWIN_RETIRED_BOS;
-+      --retire->count;
-+      ++retire->reaped;
++      if (ready) {
++         ++retire->reaped;
++      } else {
++         retire->entries[(retire->head + kept) % DARWIN_RETIRED_BOS] = *bo;
++         ++kept;
++      }
 +   }
++   for (unsigned i = kept; i < total; ++i)
++      retire->entries[(retire->head + i) % DARWIN_RETIRED_BOS] = {};
++   retire->count = kept;
 +   return VK_SUCCESS;
 +}
 +
@@ -1154,7 +1172,7 @@ index 0000000..b03c6ee
 +   /* With IO-coherent BOs (the kernel reports NativeAdrenoParamsOwnedCoherent) the GPU maps the pages write-back inner-shareable, so the CPU
 +    * view is a write-back one too: a write-combined view of a page the GPU snoops and the kernel's cacheable alias would disagree. */
 +   uint32_t options = (placed_addr ? 0 : kIOMapAnywhere) |
-+                      ((dw.params.flags & NativeAdrenoParamsOwnedCoherent) ? kIOMapDefaultCache : kIOMapWriteCombineCache);
++                      ((dw.params.flags & NativeAdrenoParamsOwnedCoherent) ? kIOMapCopybackCache : kIOMapWriteCombineCache);
 +   kr = IOConnectMapMemory64(dw.conn, reply.token, mach_task_self(), &address, &length, options);
 +   if (kr != KERN_SUCCESS || !address || length < bo->size) {
 +      NativeAdrenoAbiBoCpuUnmap undo = {.handle = bo->darwin_handle, .token = reply.token};
