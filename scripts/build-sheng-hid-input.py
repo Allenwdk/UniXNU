@@ -2,6 +2,11 @@
 """Qualify an owned offline HID source against the unchanged target IOHIDDevice."""
 import hashlib,json,struct,subprocess,sys
 from pathlib import Path
+from kernel_target import ARCH, IOS_VERSION
+if ARCH != 'arm64' or IOS_VERSION.split('.')[0] != '17':
+    raise SystemExit('The original HID ABI builder only supports arm64 iOS 17. '
+                     'Use build-sheng-source-drivers.py for a source-interface compile audit; '
+                     'its output still requires target-family linking and runtime qualification.')
 ROOT=Path(__file__).resolve().parents[1];OUT=ROOT/'build/sheng-hid-input';OUT.mkdir(exist_ok=True)
 sys.path.insert(0,str(ROOT/'kits/XnuPrelink'))
 from native_prelink import macho,backed_offset,exports

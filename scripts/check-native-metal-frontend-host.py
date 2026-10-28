@@ -52,6 +52,16 @@ run = subprocess.run([str(nilargs), loader, str(cache)], capture_output=True, te
 if run.returncode or not any(l.startswith('PASS') for l in run.stdout.splitlines()):
     sys.exit('the nil-resource blit check failed; see %s' % (OUT / 'nil_args_host.log'))
 print([l for l in run.stdout.splitlines() if l.startswith('PASS')][0])
+# The GPU scanout: half-float frames converted by the compute kernel store the display driver's bytes; BGRA still copies.
+scanout = OUT / 'scanout_host'
+subprocess.run(['xcrun', 'clang++', *flags, KIT / 'NativeBridgeMetalFrontend.mm', KIT / 'bridge/scanout_host.mm',
+                ROOT / 'build/adreno-metal-bridge/host/libadreno_metal_bridge.a', '-framework', 'Foundation', '-framework', 'Metal',
+                '-framework', 'IOSurface', '-framework', 'CoreFoundation', '-o', scanout], check=True)
+run = subprocess.run([str(scanout), loader, str(cache)], capture_output=True, text=True, timeout=600)
+(OUT / 'scanout_host.log').write_text(run.stdout + run.stderr)
+if run.returncode or not any(l.startswith('PASS') for l in run.stdout.splitlines()):
+    sys.exit('the GPU scanout check failed; see %s' % (OUT / 'scanout_host.log'))
+print([l for l in run.stdout.splitlines() if l.startswith('PASS')][0])
 # Interleaved encoding must be attributed to its own command buffer, regardless of commit order.
 telemetry = OUT / 'telemetry_host'
 subprocess.run(['xcrun', 'clang++', *flags, '-Wno-unused-function', KIT / 'NativeBridgeMetalFrontend.mm', KIT / 'bridge/telemetry_host.mm',

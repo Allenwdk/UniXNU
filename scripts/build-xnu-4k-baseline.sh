@@ -80,9 +80,10 @@ if [ "$BOOT_PROGRESS" != 0 ] && [ "$BOOT_PROGRESS" != 1 ]; then
   exit 1
 fi
 if [ "$BOOT_PROGRESS" = 1 ]; then
+  # The board diagnostics use the UFS/owner-root paths; they do not touch the Virtio block driver.
   if [ "${XNU_NATIVE_UFS:-0}" != 1 ] || [ "${XNU_OWNER_ROOT_AUDIT:-0}" != 1 ] || \
-     [ "${XNU_NATIVE_VIRTIO_BLOCK:-0}" != 1 ] || [ "${XNU_SOURCE_CORECRYPTO14:-0}" != 1 ]; then
-    echo 'Boot progress requires the audited UFS/owner-root, Virtio and source-corecrypto build' >&2
+     [ "${XNU_SOURCE_CORECRYPTO14:-0}" != 1 ]; then
+    echo 'Boot progress requires the audited UFS/owner-root and source-corecrypto build' >&2
     exit 1
   fi
   python3 scripts/build-boot-progress.py
@@ -150,6 +151,9 @@ if [ "$(uname -s)" = Linux ]; then
 fi
 # The baseline builds the kernel; `all` also checks the Apple kext export ABI.
 EXTRA_MAKE_ARGS=()
+# A fileset boot replaces com.apple.kernel inside a kernel collection: the
+# native executable must carry chained fixups and split-segment records.
+EXTRA_MAKE_ARGS+=("XNU_KERNEL_CHAINED_FIXUPS=${XNU_KERNEL_CHAINED_FIXUPS:-0}")
 ARM_DT_PLATFORM=${XNU_ARM_DT_PLATFORM:-0}
 if [ "$ARM_DT_PLATFORM" != 0 ] && [ "$ARM_DT_PLATFORM" != 1 ]; then
   echo 'XNU_ARM_DT_PLATFORM must be 0 or 1' >&2
@@ -205,7 +209,8 @@ if [ "$NATIVE_RAM_BLOCK" != 0 ] && [ "$NATIVE_RAM_BLOCK" != 1 ]; then
   echo 'XNU_NATIVE_RAM_BLOCK must be 0 or 1' >&2
   exit 1
 fi
-if [ "$NATIVE_RAM_BLOCK" = 1 ]; then
+# With source storage the RAM disk is part of the source storage archive, which also starts it.
+if [ "$NATIVE_RAM_BLOCK" = 1 ] && [ "${XNU_SOURCE_STORAGE:-0}" != 1 ]; then
   if [ "${XNU_NATIVE_AES:-0}" != 1 ]; then
     echo 'NativeRamBlock requires the qualified original storage/AES prelink closure' >&2
     exit 1
@@ -280,7 +285,8 @@ if [ "$OWNER_ROOT_AUDIT" != 0 ] && [ "$OWNER_ROOT_AUDIT" != 1 ]; then
   echo 'XNU_OWNER_ROOT_AUDIT must be 0 or 1' >&2
   exit 1
 fi
-if [ "$OWNER_ROOT_AUDIT" = 1 ] && [ "$OWNER_ROOT_PROBE" != 1 ]; then
+# Source storage verifies its root windows with the source corecrypto adapter instead of the probe.
+if [ "$OWNER_ROOT_AUDIT" = 1 ] && [ "$OWNER_ROOT_PROBE" != 1 ] && [ "${XNU_SOURCE_STORAGE:-0}" != 1 ]; then
   echo 'The root-binding audit requires real owner-verified block crypto' >&2
   exit 1
 fi
@@ -289,7 +295,8 @@ if [ "$OWNER_ROOT_TRUST" != 0 ] && [ "$OWNER_ROOT_TRUST" != 1 ]; then
   echo 'XNU_OWNER_ROOT_TRUST must be 0 or 1' >&2
   exit 1
 fi
-if [ "$OWNER_ROOT_TRUST" = 1 ] && { [ "$OWNER_ROOT_AUDIT" != 1 ] || [ "${XNU_NATIVE_VIRTIO_BLOCK:-0}" != 1 ]; }; then
+if [ "$OWNER_ROOT_TRUST" = 1 ] && { [ "$OWNER_ROOT_AUDIT" != 1 ] || \
+   { [ "${XNU_NATIVE_VIRTIO_BLOCK:-0}" != 1 ] && [ "${XNU_SOURCE_STORAGE:-0}" != 1 ]; }; }; then
   echo 'Owner root acceptance requires actual mounted-media binding and verified block storage' >&2
   exit 1
 fi
@@ -418,7 +425,7 @@ if [ "$OWNER_DATA_MOUNT" = 1 ] && [ "$OWNER_BOOT_MANIFEST" != 1 ]; then
   exit 1
 fi
 OWNER_DATA_HEADER=$ROOT/build/xnu/owner-data-volume.h
-python3 - "$OWNER_DATA_HEADER" "$OWNER_DATA_MOUNT" "$NATIVE_RAM_BLOCK" "${XNU_OWNER_DATA_VOLUME_UUID:-}" "${XNU_OWNER_CACHE_VOLUME_UUID:-}" <<'PY_DATA_UUID'
+python3 - "$OWNER_DATA_HEADER" "$OWNER_DATA_MOUNT" "$NATIVE_RAM_BLOCK" "${XNU_OWNER_DATA_VOLUME_UUID:-}" "${XNU_OWNER_CACHE_VOLUME_UUID:-}" "${XNU_OWNER_ROOT_VOLUME_UUID:-}" "$OWNER_BOOT_MANIFEST" <<'PY_DATA_UUID'
 from pathlib import Path
 import sys
 import uuid
@@ -438,14 +445,22 @@ if len(sys.argv) > 5 and sys.argv[5]:
     except ValueError:
         raise SystemExit('Set XNU_OWNER_CACHE_VOLUME_UUID to the SystemOS volume UUID of the signed policy')
 text += '#define XNU_OWNER_CACHE_VOLUME_UUID "' + cache + '"\n'
+# The OS root volume of the boot manifest comes from the OS profile ([root] os_volume_uuid).
+if len(sys.argv) > 6 and sys.argv[6]:
+    try:
+        text += '#define XNU_OWNER_ROOT_VOLUME_UUID "' + str(uuid.UUID(sys.argv[6])).upper() + '"\n'
+    except ValueError:
+        raise SystemExit('Set XNU_OWNER_ROOT_VOLUME_UUID to the OS volume UUID of the signed policy')
+elif len(sys.argv) > 7 and sys.argv[7] == '1':
+    raise SystemExit('The owner boot manifest needs XNU_OWNER_ROOT_VOLUME_UUID (OS profile [root] os_volume_uuid)')
 path.parent.mkdir(parents=True, exist_ok=True)
 if not path.exists() or path.read_text() != text:
     path.write_text(text)
 PY_DATA_UUID
 OWNER_DATA_STAMP=$ROOT/build/xnu/ios-obj/DEVELOPMENT_ARM64_BCM2837/.owner-data-mount-mode
-if [ "$(cat "$OWNER_DATA_STAMP" 2>/dev/null || echo 0)" != "$OWNER_DATA_MOUNT:$NATIVE_RAM_BLOCK:${XNU_OWNER_CACHE_VOLUME_UUID:-}" ]; then
+if [ "$(cat "$OWNER_DATA_STAMP" 2>/dev/null || echo 0)" != "$OWNER_DATA_MOUNT:$NATIVE_RAM_BLOCK:${XNU_OWNER_CACHE_VOLUME_UUID:-}:${XNU_OWNER_ROOT_VOLUME_UUID:-}" ]; then
   rm -f "$ROOT/build/xnu/ios-obj/DEVELOPMENT_ARM64_BCM2837/bsd/DEVELOPMENT/kern_exec.o"
-  printf '%s\n' "$OWNER_DATA_MOUNT:$NATIVE_RAM_BLOCK:${XNU_OWNER_CACHE_VOLUME_UUID:-}" > "$OWNER_DATA_STAMP"
+  printf '%s\n' "$OWNER_DATA_MOUNT:$NATIVE_RAM_BLOCK:${XNU_OWNER_CACHE_VOLUME_UUID:-}:${XNU_OWNER_ROOT_VOLUME_UUID:-}" > "$OWNER_DATA_STAMP"
 fi
 OWNER_CRYPTEX_FILES=${XNU_OWNER_CRYPTEX_FILES:-0}
 if [ "$OWNER_CRYPTEX_FILES" != 0 ] && [ "$OWNER_CRYPTEX_FILES" != 1 ]; then
@@ -700,7 +715,7 @@ PY_GPU_BROKER
     KERNEL_EXTRA_ARCHIVES="$KERNEL_EXTRA_ARCHIVES -Wl,-force_load,$CONSOLE_ARCHIVE"
     KERNEL_ARCHIVE_DEPENDENCIES="$KERNEL_ARCHIVE_DEPENDENCIES $CONSOLE_ARCHIVE"
   fi
-  if [ "$NATIVE_RAM_BLOCK" = 1 ]; then
+  if [ "$NATIVE_RAM_BLOCK" = 1 ] && [ "${XNU_SOURCE_STORAGE:-0}" != 1 ]; then
     RAM_BLOCK_ARCHIVE=$ROOT/build/ram-block/libRamBlock.a
     test -f "$RAM_BLOCK_ARCHIVE"
     if [ "${XNU_NATIVE_VIRTIO_BLOCK:-0}" = 1 ]; then

@@ -5,8 +5,9 @@ import json
 import tomllib
 from pathlib import Path
 import subprocess
+import sys
 
-from kernel_target import TRIPLE, check_object
+from kernel_target import ARCH, TRIPLE, check_object
 
 ROOT = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser(description=__doc__)
@@ -21,6 +22,10 @@ parser.add_argument('--verified-root-bundle', action='store_true', help='Select 
 parser.add_argument('--negative-verified-block', action='store_true', help='Negative own-buffer control: corrupt only the completed DMA snapshot')
 args = parser.parse_args()
 identifier = aliases.get(args.component, args.component)
+if identifier == 'ShengUfs' and ARCH == 'arm64e':
+    if any((args.negative_aes_kat, args.verified_root, args.verified_root_bundle, args.negative_verified_block)):
+        parser.error('The source UFS runtime always uses the authenticated policy bundle of the OS profile')
+    raise SystemExit(subprocess.call([sys.executable, ROOT / 'scripts/build-sheng-source-storage.py', '--tree', ROOT]))
 metadata = catalog.get(identifier, {})
 runtime = metadata.get('legacy_name', identifier)
 args.component = runtime
