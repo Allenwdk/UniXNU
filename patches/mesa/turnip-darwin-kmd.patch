@@ -274,7 +274,7 @@ new file mode 100644
 index 0000000..b03c6ee
 --- /dev/null
 +++ b/src/freedreno/vulkan/tu_knl_darwin.cc
-@@ -0,0 +1,1522 @@
+@@ -0,0 +1,1554 @@
 +/*
 + * Native Darwin kernel backend for Turnip: talks to the NativeAdreno IOKit user client (NativeAdrenoABI.h, version 1).
 + * Modelled on tu_knl_kgsl.cc (no libdrm) and tu_knl_drm_msm.cc (the client chooses GPU addresses).
@@ -347,9 +347,13 @@ index 0000000..b03c6ee
 + * allocation of its class: one BoAlloc + BoMap (the SMMU table update, about a millisecond) and one BoFree + unmap saved per reuse.
 + * Classes are the size rounded up to a quarter of its power of two (4 KiB steps up to 16 KiB). Replayable BOs (client addresses) and
 + * host imports never enter it. */
-+enum { DARWIN_CACHE_ENTRIES = 1024, DARWIN_CACHE_MAX_BYTES = 384 << 20 };
++enum { DARWIN_CACHE_ENTRIES = 1024 };
++/* No byte limit: as Metal's own resource cache does, the cache gives memory back when the system asks and when it goes unused. Every
++ * Metal client draws from the one kernel pool, so the kernel reports pressure on it (NativeAdrenoParamsPoolPressure in Query's flags)
++ * and each client then empties its cache; an entry nobody took for DARWIN_CACHE_IDLE_NS is released anyway. */
++enum : uint64_t { DARWIN_CACHE_IDLE_NS = 2000000000ull, DARWIN_PRESSURE_POLL_NS = 100000000ull };
 +struct darwin_cached_bo {
-+   uint64_t handle, iova, size, stamp;
++   uint64_t handle, iova, size, stamp, cached_ns;
 +   void *mapping;
 +   uint32_t token;
 +   bool read_only;
@@ -370,6 +374,7 @@ index 0000000..b03c6ee
 +   struct rb_tree address, size;
 +   bool seeded;
 +   uint64_t holes, allocs, frees, merges;
++   uint64_t used;   /* bytes handed out */
 +};
 +
 +struct darwin_retire_state {
@@ -380,7 +385,7 @@ index 0000000..b03c6ee
 +   uint64_t enqueued, reaped, pressure_waits;
 +   struct darwin_cached_bo cache[DARWIN_CACHE_ENTRIES];
 +   unsigned cache_count;
-+   uint64_t cache_bytes, cache_stamp;
++   uint64_t cache_bytes, cache_stamp, pressure_polled_ns;
 +   struct darwin_bo_cache_stats cache_stats;
 +   struct darwin_va va;
 +};
@@ -649,6 +654,7 @@ index 0000000..b03c6ee
 +   darwin_va_add(va, begin, at - begin);
 +   darwin_va_add(va, at + size, end - (at + size));
 +   ++va->allocs;
++   va->used += size;
 +}
 +
 +/* From the smallest hole that fits (best fit); a high allocation takes the end of it. 0 when nothing fits. */
@@ -717,6 +723,7 @@ index 0000000..b03c6ee
 +   }
 +   darwin_va_add(va, begin, end - begin);
 +   ++va->frees;
++   va->used -= size;
 +}
 +
 +static VkResult
@@ -827,9 +834,7 @@ index 0000000..b03c6ee
 +static bool
 +darwin_cache_put(struct tu_device *dev, struct darwin_retire_state *retire, const struct darwin_retired_bo *bo)
 +{
-+   if (bo->size > DARWIN_CACHE_MAX_BYTES / 4)
-+      return false;
-+   while (retire->cache_count == DARWIN_CACHE_ENTRIES || retire->cache_bytes + bo->size > DARWIN_CACHE_MAX_BYTES) {
++   while (retire->cache_count == DARWIN_CACHE_ENTRIES) {
 +      unsigned oldest = 0;
 +      for (unsigned i = 1; i < retire->cache_count; ++i)
 +         if (retire->cache[i].stamp < retire->cache[oldest].stamp)
@@ -837,7 +842,8 @@ index 0000000..b03c6ee
 +      if (darwin_cache_evict(dev, retire, oldest) != VK_SUCCESS)
 +         return false;
 +   }
-+   retire->cache[retire->cache_count++] = {bo->handle, bo->iova, bo->size, ++retire->cache_stamp, bo->mapping, bo->token, bo->read_only};
++   retire->cache[retire->cache_count++] = {bo->handle, bo->iova, bo->size, ++retire->cache_stamp, os_time_get_nano(), bo->mapping, bo->token,
++                                           bo->read_only};
 +   retire->cache_bytes += bo->size;
 +   if (retire->cache_bytes > retire->cache_stats.bytes_peak)
 +      retire->cache_stats.bytes_peak = retire->cache_bytes;
@@ -880,6 +886,30 @@ index 0000000..b03c6ee
 +   if (any)
 +      ++retire->cache_stats.flushes;
 +   return any;
++}
++
++/* Called under retire->lock, at most every DARWIN_PRESSURE_POLL_NS: entries idle for DARWIN_CACHE_IDLE_NS go back, and all of them when
++ * the kernel reports pressure on the shared pool. */
++static void
++darwin_cache_trim(struct tu_device *dev, struct darwin_retire_state *retire)
++{
++   const uint64_t now = os_time_get_nano();
++   if (now - retire->pressure_polled_ns < DARWIN_PRESSURE_POLL_NS)
++      return;
++   retire->pressure_polled_ns = now;
++   /* This process's own GPU addresses are the other shared resource: cached BOs keep theirs, so past seven eighths of the range the
++    * cache goes back too (the render server's mappings climbed through its whole range while its cache kept them, i-2740ce770). */
++   const uint64_t va_size = dev->physical_device->va_size;
++   const bool va_pressure = va_size && retire->va.used > va_size - va_size / 8;
++   NativeAdrenoAbiParams params = {};
++   if (va_pressure || (dw_call(NativeAdrenoMethodQuery, NULL, 0, &params, sizeof(params)) == KERN_SUCCESS &&
++                       (params.flags & NativeAdrenoParamsPoolPressure))) {
++      darwin_cache_flush(dev, retire);
++      return;
++   }
++   for (unsigned i = retire->cache_count; i-- > 0;)
++      if (now - retire->cache[i].cached_ns >= DARWIN_CACHE_IDLE_NS)
++         darwin_cache_evict(dev, retire, i);
 +}
 +
 +/* Called under retire->lock. All fence polls are nonblocking. Failed/uncertain
@@ -943,6 +973,8 @@ index 0000000..b03c6ee
 +   struct darwin_retire_state *retire = (struct darwin_retire_state *)dev->darwin_retire;
 +   pthread_mutex_lock(&retire->lock);
 +   VkResult result = darwin_reap_locked(dev, retire);
++   if (result == VK_SUCCESS)
++      darwin_cache_trim(dev, retire);
 +   pthread_mutex_unlock(&retire->lock);
 +   return result;
 +}
