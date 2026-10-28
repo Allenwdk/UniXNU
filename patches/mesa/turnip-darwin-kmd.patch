@@ -274,7 +274,7 @@ new file mode 100644
 index 0000000..b03c6ee
 --- /dev/null
 +++ b/src/freedreno/vulkan/tu_knl_darwin.cc
-@@ -0,0 +1,1501 @@
+@@ -0,0 +1,1504 @@
 +/*
 + * Native Darwin kernel backend for Turnip: talks to the NativeAdreno IOKit user client (NativeAdrenoABI.h, version 1).
 + * Modelled on tu_knl_kgsl.cc (no libdrm) and tu_knl_drm_msm.cc (the client chooses GPU addresses).
@@ -347,7 +347,7 @@ index 0000000..b03c6ee
 + * allocation of its class: one BoAlloc + BoMap (the SMMU table update, about a millisecond) and one BoFree + unmap saved per reuse.
 + * Classes are the size rounded up to a quarter of its power of two (4 KiB steps up to 16 KiB). Replayable BOs (client addresses) and
 + * host imports never enter it. */
-+enum { DARWIN_CACHE_ENTRIES = 512, DARWIN_CACHE_MAX_BYTES = 256 << 20 };
++enum { DARWIN_CACHE_ENTRIES = 1024, DARWIN_CACHE_MAX_BYTES = 384 << 20 };
 +struct darwin_cached_bo {
 +   uint64_t handle, iova, size, stamp;
 +   void *mapping;
@@ -1151,7 +1151,10 @@ index 0000000..b03c6ee
 +   /* IOUserClient::mapClientMemory64 takes the cache mode from THESE flags, not from the descriptor the driver returns, so a plain
 +    * kIOMapAnywhere would give a cached mapping of memory the GPU reads non-cacheable. Write combine is Normal non-cacheable: the
 +    * GPU sees CPU writes after a barrier, and memcpy/unaligned stores stay legal (device-memory mappings fault on those). */
-+   uint32_t options = (placed_addr ? 0 : kIOMapAnywhere) | kIOMapWriteCombineCache;
++   /* With IO-coherent BOs (the kernel reports NativeAdrenoParamsOwnedCoherent) the GPU maps the pages write-back inner-shareable, so the CPU
++    * view is a write-back one too: a write-combined view of a page the GPU snoops and the kernel's cacheable alias would disagree. */
++   uint32_t options = (placed_addr ? 0 : kIOMapAnywhere) |
++                      ((dw.params.flags & NativeAdrenoParamsOwnedCoherent) ? kIOMapDefaultCache : kIOMapWriteCombineCache);
 +   kr = IOConnectMapMemory64(dw.conn, reply.token, mach_task_self(), &address, &length, options);
 +   if (kr != KERN_SUCCESS || !address || length < bo->size) {
 +      NativeAdrenoAbiBoCpuUnmap undo = {.handle = bo->darwin_handle, .token = reply.token};
