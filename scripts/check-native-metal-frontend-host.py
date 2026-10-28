@@ -152,6 +152,7 @@ print([l for l in run.stdout.splitlines() if l.startswith('PASS')][0])
 # parallel creation and release after real pending completion.
 surface_import_object = OUT / 'surface-import-instrumented.o'
 subprocess.run(['xcrun', 'clang++', *flags, '-Dnmb_buffer_new_no_copy=tracked_surface_import',
+                '-Dnmb_buffer_new_no_copy_releasing=tracked_surface_import_releasing',
                 '-Dnmb_buffer_release=tracked_buffer_release', '-c', KIT / 'NativeBridgeMetalFrontend.mm',
                 '-o', surface_import_object], check=True)
 surface_import = OUT / 'surface_import_host'

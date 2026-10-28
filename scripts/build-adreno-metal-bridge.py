@@ -35,7 +35,13 @@ PATCHES = [ROOT / 'drivers/AdrenoMetal/bridge/patches' / name for name in [
     # may not write, the Astronomy wallpaper's extended-range sRGB blends, llvm.bitreverse, pooled blocks that start at 4 MiB and grow
     # (the render server alone held 1 GiB of wired memory), and a patch function with no control points.
     '0017-optional-shader-cache-directory.patch', '0018-srgb-extended-range-blend-rounded-model.patch', '0019-llvm-bitreverse.patch',
-    '0020-growing-memory-blocks.patch', '0021-patch-with-no-control-points.patch']]
+    '0020-growing-memory-blocks.patch', '0021-patch-with-no-control-points.patch',
+    # generate_mipmaps runs the blit chain for a format outside the measured spread too, as Metal's box filter, instead of leaving
+    # the levels unwritten.
+    '0022-mipmaps-outside-the-measured-spread.patch',
+    # A heap texture's size is a multiple of its alignment, as Metal's always is: a heap sized as the sum of its textures' sizes then
+    # holds them where the device's image needs a coarser alignment than Metal's (Core Image, SpringBoard: OutOfMemory(Heap)).
+    '0023-heap-texture-size-a-multiple-of-its-alignment.patch']]
 
 
 def git_tree(*steps):
