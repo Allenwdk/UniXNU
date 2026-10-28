@@ -41,7 +41,27 @@ PATCHES = [ROOT / 'drivers/AdrenoMetal/bridge/patches' / name for name in [
     '0022-mipmaps-outside-the-measured-spread.patch',
     # A heap texture's size is a multiple of its alignment, as Metal's always is: a heap sized as the sum of its textures' sizes then
     # holds them where the device's image needs a coarser alignment than Metal's (Core Image, SpringBoard: OutOfMemory(Heap)).
-    '0023-heap-texture-size-a-multiple-of-its-alignment.patch']]
+    '0023-heap-texture-size-a-multiple-of-its-alignment.patch',
+    # A Core Image kernel library (file_type 1, ci_stdlib and ci_filters) loads as Metal loads it: an executable library naming none of its
+    # kernels, instead of a refusal.
+    '0024-core-image-kernel-libraries.patch',
+    # Droid-VM's draw-path patches on the same translator pin (UniXNU macOS branch, patches/metal2vulkan 0011-0023): viewports and scissors
+    # set in place, a draw's push/table bytes, bind vectors, residuals and vertex binds kept, an ended encoder's rooms handed to the next,
+    # colors reshaped without cloning, final passes by reference, barriers on the stack, command pools reset as given back on the
+    # completion thread, GPU clock calibration off the commit path, and key-hashed draw-path maps. Golden hashes unchanged at each step.
+    '0025-set-viewports-and-scissors-in-place.patch',
+    '0026-keep-push-and-table-bytes.patch',
+    '0027-keep-bind-vectors.patch',
+    '0028-keep-bound-buffer-vectors.patch',
+    '0029-keep-vertex-buffer-binds.patch',
+    '0030-hand-draw-rooms-to-the-next-encoder.patch',
+    '0031-keep-bound-state-room.patch',
+    '0032-reshape-colors-without-cloning.patch',
+    '0033-look-up-final-passes-by-reference.patch',
+    '0034-batch-barriers-on-the-stack.patch',
+    '0035-reset-command-pools-as-given-back.patch',
+    '0036-calibrate-off-the-commit-path.patch',
+    '0037-key-hash-the-draw-path-maps.patch']]
 
 
 def git_tree(*steps):

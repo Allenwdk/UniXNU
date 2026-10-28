@@ -274,7 +274,7 @@ new file mode 100644
 index 0000000..b03c6ee
 --- /dev/null
 +++ b/src/freedreno/vulkan/tu_knl_darwin.cc
-@@ -0,0 +1,1566 @@
+@@ -0,0 +1,1570 @@
 +/*
 + * Native Darwin kernel backend for Turnip: talks to the NativeAdreno IOKit user client (NativeAdrenoABI.h, version 1).
 + * Modelled on tu_knl_kgsl.cc (no libdrm) and tu_knl_drm_msm.cc (the client chooses GPU addresses).
@@ -1583,12 +1583,16 @@ index 0000000..b03c6ee
 +   struct tu_darwin_queue_submit *submit = (struct tu_darwin_queue_submit *)_submit;
 +   struct tu_device *dev = queue->device;
 +
-+   /* The kernel client has one ring and no GPU-side waits: wait on the CPU before submitting. */
++   /* Every client submits to the kernel's one ring, which runs jobs in order, and each job's prologue flushes and invalidates the GPU
++    * caches and waits for idle (NativeAdrenoRing::emitPrologue) before its buffers run. A wait on a sync already resolved to a ring
++    * fence is therefore met by the ring itself, as msm_gem_submit() skips fences of the submitting ring's own context: the CPU does
++    * not wait for that work to complete. A sync not yet resolved (wait-before-signal) is waited for until it is submitted, never for
++    * its completion. */
 +   for (uint32_t i = 0; i < wait_count; i++) {
 +      struct vk_darwin_sync *s = container_of(waits[i].sync, struct vk_darwin_sync, vk);
-+      VkResult result = darwin_sync_wait(dev, s, UINT64_MAX);
-+      if (result != VK_SUCCESS)
-+         return vk_device_set_lost(&dev->vk, "wait before submit failed");
++      /* tu_queue_submit() holds submit_mutex here (tu_queue.cc), which the wait releases while it sleeps. */
++      while (s->state == DARWIN_SYNC_UNSIGNALED)
++         pthread_cond_wait(&dev->timeline_cond, &dev->submit_mutex);
 +   }
 +
 +   uint32_t fence = 0;
