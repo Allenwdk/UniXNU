@@ -5,46 +5,57 @@
 (runtime_examples.ll) and its function-constant fixture are assembled to AIR with llvm-as and embedded for the self-tests. Only generated build files hold local paths; nothing here
 is committed. Output: build/native-metal-bridge/<target>/libnative_metal_bridge.a"""
 import argparse
+import hashlib
 import json
 import os
-import re
 from pathlib import Path
 import shutil
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
+MODULE = next((d for d in (ROOT / 'drivers/AdrenoMetal', ROOT / 'drivers/NativeMetal') if d.is_dir()), None)
+if MODULE is None:
+    raise SystemExit('no AdrenoMetal module beside this script (drivers/AdrenoMetal or drivers/NativeMetal)')
 PIN = json.loads((ROOT / 'scripts/data/gpu-metal-vulkan-inputs.json').read_text())['translator']['commit']
 SOURCE = ROOT / '.cache/gpu-reference/metal2vulkan'
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--target', choices=['ios', 'host'], default='ios')
+parser.add_argument('--manifest-only', action='store_true',
+                    help='write build/native-metal-bridge/Cargo.toml (patched source, fixtures) and stop before cargo, for `cargo fetch`')
 args = parser.parse_args()
 if subprocess.check_output(['git', '-C', str(SOURCE), 'rev-parse', 'HEAD'], text=True).strip() != PIN:
     raise SystemExit('Translator revision differs from the qualified source pin')
-PATCHES = [ROOT / 'drivers/NativeMetal/bridge/patches' / name for name in [
+PATCHES = [MODULE / 'bridge/patches' / name for name in [
     '0001-optional-constant-output-members.patch', '0002-resource-wait-storage-dependencies.patch',
     '0003-cache-device-entry-point-priming.patch', '0004-fold-constant-global-field-loads.patch',
-    '0005-keep-module-decodes-and-profile-fingerprints.patch']]
-tree_diff = subprocess.check_output(['git', '-C', str(SOURCE), 'diff', 'HEAD', '--'], text=True)
-def canonical_diff(diff):
-    # Independent patches touch disjoint files; Git orders the combined diff by
-    # filename, rather than by the order the patches were applied.
-    blocks = [block for block in re.split(r'(?=^diff --git )', diff, flags=re.M) if block]
-    names = [block.splitlines()[0] for block in blocks]
-    if len(set(names)) != len(names):
-        raise SystemExit('Overlapping recorded patches require an explicit combined-source update')
-    return ''.join(sorted(blocks, key=lambda block: block.splitlines()[0]))
+    '0005-keep-module-decodes-and-profile-fingerprints.patch', '0006-skip-draws-without-a-pipeline.patch',
+    '0007-accept-two-plane-rgb-surfaces.patch', '0008-alias-padded-rows-of-written-textures.patch',
+    # The rest stack in order, each on the source the ones before it leave.
+    '0009-keep-final-pass.patch', '0010-fewer-allocations-per-draw.patch', '0011-keep-draw-commands.patch',
+    '0012-keep-draw-lists.patch', '0013-skip-unchanged-rebinds.patch', '0014-map-tracker-keys.patch',
+    '0015-two-plane-shadow-as-memory-lies.patch', '0016-tile-stores-within-rows.patch']]
 
 
-expected = ''
-states = [expected]
-for patch in PATCHES:
-    expected += patch.read_text()
-    states.append(canonical_diff(expected))
-if tree_diff not in states:
+def git_tree(*steps):
+    # The source tree a scratch index holds after HEAD and the given commands, without touching the source's own index.
+    index = ROOT / 'build/native-metal-bridge-index'
+    env = dict(os.environ, GIT_INDEX_FILE=str(index))
+    subprocess.run(['git', '-C', str(SOURCE), 'read-tree', 'HEAD'], env=env, check=True)
+    for step in steps:
+        subprocess.run(['git', '-C', str(SOURCE)] + step, env=env, check=True)
+    tree = subprocess.check_output(['git', '-C', str(SOURCE), 'write-tree'], env=env, text=True).strip()
+    index.unlink()
+    return tree
+
+
+# The tree after each prefix of the recorded patches; the source must be one of them.
+states = [git_tree(*[['apply', '--cached', str(patch)] for patch in PATCHES[:count]]) for count in range(len(PATCHES) + 1)]
+current = git_tree(['add', '-A'])
+if current not in states:
     raise SystemExit('Translator source differs from the pinned revision plus its recorded patches')
-for patch in PATCHES[states.index(tree_diff):]:
+for patch in PATCHES[states.index(current):]:
     subprocess.run(['git', '-C', str(SOURCE), 'apply', str(patch)], check=True)
-if subprocess.check_output(['git', '-C', str(SOURCE), 'diff', 'HEAD', '--'], text=True) != canonical_diff(expected):
+if git_tree(['add', '-A']) != states[-1]:
     raise SystemExit('Translator patch result differs from its exact recorded source')
 out = ROOT / 'build/native-metal-bridge'
 out.mkdir(parents=True, exist_ok=True)
@@ -58,7 +69,7 @@ subprocess.run([llvm_as, '-o', fc_air, SOURCE / 'crates/metal2vulkan-validation/
 manifest = out / 'Cargo.toml'
 manifest.write_text('\n'.join([
     '[package]', 'name = "native-metal-bridge"', 'version = "0.1.0"', 'edition = "2024"', 'rust-version = "1.98"', '[workspace]',
-    '[lib]', 'crate-type = ["staticlib"]', 'path = ' + json.dumps(str(ROOT / 'drivers/NativeMetal/bridge/NativeMetalBridge.rs')),
+    '[lib]', 'crate-type = ["staticlib"]', 'path = ' + json.dumps(str(MODULE / 'bridge/NativeMetalBridge.rs')),
     '[dependencies]',
     'metal2vulkan = { path = ' + json.dumps(str(SOURCE / 'crates/metal2vulkan')) + ', features = ["ash"] }',
     'metal2vulkan-runtime = { path = ' + json.dumps(str(SOURCE / 'crates/metal2vulkan-runtime')) + ' }',
@@ -68,8 +79,14 @@ manifest.write_text('\n'.join([
     'sha2 = { version = "0.10", features = ["asm"] }',
     '[profile.release]', 'panic = "unwind"', 'debug = 1', '',
 ]))
+if args.manifest_only:
+    print(manifest)
+    raise SystemExit(0)
 triple = 'aarch64-apple-ios' if args.target == 'ios' else 'aarch64-apple-darwin'
-env = dict(os.environ, NMB_FIXTURE_AIR=str(air), NMB_FC_AIR=str(fc_air), IPHONEOS_DEPLOYMENT_TARGET='17.0', MACOSX_DEPLOYMENT_TARGET='14.0')
+# The translator source the runtime is built from (its pin and recorded patches), which keys the shader cache: shader priming keeps what it
+# finished while this stays the same (PrimeShaders.h).
+runtime_id = hashlib.sha256((PIN + '\n' + states[-1]).encode()).hexdigest()[:32]
+env = dict(os.environ, NMB_RUNTIME_ID=runtime_id, NMB_FIXTURE_AIR=str(air), NMB_FC_AIR=str(fc_air), IPHONEOS_DEPLOYMENT_TARGET='17.0', MACOSX_DEPLOYMENT_TARGET='14.0')
 target_dir = ROOT / 'build/m2v-target'
 log = out / ('build-%s.log' % args.target)
 with log.open('w') as stream:
