@@ -43,7 +43,7 @@ index c3f9fca2..9969eb6f 100644
 +native_owner_cache_prepare(proc_t p, user_addr_t scratch, user_addr_t *envp)
 +{
 +#ifndef XNU_OWNER_CACHE_VOLUME_UUID
-+#define XNU_OWNER_CACHE_VOLUME_UUID "8846FE78-2910-4297-AF97-D59BB6F8FC16"
++#define XNU_OWNER_CACHE_VOLUME_UUID "7A23BAC7-E86D-4DF4-B181-E6D80F212AE5"
 +#endif
 +	const char *volume = XNU_OWNER_CACHE_VOLUME_UUID;
 +#if defined(XNU_OWNER_UNION_SYSTEMOS) && XNU_OWNER_UNION_SYSTEMOS
@@ -150,7 +150,7 @@ index c3f9fca2..9969eb6f 100644
 +	if (!root_recheck) error = EAUTH;
 +#if defined(XNU_OWNER_BOOT_MANIFEST) && XNU_OWNER_BOOT_MANIFEST
 +	if (!error && cache_authorized && root_recheck &&
-+	    !native_owner_publish_boot_manifest(root_device, "04769D26-2CA0-4825-B443-E2E5F88300F2",
++	    !native_owner_publish_boot_manifest(root_device, XNU_OWNER_ROOT_VOLUME_UUID,
 +	        selected, volume)) error = EAUTH;
 +#endif
 +#if defined(XNU_OWNER_CACHE_STARTUP) && XNU_OWNER_CACHE_STARTUP

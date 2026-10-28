@@ -29,6 +29,8 @@
 "kernel" = "build/xnu/ios-obj/DEVELOPMENT_ARM64_BCM2837/mach.development.bcm2837.unstripped.noctf"
 "kernelcache_sha256" = "0f7d50ac1bfc7cdbfc3acf5ed4934b5d5abbadee243dafb8d7487ca38b445066"
 "slide" = "-0x1000000"
+# AMFI start is a null __realmain trampoline in 23F84; the kernel patch calls this original entry instead.
+"early_security_init" = "com.apple.driver.AppleMobileFileIntegrity=0xfffffe0008f13c80"
 "roots" = ["com.apple.AppleFSCompression.AppleFSCompressionTypeZlib", "com.apple.driver.AppleARMPlatform", "com.apple.driver.AppleARMWatchdogTimer", "com.apple.driver.AppleAudioClockLibs", "com.apple.driver.AppleEffaceableStorage", "com.apple.driver.AppleIISController", "com.apple.driver.AppleM2ScalerCSCDriver", "com.apple.driver.AppleMobileFileIntegrity", "com.apple.driver.ApplePMGR", "com.apple.driver.IODARTFamily", "com.apple.filesystems.apfs", "com.apple.iokit.CoreAnalyticsFamily", "com.apple.iokit.IOAVFamily", "com.apple.iokit.IOAudio2Family", "com.apple.iokit.IOCECFamily", "com.apple.iokit.IOCryptoAcceleratorFamily", "com.apple.iokit.IOGPUFamily", "com.apple.iokit.IOHDCPFamily", "com.apple.iokit.IOMobileGraphicsFamily", "com.apple.iokit.IOReportFamily", "com.apple.iokit.IOSlowAdaptiveClockingFamily", "com.apple.iokit.IOStorageFamily", "com.apple.iokit.IOSurface", "com.apple.kec.Libm", "com.apple.kec.corecrypto", "com.apple.kext.AppleMatch", "com.apple.kext.CoreTrust", "com.apple.security.AppleImage4", "com.apple.security.sandbox", "com.apple.iokit.IOHIDFamily", "com.apple.iokit.IOHIDEventDriver"]
 
 
@@ -58,6 +60,21 @@
 
 
 # Apple sources of the macOS 26.5 release that pairs with xnu-12377.121.6.
+# Public source interfaces; these pins do not qualify the stripped iPadOS family ABI.
+[[source]]
+name = "IOStorageFamily"
+kind = "refer"
+git = "https://github.com/apple-oss-distributions/IOStorageFamily.git"
+ref = "IOStorageFamily-337.100.1"
+commit = "7edb88fbae296fb7c8ce2f64e115e116e566d51c"
+
+[[source]]
+name = "IOHIDFamily"
+kind = "refer"
+git = "https://github.com/apple-oss-distributions/IOHIDFamily.git"
+ref = "IOHIDFamily-2238.120.5"
+commit = "e31e90a24c27ad6cbe981650d12a1a4124065b03"
+
 [[source]]
 name = "libplatform"
 kind = "refer"
@@ -89,3 +106,13 @@ commit = "1f4f5265b319111142f1bf3a27d4484ef5a98314"
 [userdata]
 # Disk images of this OS, in window order; the device sets the partition geometry.
 windows = [{ name = "OS", component = "OS" }, { name = "SystemOS", component = "Cryptex1,SystemOS", optional = true }]
+
+[root]
+# The OS and Cryptex1,SystemOS disk images: APFS volume UUIDs and image digests the root policies sign.
+os_volume_uuid = "546DFF4A-4172-4026-9F1B-7FDAD45F3D2E"
+os_image_sha256 = "b4e40913f9908f6b68e554bd79b4b95362cade0c3ce210dc378a151bc3387716"
+systemos_volume_uuid = "7A23BAC7-E86D-4DF4-B181-E6D80F212AE5"
+systemos_image_sha256 = "eadb838d10f05ff2404b6d6cbc4012e9376c90e16f0283ed6a19bd7ac8753daf"
+
+[payload.adt]
+root_match_volume_uuid = "546DFF4A-4172-4026-9F1B-7FDAD45F3D2E"

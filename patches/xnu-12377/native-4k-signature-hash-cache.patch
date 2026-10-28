@@ -178,7 +178,7 @@ index 79bf0cb7..b5ef6a71 100644
 +		}
 +		os_atomic_add(&cs_native4k_hash_ticks, mach_absolute_time() - hash_start, relaxed);
 +	}
-+	kr = vm_map_protect(kernel_map, storage, storage + allocation, VM_PROT_READ, TRUE);
++	kr = mach_vm_protect(kernel_map, storage, allocation, FALSE, VM_PROT_READ);
 +	if (kr != KERN_SUCCESS) {
 +		error = EPERM;
 +		goto out;
