@@ -120,6 +120,11 @@
 **结果：** 日志区域有明确记录，写入器、读取器和解码器格式一致，返回 bootloader 的路径已验证。
 将这些信息写入设备仓库。
 
+sheng 的 iPadOS 27 原生源码路径使用 sheng-log=1 boot-ui-trace=1 抓取用户态停滞时的进程栈。
+源码存储归档包含 BootProcessWorker.c，由独立线程采样，避免读取用户页时的缺页等待阻塞持久化日志。
+加入 boot-ui-focus3=chronod 可在 backboardd、SpringBoard 之外保留 chronod 的栈。
+arm64e 采样器先去除返回地址的 PAC，再检查和编码地址；栈区域为空本身不能证明进程停止运行。
+
 ## 5. 手动完成一次抓取 {#manual-cycle}
 
 使用选定设备文档中的日志参数和读取器镜像。
