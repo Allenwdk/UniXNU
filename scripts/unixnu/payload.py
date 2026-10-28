@@ -115,6 +115,11 @@ def build(ctx, kernel=None):
             raise Error('board.toml [payload] has no skip_setup_tool')
         data = skip_setup_seed(ctx, data, spec['skip_setup_tool'], [str(arg) for arg in spec.get('skip_setup_args', [])])
     addon = expand(args.gpu_addon) if getattr(args, 'gpu_addon', None) else None
+    if addon is None and spec.get('gpu_addon'):
+        # Board default: the blob the kernel archives build in the tree (the loader hands it over as /chosen/memory-map/GpuAddon).
+        addon = expand(ctx.tree / str(spec['gpu_addon']))
+        if not addon.is_file():
+            raise Error(f'the board GPU addon was not built: {addon}; run "unixnu build kernel" first')
     if addon and (not addon.is_file() or addon.read_bytes()[:8] != b'NGPUADD2'):
         raise Error(f'GPU addon not found or not made by scripts/make-gpu-addon.py: {addon}')
     seed = getattr(args, 'unique_chip_id', None) or os.environ.get('UNIXNU_UNIQUE_CHIP_ID')

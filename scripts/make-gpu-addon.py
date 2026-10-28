@@ -34,8 +34,18 @@ def pad(data):
 def main():
     args = [a for a in sys.argv[1:] if a != '--publish']
     publish = len(args) != len(sys.argv) - 1
+    force_generic = '--force-generic' in args
+    args = [a for a in args if a != '--force-generic']
     clients = None
     wallpaper = None
+    plugin = PLUGIN
+    if '--plugin-dir' in args:
+        at = args.index('--plugin-dir')
+        plugin = Path(args[at + 1]).resolve()
+        del args[at:at + 2]
+        if not (plugin / 'NativeAdrenoMetal.bundle' / 'NativeAdrenoMetal').is_file():
+            sys.exit('--plugin-dir takes a build/adreno-metal-plugin output directory')
+    bundle = plugin / 'NativeAdrenoMetal.bundle'
     if '--wallpaper' in args:
         at = args.index('--wallpaper')
         wallpaper = Path(args[at + 1])
@@ -50,6 +60,13 @@ def main():
         lines = prime_list.read_text().split()
         if not lines or any(not line.startswith('/') or not line.endswith('.metallib') for line in lines):
             sys.exit('--prime-list takes a file of absolute .metallib paths')
+    daemon_plist = None
+    if '--daemon-plist' in args:
+        at = args.index('--daemon-plist')
+        daemon_plist = args[at + 1]
+        del args[at:at + 2]
+        if not daemon_plist.endswith('.plist'):
+            sys.exit('--daemon-plist takes the job plist file name')
     if '--clients' in args:
         at = args.index('--clients')
         clients = [name for name in args[at + 1].split(',') if name]
@@ -61,22 +78,27 @@ def main():
     output = Path(args[0]).resolve()
     if output.exists():
         sys.exit('Refuse to overwrite ' + str(output))
-    if not (BUNDLE / 'NativeAdrenoMetal').is_file():
+    if not (bundle / 'NativeAdrenoMetal').is_file():
         sys.exit('Build the plugin first: python3 scripts/build-adreno-metal-plugin.py')
     files = []
-    for path in sorted(p for p in BUNDLE.rglob('*') if p.is_file()):
+    for path in sorted(p for p in bundle.rglob('*') if p.is_file()):
         mode = 0o755 if path.name in ('NativeAdrenoMetal', 'libvulkan_freedreno.dylib') else 0o644
-        files.append(('addons/NativeAdrenoMetal.bundle/' + path.relative_to(BUNDLE).as_posix(), mode, path.read_bytes()))
+        files.append(('addons/NativeAdrenoMetal.bundle/' + path.relative_to(bundle).as_posix(), mode, path.read_bytes()))
     if publish:
         files.append(('addons/NativeAdrenoMetal.publish', 0o644, b'1\n'))
+    if force_generic:
+        files.append(('addons/NativeAdrenoMetal.generic', 0o644, b'1\n'))
     if clients:
         files.append(('addons/NativeAdrenoMetal.clients', 0o644, ('\n'.join(clients) + '\n').encode()))
     if prime_list:
         files.append(('addons/NativeAdrenoMetal.primelist', 0o644, prime_list.read_bytes()))
-    files.append(('bin/adrenoprobed', 0o755, (PLUGIN / 'adrenoprobed').read_bytes()))
-    for plist in sorted(PLUGIN.glob('*.plist')):
-        if not plist.name.endswith('-entitlements.plist'):   # build input, not a launchd job
-            files.append(('daemons/' + plist.name, 0o644, plist.read_bytes()))
+    files.append(('bin/adrenoprobed', 0o755, (plugin / 'adrenoprobed').read_bytes()))
+    for plist in sorted(plugin.glob('*.plist')):
+        if plist.name.endswith('-entitlements.plist'):   # build input, not a launchd job
+            continue
+        if daemon_plist is not None and plist.name != daemon_plist:
+            continue
+        files.append(('daemons/' + plist.name, 0o644, plist.read_bytes()))
     if wallpaper:
         for path in sorted(p for p in wallpaper.rglob('*') if p.is_file()):
             files.append(('wallpaper/' + path.relative_to(wallpaper).as_posix(), 0o644, path.read_bytes()))

@@ -79,9 +79,12 @@ while index < len(arguments):
     elif not value.startswith('-W'):
         command.append(value)
     index += 1
+# The recipe's own -W flags are dropped above; these are the two the kernel build relies on (the XNU headers it includes here
+# leave designated initializers short), so an object that includes more of them than before still compiles as the kernel does.
 command.extend(['-Wall', '-Wextra', '-Werror', '-Wno-unused-parameter',
                 '-Wno-c99-designator', '-Wno-reorder-init-list', '-Wno-deprecated-enum-enum-conversion',
-                '-Wno-unnecessary-virtual-specifier', '-I', str(ROOT / '.cache/xnu-work/osfmk')])
+                '-Wno-unnecessary-virtual-specifier', '-Wno-missing-designated-field-initializers',
+                '-Wno-unused-but-set-global', '-I', str(ROOT / '.cache/xnu-work/osfmk')])
 if component in ('NativeVirtioBlock', 'NativeRamBlock', 'NativeUfs'):
     command += ['-I', str(ROOT / 'build/storage-abi/include')]
     if args.verified_root:
@@ -105,8 +108,13 @@ if component == 'NativeAdreno':
                 '-I', str(ROOT / 'kits/AdrenoFirmware'),
                 '-I', str(ROOT / 'build/sheng-gmu'), '-I', str(ROOT / 'build/adreno740/include')]
 (out / 'compile-command.json').write_text(json.dumps(command, indent=2) + '\n')
-result = subprocess.run(command, cwd=record['directory'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-(out / 'compile.log').write_text(result.stdout)
+# LLVM 24 on this host crashes at random on some XNU translation units (a frontend segfault, no diagnostic: the very same
+# command then succeeds). A compile that died by signal is run again instead of failing the build.
+for attempt in range(4):
+    result = subprocess.run(command, cwd=record['directory'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    (out / 'compile.log').write_text(result.stdout)
+    if result.returncode == 0 or 'frontend command failed due to signal' not in result.stdout:
+        break
 if result.returncode:
     raise SystemExit(result.stdout[-3500:])
 data = destination.read_bytes()
