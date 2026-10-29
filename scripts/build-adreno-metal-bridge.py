@@ -43,19 +43,16 @@ PATCHES = [ROOT / 'drivers/AdrenoMetal/bridge/patches' / name for name in [
     '0014-in-place-written-textures.patch', '0015-in-place-written-host-page-textures.patch',
     # Device::refuse_rebinds: no call logs or per-command holds of no-copy buffers, which only a rebind or a detach reads.
     '0016-refuse-rebinds.patch',
-    # A read-only source of shader-cache entries behind the directory (the pipelines compiled ahead on the host, read on demand from the
-    # userdata import region): an entry the directory lacks is asked of it, and nothing is copied into the directory.
-    '0017-shader-cache-fallback-source.patch',
     # A heap texture's own-device answer rounded up to a multiple of its alignment, as Metal's answers are: a heap sized as the sum of
     # its textures' answers then holds them (iconservicesagent's Core Image heaps ran out: OutOfMemory(Heap)).
-    '0018-heap-texture-size-a-multiple-of-its-alignment.patch',
+    '0017-heap-texture-size-a-multiple-of-its-alignment.patch',
     # The runtime's live device memory in bytes by kind (pooled, placed, empty kept, dedicated, imported), for the frontend's MEM row.
-    '0019-memory-census-bytes.patch',
+    '0018-memory-census-bytes.patch',
     # The call stacks that allocated device memory of 4 MiB or more, by bytes, for the frontend's MA rows.
-    '0020-allocation-sites.patch',
-    # A written texture over host pages stays in place at any size: Turnip renders a linear host image of partial tile blocks without
-    # tile memory (patches/mesa/turnip-render-mode-for-attachment-memory.patch); its shadow merged every pass back through 94 MB.
-    '0021-written-host-page-textures-in-place-at-any-size.patch']]
+    '0019-allocation-sites.patch',
+    # A written texture over host pages stays in place at any size: Turnip loads and stores a linear host image of partial tile blocks
+    # over its texels alone (patches/mesa/turnip-render-mode-for-attachment-memory.patch); its shadow merged every pass back through 94 MB.
+    '0020-written-host-page-textures-in-place-at-any-size.patch']]
 
 
 def git_tree(*steps):
