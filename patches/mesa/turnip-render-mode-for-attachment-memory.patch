@@ -1,0 +1,58 @@
+diff --git a/src/freedreno/fdl/fd6_layout.c b/src/freedreno/fdl/fd6_layout.c
+index 67491ab..63128f2 100644
+--- a/src/freedreno/fdl/fd6_layout.c
++++ b/src/freedreno/fdl/fd6_layout.c
+@@ -193,7 +193,11 @@ fdl6_layout_image(struct fdl_layout *layout, const struct fd_dev_info *info,
+           * aligned gmem store. turnip can use CP_BLIT to work without this
+           * extra alignment, but gallium driver doesn't implement it yet
+           */
+-         if (layout->cpp > 4)
++         /* An explicit layout's rows are their owner's (an imported surface's): they take the
++          * hardware's own alignment, 64 bytes, and turnip renders such an image without the 16x4
++          * gmem store where its size is not whole blocks (use_sysmem_rendering).
++          */
++         if (layout->cpp > 4 && !explicit_layout)
+             layout->pitchalign = fdl_cpp_shift(layout) - 2;
+ 
+          /* when possible, use a bit more alignment than necessary
+diff --git a/src/freedreno/vulkan/tu_cmd_buffer.cc b/src/freedreno/vulkan/tu_cmd_buffer.cc
+index 60ad3a8..925625e 100644
+--- a/src/freedreno/vulkan/tu_cmd_buffer.cc
++++ b/src/freedreno/vulkan/tu_cmd_buffer.cc
+@@ -1452,6 +1452,36 @@ use_sysmem_rendering(struct tu_cmd_buffer *cmd,
+       return true;
+    }
+ 
++   /* A linear attachment over memory imported from a host pointer (an IOSurface's pages) or laid out by its owner (an explicit DRM
++    * format modifier layout, whose pitch fdl6_layout aligns to 64 bytes alone) has no padding space past its edges: its rows are as
++    * tight as their owner made them and its last row may end the memory. GMEM loads and stores move whole gmem_align_w x
++    * gmem_align_h blocks (tu_attachment_store_unaligned lets an edge equal to the image's size write into padding), so an attachment
++    * whose size is not whole blocks renders in SYSMEM, which reads and writes its texels alone. */
++   for (unsigned i = 0; i < cmd->state.pass->attachment_count; i++) {
++      const struct tu_image_view *iview = cmd->state.attachments[i];
++      if (iview && iview->image->layout[0].tile_mode == TILE6_LINEAR &&
++          (iview->image->vk.tiling == VK_IMAGE_TILING_DRM_FORMAT_MODIFIER_EXT ||
++           (iview->image->vk.external_handle_types &
++            (VK_EXTERNAL_MEMORY_HANDLE_TYPE_HOST_ALLOCATION_BIT_EXT |
++             VK_EXTERNAL_MEMORY_HANDLE_TYPE_HOST_MAPPED_FOREIGN_MEMORY_BIT_EXT))) &&
++          (iview->view.width % cmd->device->physical_device->info->gmem_align_w ||
++           iview->view.height % cmd->device->physical_device->info->gmem_align_h)) {
++         cmd->state.rp.gmem_disable_reason = "Host image without padding";
++         return true;
++      }
++   }
++
++   /* An attachment in lazily allocated memory that has none yet (a transient attachment, Metal's memoryless texture) keeps none in
++    * GMEM rendering, where it lives in tile memory alone, while SYSMEM rendering makes its memory for good
++    * (tu_allocate_transient_attachments). The autotuner's choice, SYSMEM by default for passes of few draws, is a matter of bandwidth,
++    * which does not weigh the memory: a 3048x2032 RGBA16F attachment is 48 MiB. */
++   for (unsigned i = 0; i < cmd->state.pass->attachment_count; i++) {
++      const struct tu_image_view *iview = cmd->state.attachments[i];
++      if (iview && !(iview->image->vk.create_flags & VK_IMAGE_CREATE_SPARSE_BINDING_BIT) && iview->image->mem &&
++          iview->image->mem->lazy && !iview->image->mem->bo)
++         return false;
++   }
++
+    tu_autotune::render_mode optimal_mode =
+       cmd->device->autotune->get_optimal_mode(cmd, rp_ctx, rp_key);
+    bool use_sysmem = optimal_mode == tu_autotune::render_mode::SYSMEM;
