@@ -23,45 +23,26 @@ args = parser.parse_args()
 if subprocess.check_output(['git', '-C', str(SOURCE), 'rev-parse', 'HEAD'], text=True).strip() != PIN:
     raise SystemExit('Translator revision differs from the qualified source pin')
 PATCHES = [ROOT / 'drivers/AdrenoMetal/bridge/patches' / name for name in [
+    # Each stacks on the source the ones before it leave.
     '0001-optional-constant-output-members.patch', '0002-resource-wait-storage-dependencies.patch',
     '0003-cache-device-entry-point-priming.patch', '0004-fold-constant-global-field-loads.patch',
-    '0005-keep-module-decodes-and-profile-fingerprints.patch', '0006-skip-draws-without-a-pipeline.patch',
-    '0007-accept-two-plane-rgb-surfaces.patch', '0008-alias-padded-rows-of-written-textures.patch',
-    # The rest stack in order, each on the source the ones before it leave.
-    '0009-keep-final-pass.patch', '0010-fewer-allocations-per-draw.patch', '0011-keep-draw-commands.patch',
-    '0012-keep-draw-lists.patch', '0013-skip-unchanged-rebinds.patch', '0014-map-tracker-keys.patch',
-    '0015-two-plane-shadow-as-memory-lies.patch', '0016-tile-stores-within-rows.patch',
-    # From the DroidVM board's translator patches (its 0006 to 0010), checked against this tree: a cache directory a sandboxed process
-    # may not write, the Astronomy wallpaper's extended-range sRGB blends, llvm.bitreverse, pooled blocks that start at 4 MiB and grow
-    # (the render server alone held 1 GiB of wired memory), and a patch function with no control points.
-    '0017-optional-shader-cache-directory.patch', '0018-srgb-extended-range-blend-rounded-model.patch', '0019-llvm-bitreverse.patch',
-    '0020-growing-memory-blocks.patch', '0021-patch-with-no-control-points.patch',
-    # generate_mipmaps runs the blit chain for a format outside the measured spread too, as Metal's box filter, instead of leaving
-    # the levels unwritten.
-    '0022-mipmaps-outside-the-measured-spread.patch',
-    # A heap texture's size is a multiple of its alignment, as Metal's always is: a heap sized as the sum of its textures' sizes then
-    # holds them where the device's image needs a coarser alignment than Metal's (Core Image, SpringBoard: OutOfMemory(Heap)).
-    '0023-heap-texture-size-a-multiple-of-its-alignment.patch',
-    # A Core Image kernel library (file_type 1, ci_stdlib and ci_filters) loads as Metal loads it: an executable library naming none of its
-    # kernels, instead of a refusal.
-    '0024-core-image-kernel-libraries.patch',
-    # Droid-VM's draw-path patches on the same translator pin (UniXNU macOS branch, patches/metal2vulkan 0011-0023): viewports and scissors
-    # set in place, a draw's push/table bytes, bind vectors, residuals and vertex binds kept, an ended encoder's rooms handed to the next,
-    # colors reshaped without cloning, final passes by reference, barriers on the stack, command pools reset as given back on the
-    # completion thread, GPU clock calibration off the commit path, and key-hashed draw-path maps. Golden hashes unchanged at each step.
-    '0025-set-viewports-and-scissors-in-place.patch',
-    '0026-keep-push-and-table-bytes.patch',
-    '0027-keep-bind-vectors.patch',
-    '0028-keep-bound-buffer-vectors.patch',
-    '0029-keep-vertex-buffer-binds.patch',
-    '0030-hand-draw-rooms-to-the-next-encoder.patch',
-    '0031-keep-bound-state-room.patch',
-    '0032-reshape-colors-without-cloning.patch',
-    '0033-look-up-final-passes-by-reference.patch',
-    '0034-batch-barriers-on-the-stack.patch',
-    '0035-reset-command-pools-as-given-back.patch',
-    '0036-calibrate-off-the-commit-path.patch',
-    '0037-key-hash-the-draw-path-maps.patch']]
+    # A draw whose pipeline the driver refused binds nothing (int-170: tu_CmdBindPipeline in the render server).
+    '0005-skip-draws-without-a-pipeline.patch',
+    # A batch's barrier globals on the stack, and the neutral resources' maps by the runtime's key hash.
+    '0006-batch-barriers-and-key-hash-neutral-maps.patch',
+    # From the DroidVM board's translator patches: a cache directory a sandboxed process may not write, llvm.bitreverse, a patch
+    # function with no control points, and Core Image kernel libraries (file_type 1) loaded as Metal loads them.
+    '0007-optional-shader-cache-directory.patch', '0008-llvm-bitreverse.patch', '0009-patch-with-no-control-points.patch',
+    '0010-core-image-kernel-libraries.patch',
+    # A two-plane surface's shadow starts as its memory lies; the Astronomy wallpaper's extended-range sRGB blends take the rounded
+    # model; pooled blocks start at 4 MiB and grow (the render server alone held 1 GiB of wired memory).
+    '0011-two-plane-shadow-as-memory-lies.patch', '0012-srgb-extended-range-blend-rounded-model.patch',
+    '0013-growing-memory-blocks.patch',
+    # HostPageTexturePolicy::InPlaceWrites: textures over surfaces and padded buffers are images over their bytes, rendered and written
+    # too, where their tile stores stay within their rows, instead of shadows copied in and out every pass.
+    '0014-in-place-written-textures.patch', '0015-in-place-written-host-page-textures.patch',
+    # Device::refuse_rebinds: no call logs or per-command holds of no-copy buffers, which only a rebind or a detach reads.
+    '0016-refuse-rebinds.patch']]
 
 
 def git_tree(*steps):

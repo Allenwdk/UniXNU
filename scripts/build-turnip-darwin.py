@@ -96,6 +96,12 @@ if args.builtin_pack:
 (OUT / 'builtin-build-profile.json').write_text(json.dumps(dict(source_id=source_id, profile=profile,
     embedded_pack_sha256=pack_sha, builtin_pack_required=bool(args.builtin_pack)), indent=2) + '\n')
 options += ['-Dtu-builtin-source-id=' + source_id, '-Dtu-builtin-pack-header=' + pack_header]
+# The pipeline cache's identity (VkPhysicalDeviceProperties::pipelineCacheUUID) from the compiler's source alone, the same for every
+# target: Mesa's own on Darwin is the library file's mtime (disk_cache_get_function_timestamp), which differs per install and per build,
+# so a cache compiled ahead on the host (scripts/make-pipeline-cache.py) would never match the tablet's driver.
+build_id = hashlib.sha256(json.dumps(dict(mesa_revision=pins['mesa']['commit'], source_diff_sha256=profile['source_diff_sha256'],
+                                          extra_sources=source_extras), sort_keys=True).encode()).hexdigest()[:40]
+options += ['-Dtu-build-id=' + build_id]
 log = LOGS / ('mesa-tu-%s-configure.log' % args.target)
 with log.open('w') as stream:
     # An existing build directory takes the current options (meson configure), so an option added here reaches it.
