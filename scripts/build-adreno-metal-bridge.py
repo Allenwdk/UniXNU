@@ -50,7 +50,9 @@ PATCHES = [ROOT / 'drivers/AdrenoMetal/bridge/patches' / name for name in [
     # its textures' answers then holds them (iconservicesagent's Core Image heaps ran out: OutOfMemory(Heap)).
     '0018-heap-texture-size-a-multiple-of-its-alignment.patch',
     # The runtime's live device memory in bytes by kind (pooled, placed, empty kept, dedicated, imported), for the frontend's MEM row.
-    '0019-memory-census-bytes.patch']]
+    '0019-memory-census-bytes.patch',
+    # The call stacks that allocated device memory of 4 MiB or more, by bytes, for the frontend's MA rows.
+    '0020-allocation-sites.patch']]
 
 
 def git_tree(*steps):

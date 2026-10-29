@@ -274,7 +274,7 @@ new file mode 100644
 index 0000000..b03c6ee
 --- /dev/null
 +++ b/src/freedreno/vulkan/tu_knl_darwin.cc
-@@ -0,0 +1,1581 @@
+@@ -0,0 +1,1609 @@
 +/*
 + * Native Darwin kernel backend for Turnip: talks to the NativeAdreno IOKit user client (NativeAdrenoABI.h, version 1).
 + * Modelled on tu_knl_kgsl.cc (no libdrm) and tu_knl_drm_msm.cc (the client chooses GPU addresses).
@@ -996,12 +996,13 @@ index 0000000..b03c6ee
 +
 +static VkResult
 +darwin_map_failure(struct tu_device *dev, uint64_t handle, uint64_t iova,
-+                   uint64_t size, kern_return_t map_error)
++                   uint64_t size, kern_return_t map_error, bool own_iova = true)
 +{
 +   NativeAdrenoAbiBoFree release = {.handle = handle};
 +   kern_return_t cleanup = dw_call(NativeAdrenoMethodBoFree, &release, sizeof(release), NULL, 0);
 +   if (cleanup == KERN_SUCCESS) {
-+      darwin_free_iova(dev, iova, size);
++      if (own_iova)   /* a lazy BO's range is its sparse VMA's, which frees it */
++         darwin_free_iova(dev, iova, size);
 +      return vk_errorf(dev, VK_ERROR_OUT_OF_DEVICE_MEMORY, "BoMap failed: 0x%x", map_error);
 +   }
 +   /* A failed map may have modified tables. Unknown cleanup never authorizes
@@ -1024,9 +1025,6 @@ index 0000000..b03c6ee
 +               const char *name)
 +{
 +   MESA_TRACE_FUNC();
-+   if (lazy_vma)
-+      return vk_error(dev, VK_ERROR_FEATURE_NOT_PRESENT);
-+
 +   VkResult collected = darwin_collect_retired(dev);
 +   if (collected != VK_SUCCESS)
 +      return collected;
@@ -1034,7 +1032,8 @@ index 0000000..b03c6ee
 +   struct darwin_retire_state *retire = (struct darwin_retire_state *)dev->darwin_retire;
 +   /* TU_DARWIN_BO_CACHE=0 turns the cache off (the host checks of the release paths need every free to reach the kernel). */
 +   static const bool cache_enabled = debug_get_bool_option("TU_DARWIN_BO_CACHE", true);
-+   const bool cacheable = cache_enabled && !(flags & TU_BO_ALLOC_REPLAYABLE);
++   /* A lazy BO lies at its sparse VMA's range (darwin_sparse_vma_init) and goes back with that range, never to the cache. */
++   const bool cacheable = cache_enabled && !(flags & TU_BO_ALLOC_REPLAYABLE) && !lazy_vma;
 +   const bool read_only = !!(flags & TU_BO_ALLOC_GPU_READ_ONLY);
 +   uint64_t alloc_size = cacheable ? darwin_size_class(size) : size;
 +
@@ -1060,7 +1059,11 @@ index 0000000..b03c6ee
 +   }
 +
 +   for (bool flushed = false; !reused;) {
-+      VkResult result = darwin_allocate_iova(dev, alloc_size, client_iova, flags, &iova);
++      VkResult result = VK_SUCCESS;
++      if (lazy_vma)
++         iova = lazy_vma->msm.iova;
++      else
++         result = darwin_allocate_iova(dev, alloc_size, client_iova, flags, &iova);
 +      if (result == VK_ERROR_OUT_OF_DEVICE_MEMORY && !flushed) {
 +         flushed = true;
 +         pthread_mutex_lock(&retire->lock);
@@ -1076,8 +1079,9 @@ index 0000000..b03c6ee
 +      NativeAdrenoAbiBoAllocReply reply = {};
 +      kern_return_t kr = dw_call(NativeAdrenoMethodBoAlloc, &alloc, sizeof(alloc), &reply, sizeof(reply));
 +      if (kr != KERN_SUCCESS) {
-+         darwin_free_iova(dev, iova, alloc_size);
-+         if (!flushed) {   /* the kernel pool may be held by cached BOs */
++         if (!lazy_vma)
++            darwin_free_iova(dev, iova, alloc_size);
++         if (!flushed) {   /* memory may be held by cached BOs */
 +            flushed = true;
 +            pthread_mutex_lock(&retire->lock);
 +            bool any = darwin_cache_flush(dev, retire);
@@ -1098,7 +1102,7 @@ index 0000000..b03c6ee
 +      NativeAdrenoAbiBoMapReply mapped = {};
 +      kr = dw_call(NativeAdrenoMethodBoMap, &map, sizeof(map), &mapped, sizeof(mapped));
 +      if (kr != KERN_SUCCESS) {
-+         return darwin_map_failure(dev, reply.handle, iova, alloc_size, kr);
++         return darwin_map_failure(dev, reply.handle, iova, alloc_size, kr, !lazy_vma);
 +      }
 +      handle = reply.handle;
 +      break;
@@ -1127,6 +1131,10 @@ index 0000000..b03c6ee
 +      bo->map = cached_mapping;
 +      bo->darwin_token = cached_token;
 +      bo->never_unmap = true;
++   }
++   if (lazy_vma) {
++      lazy_vma->msm.backs_lazy_bo = true;   /* the range now goes back with the BO */
++      bo->lazy = true;
 +   }
 +
 +   tu_dump_bo_init(dev, bo);
@@ -1732,17 +1740,37 @@ index 0000000..b03c6ee
 +   return VK_SUCCESS;
 +}
 +
++/* Lazily allocated memory (VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT), as the msm backend gives it with a settable GPU address
++ * (msm_sparse_vma_init, msm_bo_init): the memory is a GPU range alone until a pass needs its bytes (tu_allocate_transient_attachments: a
++ * sysmem pass, a load or store, LRZ), when a BO is made at that range. A transient attachment a GMEM pass neither loads nor stores never
++ * gets one: Metal's memoryless textures, which Core Animation's render server uses for its intermediate targets, take no memory, as on
++ * Apple's GPUs (untagged-feaf29203: twelve 3048x2032 RGBA16F textures, 758 MiB, held as memory of their own without it). A BO made at
++ * the range owns it from then on and hands it back with itself, after its last submission (darwin_release_native); otherwise the VMA
++ * hands it back. */
 +static VkResult
 +darwin_sparse_vma_init(struct tu_device *dev, struct vk_object_base *base,
 +                       struct tu_sparse_vma *out_vma, uint64_t *out_iova,
 +                       enum tu_sparse_vma_flags flags, uint64_t size, uint64_t client_iova)
 +{
-+   return vk_error(dev, VK_ERROR_FEATURE_NOT_PRESENT);
++   if (flags & TU_SPARSE_VMA_MAP_ZERO)
++      return vk_error(dev, VK_ERROR_FEATURE_NOT_PRESENT);   /* no null mapping: sparse residency is not offered */
++   out_vma->flags = flags;
++   out_vma->msm.size = size;
++   out_vma->msm.backs_lazy_bo = false;
++   VkResult result = darwin_allocate_iova(dev, size, client_iova,
++                                          (flags & TU_SPARSE_VMA_REPLAYABLE) ? TU_BO_ALLOC_REPLAYABLE : TU_BO_ALLOC_NO_FLAGS,
++                                          &out_vma->msm.iova);
++   if (result != VK_SUCCESS)
++      return result;
++   *out_iova = out_vma->msm.iova;
++   return VK_SUCCESS;
 +}
 +
 +static void
 +darwin_sparse_vma_finish(struct tu_device *dev, struct tu_sparse_vma *vma)
 +{
++   if (!vma->msm.backs_lazy_bo)
++      darwin_free_iova(dev, vma->msm.iova, vma->msm.size);
 +}
 +
 +static const struct tu_knl darwin_knl_funcs = {
@@ -1818,7 +1846,7 @@ index 0000000..b03c6ee
 +   device->has_set_iova = !!(info->flags & NativeAdrenoDeviceClientIova);
 +   device->va_start = info->va_start;
 +   device->va_size = info->va_size;
-+   device->has_lazy_bos = false;
++   device->has_lazy_bos = true;   /* darwin_sparse_vma_init */
 +   device->has_sparse = false;
 +   device->has_sparse_prr = false;
 +   device->has_raytracing = false;
