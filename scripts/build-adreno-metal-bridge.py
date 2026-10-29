@@ -48,7 +48,9 @@ PATCHES = [ROOT / 'drivers/AdrenoMetal/bridge/patches' / name for name in [
     '0017-shader-cache-fallback-source.patch',
     # A heap texture's own-device answer rounded up to a multiple of its alignment, as Metal's answers are: a heap sized as the sum of
     # its textures' answers then holds them (iconservicesagent's Core Image heaps ran out: OutOfMemory(Heap)).
-    '0018-heap-texture-size-a-multiple-of-its-alignment.patch']]
+    '0018-heap-texture-size-a-multiple-of-its-alignment.patch',
+    # The runtime's live device memory in bytes by kind (pooled, placed, empty kept, dedicated, imported), for the frontend's MEM row.
+    '0019-memory-census-bytes.patch']]
 
 
 def git_tree(*steps):

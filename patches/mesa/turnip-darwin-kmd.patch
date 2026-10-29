@@ -274,7 +274,7 @@ new file mode 100644
 index 0000000..b03c6ee
 --- /dev/null
 +++ b/src/freedreno/vulkan/tu_knl_darwin.cc
-@@ -0,0 +1,1570 @@
+@@ -0,0 +1,1581 @@
 +/*
 + * Native Darwin kernel backend for Turnip: talks to the NativeAdreno IOKit user client (NativeAdrenoABI.h, version 1).
 + * Modelled on tu_knl_kgsl.cc (no libdrm) and tu_knl_drm_msm.cc (the client chooses GPU addresses).
@@ -353,7 +353,7 @@ index 0000000..b03c6ee
 + * cannot be had (then the allocation is tried again). */
 +static volatile uint32_t darwin_memory_pressure;   /* bumped by the memory-pressure source; each device flushes once per change */
 +struct darwin_cached_bo {
-+   uint64_t handle, iova, size, stamp;
++   uint64_t handle, iova, size, stamp, freed_s;   /* freed_s: monotonic seconds when it entered the cache */
 +   void *mapping;
 +   uint32_t token;
 +   bool read_only;
@@ -385,7 +385,7 @@ index 0000000..b03c6ee
 +   uint64_t enqueued, reaped, pressure_waits;
 +   struct darwin_cached_bo *cache;
 +   unsigned cache_count, cache_capacity;
-+   uint64_t cache_bytes, cache_stamp;
++   uint64_t cache_bytes, cache_stamp, cache_cleaned_s;
 +   uint32_t pressure_seen;
 +   struct darwin_bo_cache_stats cache_stats;
 +   struct darwin_va va;
@@ -843,8 +843,8 @@ index 0000000..b03c6ee
 +      retire->cache = cache;
 +      retire->cache_capacity = capacity;
 +   }
-+   retire->cache[retire->cache_count++] = {bo->handle, bo->iova, bo->size, ++retire->cache_stamp, bo->mapping, bo->token,
-+                                           bo->read_only};
++   retire->cache[retire->cache_count++] = {bo->handle, bo->iova, bo->size, ++retire->cache_stamp,
++                                           (uint64_t)(os_time_get_nano() / 1000000000), bo->mapping, bo->token, bo->read_only};
 +   retire->cache_bytes += bo->size;
 +   if (retire->cache_bytes > retire->cache_stats.bytes_peak)
 +      retire->cache_stats.bytes_peak = retire->cache_bytes;
@@ -889,15 +889,26 @@ index 0000000..b03c6ee
 +   return any;
 +}
 +
-+/* Called under retire->lock: once per memory-pressure notification the whole cache goes back. */
++/* Called under retire->lock: once per memory-pressure notification the whole cache goes back, and otherwise every BO not reused
++ * within a second of entering it, as freedreno's own BO cache keeps a freed BO (freedreno_bo_cache.c, fd_bo_cache_cleanup: "keep things
++ * in cache for at least 1 second", at most once a second). Without the second rule the cache held every BO the render server ever freed
++ * once the kernel stopped refusing allocations (untagged-7c2c611f: backboardd held 3099 MiB, the system's memory ran out). */
 +static void
 +darwin_cache_trim(struct tu_device *dev, struct darwin_retire_state *retire)
 +{
 +   const uint32_t pressure = p_atomic_read(&darwin_memory_pressure);
-+   if (pressure == retire->pressure_seen)
++   if (pressure != retire->pressure_seen) {
++      retire->pressure_seen = pressure;
++      darwin_cache_flush(dev, retire);
 +      return;
-+   retire->pressure_seen = pressure;
-+   darwin_cache_flush(dev, retire);
++   }
++   const uint64_t now = (uint64_t)(os_time_get_nano() / 1000000000);
++   if (now == retire->cache_cleaned_s)
++      return;
++   retire->cache_cleaned_s = now;
++   for (unsigned i = retire->cache_count; i-- > 0;)
++      if (now - retire->cache[i].freed_s > 1)
++         darwin_cache_evict(dev, retire, i);
 +}
 +
 +/* The process's memory-pressure source, made once: libdispatch delivers the kernel's memorystatus levels to it. */
