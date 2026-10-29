@@ -45,7 +45,10 @@ PATCHES = [ROOT / 'drivers/AdrenoMetal/bridge/patches' / name for name in [
     '0016-refuse-rebinds.patch',
     # A read-only source of shader-cache entries behind the directory (the pipelines compiled ahead on the host, read on demand from the
     # userdata import region): an entry the directory lacks is asked of it, and nothing is copied into the directory.
-    '0017-shader-cache-fallback-source.patch']]
+    '0017-shader-cache-fallback-source.patch',
+    # A heap texture's own-device answer rounded up to a multiple of its alignment, as Metal's answers are: a heap sized as the sum of
+    # its textures' answers then holds them (iconservicesagent's Core Image heaps ran out: OutOfMemory(Heap)).
+    '0018-heap-texture-size-a-multiple-of-its-alignment.patch']]
 
 
 def git_tree(*steps):
