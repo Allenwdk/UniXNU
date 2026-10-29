@@ -42,7 +42,10 @@ PATCHES = [ROOT / 'drivers/AdrenoMetal/bridge/patches' / name for name in [
     # too, where their tile stores stay within their rows, instead of shadows copied in and out every pass.
     '0014-in-place-written-textures.patch', '0015-in-place-written-host-page-textures.patch',
     # Device::refuse_rebinds: no call logs or per-command holds of no-copy buffers, which only a rebind or a detach reads.
-    '0016-refuse-rebinds.patch']]
+    '0016-refuse-rebinds.patch',
+    # A read-only source of shader-cache entries behind the directory (the pipelines compiled ahead on the host, read on demand from the
+    # userdata import region): an entry the directory lacks is asked of it, and nothing is copied into the directory.
+    '0017-shader-cache-fallback-source.patch']]
 
 
 def git_tree(*steps):

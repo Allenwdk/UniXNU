@@ -52,19 +52,24 @@ for required in [host_turnip, tablet_turnip, peer, bridge, prime_list, args.os_m
 OUT.mkdir(parents=True, exist_ok=True)
 producer = OUT / 'prime_host'
 subprocess.run(['xcrun', 'clang++', '-std=c++17', '-fobjc-arc', '-O1', '-Wall', '-Wextra', '-Werror', '-Wno-unused-parameter',
-                '-Wno-unused-function', '-Wno-deprecated-declarations', '-I', KIT, KIT / 'NativeBridgeMetalFrontend.mm',
+                '-Wno-unused-function', '-Wno-deprecated-declarations', '-I', KIT, '-I', ROOT / 'drivers/Adreno740', '-I', ROOT / 'kits/AdrenoPM4',
+                '-I', ROOT / '.cache/mesa-work/include', '-I', ROOT / 'build/turnip-smoke',
+                KIT / 'NativeBridgeMetalFrontend.mm',
                 KIT / 'bridge/prime_host.mm', bridge, '-framework', 'Foundation', '-framework', 'Metal', '-framework', 'IOSurface',
                 '-framework', 'CoreFoundation', '-o', producer], check=True)
 libraries = [l for l in prime_list.read_text().splitlines() if l.startswith('/')]
+env = {k: v for k, v in os.environ.items() if not k.startswith(('IR3_', 'FD_MESA_', 'NIR_', 'TU_', 'HOSTSIM_', 'MESA_', 'NMB_', 'METAL2VULKAN_'))}
+# TU_DEBUG as the tablet's plugin sets it for every Metal process (NativeAdrenoMetalPlugin.mm: no concurrent binning), so Turnip compiles
+# what the tablet's would.
+env.update(DYLD_INSERT_LIBRARIES=str(peer), MESA_SHADER_CACHE_DISABLE='true', TU_DEBUG='nocb')
 work = OUT / 'work'
 # What every entry depends on: the producer, both Turnip builds, the host peer and the list. Another set of inputs primes from scratch.
-stamp = '\n'.join(hashlib.sha256(p.read_bytes()).hexdigest() for p in [producer, host_turnip, tablet_turnip, peer, prime_list])
+stamp = '\n'.join([hashlib.sha256(p.read_bytes()).hexdigest() for p in [producer, host_turnip, tablet_turnip, peer, prime_list]] + [env['TU_DEBUG']])
 if not (work / 'inputs').is_file() or (work / 'inputs').read_text() != stamp:
     shutil.rmtree(work, ignore_errors=True)
     work.mkdir()
     (work / 'inputs').write_text(stamp)
-env = {k: v for k, v in os.environ.items() if not k.startswith(('IR3_', 'FD_MESA_', 'NIR_', 'TU_', 'HOSTSIM_', 'MESA_', 'NMB_', 'METAL2VULKAN_'))}
-env.update(DYLD_INSERT_LIBRARIES=str(peer), MESA_SHADER_CACHE_DISABLE='true')
+
 
 
 def prime(index):
