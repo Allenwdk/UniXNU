@@ -4,9 +4,9 @@
 
 <div v-pre>
 
-Device template. Complete each area with board-specific inputs and evidence.
+UFS root, launchd, touch and a published GPU device with the staged Metal accelerator; the desktop does not draw yet and there is no Wi-Fi.
 
-源记录: [porting.toml](https://github.com/FFT-infra/UniXNU-alioth/blob/695a35bd11337a27473a1ef6687977c0527b6878/porting.toml), `695a35bd11337a27473a1ef6687977c0527b6878`.
+源记录: [porting.toml](https://github.com/FFT-infra/UniXNU-alioth/blob/5dcdaca3287c4ca8f9ca15790ff87b9a7d469511/porting.toml), `5dcdaca3287c4ca8f9ca15790ff87b9a7d469511`.
 
 本页按设备记录自动生成。
 
@@ -14,13 +14,13 @@ Device template. Complete each area with board-specific inputs and evidence.
 | --- | --- |
 | [配置](#configuration) | `planned` |
 | [固件与启动](#firmware) | `planned` |
-| [CPU 与中断](#cpu) | `planned` |
+| [CPU 与中断](#cpu) | `implemented` |
 | [内存与 DMA](#memory) | `planned` |
 | [存储与根卷](#storage) | `device-verified` |
 | [显示](#display) | `implemented` |
-| [输入](#input) | `planned` |
-| [GPU](#gpu) | `planned` |
-| [网络](#network) | `planned` |
+| [输入](#input) | `implemented` |
+| [GPU](#gpu) | `implemented` |
+| [网络](#network) | `implemented` |
 | [音频](#audio) | `planned` |
 | [电源](#power) | `planned` |
 | [镜像组装](#packaging) | `planned` |
@@ -46,7 +46,12 @@ Device template. Complete each area with board-specific inputs and evidence.
 
 ### 开发经验
 
-- Collect the first configuration observation, its cause when established, and the resulting implementation decision.
+- The GPU driver that is compiled is reference/repo/Adreno650, which has no remote this project can push to, and it carried an uncommitted working-tree change through every image from u252 to u270: the two client text lines per process. It is committed there now \(d7bfe27\) so the source at least matches what shipped, but the repository still cannot be reproduced by anyone else. Moving that driver into a pushable fork is a prerequisite for any further change to it, including the pool argument rename.
+- components.toml is kept equal to the working tree after every pin move. It has drifted twice: once when four components named upstream commits while the tree carried fork ones, and once when AdrenoMetal moved to parity-selftest and only the gitlink followed. unixnu status reads this file, so a stale row makes the official check report a source set the image was not built from.
+- The board's own driver forks are pinned by this device repository, not by the main repository's submodules: GopFramebuffer and QcomXnuUsbDebug moved to feeds.toml with their exact commits, because porting/device-repository gives board driver submodules to the device repository and AGENTS.md does not list .gitmodules among the main repository's allowed edits. build script and tree resolve both through feeds/. AdrenoMetal stays a submodule until build-adreno-metal-plugin.py reads it from a feed path.
+- components.toml now names the revisions the build actually compiles. It used to name upstream commits while the working tree carried fork commits, so unixnu status reported a source set the image was not built from: AdrenoMetal, GopFramebuffer and QcomXnuUsbDebug each differed, and the two forks' repositories now point at FFT-infra.
+- ArmSmmu4K is a submodule of the main repository \(kits/ArmSmmu4K\) and the catalog named a commit two behind it. The device repository carries a byte-identical copy, so the submodule is what describes the source; the catalog now names its tip, 3ba92451. Keeping that pin current is a follow-up rule rather than a one-time correction: it moves when the submodule moves.
+- sheng-build-tag is no longer kept in board.toml. Every image build rewrote it, which touched this area's paths on every commit and made the record check demand a finding each time; the tag now arrives as --kernel-arg NAME=VALUE, which payload.py replaces over the board's argument of the same name.
 
 ### 完成条件
 
@@ -102,23 +107,28 @@ Device template. Complete each area with board-specific inputs and evidence.
 
 ## CPU 与中断 {#cpu}
 
-`planned`
+`implemented`
 
 ### 硬件与依赖
 
-- Identify the cpu and interrupts hardware, resources and existing component interfaces for this board.
+- kona: four Cortex-A55 \(cpu0-3\) and four Cortex-A77 \(cpu4-7\), MPIDR core number in Affinity1 so phys ids are 0x000-0x700. Interrupts and timers come from the ArmCpu component; secondary start is PSCI CPU\_ON over smc.
 
 ### 配置
 
-- Record the board.toml fields, DTS properties and defconfig values used for cpu and interrupts.
+- board.toml: sheng-smp=1 starts secondary CPUs, armcpu-spi-ipi=1 routes IPIs through software-pended SPIs, armcpu-self-ipi=1 makes each core signal itself so XNU enables its IPI \(a component argument, not one of the documented boot arguments\), armcpu-diagnostics=1 reports the bring-up. dts: unixnu,cluster-type E on cpu0-3 and P on cpu4-7.
 
 ### 操作步骤
 
-- Follow the cpu and interrupts stage in the porting guide and record the actual commands.
+- Apply both SoC patches \(native-smp-secondary, native-smp-type-clusters\) through the SoC repository's patch series, then build kernel, payload and boot image and boot over USB. Verify in the build tree that MAX\_CPUS is 8 in the BCM2837 block, MAX\_CPU\_CLUSTERS is 2 and \_\_ARM\_AMP\_\_ survives the later \#undef.
 
 ### 开发经验
 
-- Collect the first cpu and interrupts observation, its cause when established, and the resulting implementation decision.
+- The CPU IRQ row carried the literal text sleep-disabled=1, so it read as a measurement of a state nothing on this board samples. It was removed rather than guessed at; the row still reports the phase, the quiesce and halt counts and the IPI phase, which are readings.
+- SMP is live on all eight cores and the E/P split reaches the scheduler, which is what porting/platform asks for. Evidence from the u260 boot: the per-process CPU rows read c0 through c7 for each process \(p54: 4661, 22904, 16537, 15363, 27199, 26747, 27027, 27437\), so every secondary core entered and took work; the P cluster \(c4 to c7\) carries several times the E cluster's count, which is the UI workload landing in the P domain; and CPU IRQ reads phase=0 quiesce=0 halt=0 with the IPI phase reached. The cluster tags come from dts/alioth.dts, which must stay paired with the SoC series' native-smp-type-clusters.patch -- without it the topology parser writes past cluster\_phys\_to\_logical and the kernel dies before the console.
+- The wakeups monitor fires on every process within a minute of kernel time, and the numbers are self-consistent rather than a clock artefact: 45029 wakes over 28 s reads 1608 a second, which is the same interval the count implies, against a limit of 150 a second \(45000 over 300 s\). A 24 MHz default against this SoC's 19.2 MHz counter was suspected and is ruled out: the generated ADT carries timebase-frequency 19200000 on all eight cpu nodes, each state=running \(u265\), and pe\_identify\_machine copies that value. So the wakes are real. The processes are iOS daemons \(healthd, kbd, homed, searchd, biomed\) polling on a clock this kernel runs, and whether that is their own design or an IPC/timer service answering too eagerly is the open question.
+- Without native-smp-secondary.patch the reset vector masks MPIDR with 0xFF, which is Aff0 and is zero for every kona core, so every secondary core picked the boot CPU's cpu\_data and reset handler. The boot either panicked with Invalid kernel stack pointer or hard-locked with interrupts off in early initialisation.
+- unixnu,cluster-type must never ship without native-smp-type-clusters.patch. With MAX\_CPU\_CLUSTERS still 1 the topology parser takes phys\_cluster\_id = \(cluster\_type == P\), which is 1, and writes cluster\_phys\_to\_logical\[1\] past the end of a one-element stack array. Release builds do not assert: the kernel dies before the console comes up. scripts/check-smp-topology.py refuses that combination.
+- Both patches are private to UniXNU-pipa, not present in UniXNU/UniXNU. They live in the SM8250 SoC repository because the topology they describe is a property of the SoC, which is why the pins differ from the SM8550 device's.
 
 ### 完成条件
 
@@ -126,15 +136,16 @@ Device template. Complete each area with board-specific inputs and evidence.
 
 ### 当前范围
 
-- Hardware inputs and implementation are pending for this example board.
+- Secondary CPUs have not been brought up on hardware yet. The two patches are applied only in the build feed checkout, not yet committed to FFT-infra/UniXNU-sm8250-common, so a fetch or tree refresh loses them.
+- unixnu,cluster-type is still declared in the board DTS rather than the SoC DTSI.
 
 ### 下一步
 
-- Inventory the required cpu and interrupts inputs before implementation.
+- Boot the image carrying both patches and read SMP run count, armcpu\_smp\_step, psci\_rc and the boot time.
 
 ### 证据
 
-按下一步操作收集证据。
+- `source`: [Refuses a device tree that declares cluster-type without the cluster patch applied and MAX\_CPU\_CLUSTERS &gt;= 2, the combination that killed three boots silently.](https://github.com/FFT-infra/UniXNU-alioth/blob/5dcdaca3287c4ca8f9ca15790ff87b9a7d469511/scripts/check-smp-topology.py)
 
 ## 内存与 DMA {#memory}
 
@@ -216,7 +227,7 @@ Device template. Complete each area with board-specific inputs and evidence.
 
 ### 证据
 
-- `device`: [The kernel reports cryptexd aborting with mkdirat ENOSPC while the Data volume reports 31 MiB free, which places the failing write on a mount other than /private/var.](https://github.com/FFT-infra/UniXNU-alioth/blob/695a35bd11337a27473a1ef6687977c0527b6878/docs/evidence/2026-10-27-boot-diagnostics.md)
+- `device`: [The kernel reports cryptexd aborting with mkdirat ENOSPC while the Data volume reports 31 MiB free, which places the failing write on a mount other than /private/var.](https://github.com/FFT-infra/UniXNU-alioth/blob/5dcdaca3287c4ca8f9ca15790ff87b9a7d469511/docs/evidence/2026-10-27-boot-diagnostics.md)
   Command: <code>read /dev/tty.usbmodem&lt;N&gt; at 115200 8N1 and collect EXITLOG records</code>. Revision: `24d127c47217eb580dbe3f3a94c32ad25cbaae00`.
 
 ## 显示 {#display}
@@ -242,6 +253,10 @@ Device template. Complete each area with board-specific inputs and evidence.
 
 ### 开发经验
 
+- u266 is the first image whose plugin pin, bridge patch list and built bundle all name the same source, and the GPU hand-off survives it: GPUFRAME reads offered 7 done 7 fail 0 copied 0 on an untouched boot, which is the idle count this board shows since the touch correlation was measured \(79 to 830 with a touch, 7 to 10 without\).
+- The Metal plugin's pin and its bridge patch list disagreed between u258 and u265: the repository pinned AdrenoMetal 6ee4328's parent \(afaa171, sixteen patches\) while build-adreno-metal-bridge.py listed the twenty the parity branch carries and every image was built from that branch's bundle. The pin now names parity-selftest, so pin, patch list and built plugin describe one source, and --manifest-only accepts the pair. The translator is fetched by SHA \(624bab39\), not by branch: it is on neither master nor development, and the build refuses a checkout whose HEAD differs from the pin.
+- The GPU raster hand-off was a stub until u260: native\_legacy\_gpu\_offer returned false with five parameters while the display driver calls it with six, so the format was dropped and every frame took the CPU copy path \(GPUFRAME offered 0 across boots\). u260 implements it and creates the presenter at phase 4, attached to the resource service rather than under the display node. Measured once: gpu offered 830, done 830, fail 0, copied 0. That turn is not repeatable on its own: the same image \(boot-u260.img, sha 2e00d7cba235\) run again as u263 gave offered 9, nine swaps and luma 29 with AegirPoster aborting 15 times. The difference is whether anyone touches the panel. Across twelve boots the split holds with one boot set apart: with a touch, swaps 76, 144, 215, 413, 830; without one, 8 to 10. The exception is u253, whose GPUFRAME reads legacy surfaces 0 swaps 0 with a touch present -- that boot took the direct scanout path, so the compositor never handed a surface to the legacy layer and the counters describe a different route. Counting only boots that reach the hand-off, the split has no exception. The compositor submits frames when something asks it to, so an idle panel shows whatever was drawn once and a touched one keeps drawing.
+- The GPU client allow-list named PosterBoard, but the processes that run the wallpaper are its extensions: AegirPoster and KaleidoscopePoster abort-looped fifteen and twelve times a boot while PosterBoard itself never appeared. The addon is packed with --clients AegirPoster,KaleidoscopePoster,SpringBoard,iconservicesagent since u260 through scripts/make-gpu-addon-alioth.sh. That is not sufficient on its own: u259 drew with the old list and no poster exits at all, and u261, u262 and u263 all carry the new list and still abort AegirPoster fifteen times and KaleidoscopePoster twelve. The client list decides who may ask, but the data cannot separate it from touch: u259 drew with the old list in a touched boot, and u261 to u263 abort with the new list in untouched ones. A clean comparison needs both lists run untouched. The four slots are all taken by that list, so a fifth process still meets kIOReturnNoSpace.
 - Measured 2026-10-27 on boot-usb34: the lock screen is stable, SWAP calls=7 ok=7 rej=0, and backboardd creates its resources with kret=0. Earlier builds never submitted a frame at all.
 - The panel is driven directly by the kernel's own renderer, which is why the boot-progress page and the colour bands are visible before any userspace renderer runs.
 
@@ -252,6 +267,8 @@ Device template. Complete each area with board-specific inputs and evidence.
 ### 当前范围
 
 - No wallpaper: the lock screen draws its date and time over a black field, so composition reaches the text layer only. gpu offered=0 confirms the GPU stack takes no part.
+- dcls was withdrawn on 2026-10-30. It republished the display service as IOClass AppleCLCD2 to test whether the sandbox refusal on our class name gated the wallpaper; the refusal did not gate it, and PosterBoard kept aborting about fifteen times per boot while the service carried a class name that is not upstream's. The argument is gone from board.toml and the code path stays dormant behind it.
+- The Metal plugin is pinned to the ipados27-gpu-parity branch as of u258, which conflicts with the recorded decision to follow the main branch's model. It is kept only because it is the first image that draws: GPUFB nonblack 992/1000 luma 236 and GPUSWAP 215 retired with reason 0, against 86/1000 and zero to nine swaps on the main-based pin. The branch's costs are also measured: 11702 fence timeouts, SpringBoard refusing buffer and texture allocations with OutOfMemory, and four processes left without a device, PosterBoard among them. Reverting means restoring the 16-patch list and translator 720ef1ce9ae2, so the choice needs the owner's decision rather than a silent default.
 
 ### 下一步
 
@@ -259,28 +276,34 @@ Device template. Complete each area with board-specific inputs and evidence.
 
 ### 证据
 
-- `device`: [DISPLAY stage=10 with CLIENT calls=4 class=IOMobileFramebufferUserClient, and SWAP calls=0: a client connects but no frame is submitted.](https://github.com/FFT-infra/UniXNU-alioth/blob/695a35bd11337a27473a1ef6687977c0527b6878/docs/evidence/2026-10-27-boot-diagnostics.md)
+- `device`: [DISPLAY stage=10 with CLIENT calls=4 class=IOMobileFramebufferUserClient, and SWAP calls=0: a client connects but no frame is submitted.](https://github.com/FFT-infra/UniXNU-alioth/blob/5dcdaca3287c4ca8f9ca15790ff87b9a7d469511/docs/evidence/2026-10-27-boot-diagnostics.md)
   Command: <code>read the diagnostic page and the USB console after booting the image</code>. Revision: `24d127c47217eb580dbe3f3a94c32ad25cbaae00`.
 
 ## 输入 {#input}
 
-`planned`
+`implemented`
+
+组件: `QcomGeniSpi`, `ShengHidInput`, `ShengNovatekTouch`.
 
 ### 硬件与依赖
 
-- Identify the input hardware, resources and existing component interfaces for this board.
+- FocalTech FT5652 on GENI SE4 \(QUPv3 wrapper 0\), per alioth-sm8250.dtsi: spi-max-frequency 6000000, interrupts &lt;39 0x2008&gt;, reset GPIO 33, irq GPIO 39, vdd L10C, vcc\_i2c L1C, display-coords 0 0 8640 19200, max-touch-number 10.
 
 ### 配置
 
-- Record the board.toml fields, DTS properties and defconfig values used for input.
+- board.toml: native-touch=1 starts kits/alioth-touch, sheng-touch-hid=1 enables the publication path in ShengHidInput, native-touch-diag=1 is a measurement-only round and must be removed for release images. SPI clock is the device tree's 6 MHz; the source is TCXO 19.2 MHz on DFS level 0.
 
 ### 操作步骤
 
-- Follow the input stage in the porting guide and record the actual commands.
+- Build with component ShengHidInput selected and the board display recipe, which invokes build-sheng-hid-input.py and archives NativeHidInput.late.o plus hid-original-bindings.o into the force-loaded libNativeLegacyDisplay.late.a. Then build payload and boot image, verify the payload carries the built kernel, and boot over USB.
 
 ### 开发经验
 
-- Collect the first input observation, its cause when established, and the resulting implementation decision.
+- The part answers register reads \(ID 0x5652\) and returns a CRC-correct all-0xFF buffer while it has no report; an earlier version of FocalTouchProtocol.c treated that buffer as a successful empty frame, which is why every image reported frames=valid with contacts=0.
+- Frame reads gated on GPIO 39 going low produced real contacts: at t=100 s two contacts, low count 284, raw 0002805f4598; the part's interrupt counter 0x8F rose from 01 to e0 and its work counter 0x91 advances 60 per second, so the sensor, the SPI link, the CRC and the interrupt line are all working.
+- The HID publisher was never in the kernel: ShengHidInput compiles NativeHidInput.cpp but nothing archived it, and an object with no inbound reference is dropped from a plain archive. Selected as a component and archived by the display recipe, as UniXNU-sheng does, it links.
+- The official input page describes one merged device -- adapt the descriptor to the sensor, transform coordinates into the display direction, keep ids and count from one frame, publish behind sheng-touch-hid=1 -- and neither reference board splits the digitizer: sheng and pipa both report input as implemented with a single device. Splitting was tried here and left the panel unresponsive with reports=781 and max=5, so sheng-touch-split is commented out in board.toml and should not be re-enabled without evidence the references would support.
+- Six defects were found and fixed in one pass, each with a source citation: \(1\) FocalTouchProtocol.c decoded each axis with shifts of 11 and 3 and took the low bits from PRE\[7:5\], where the vendor driver \(reference/k40-kernel focaltech\_core.c:712\) uses 12 and 4 from PRE\[7:4\] and scales by 10/16 -- algebraically the vendor value halved, so every touch landed in the top-left 80 % and the FromEdgeTip band at 97.6 % of the height was unreachable; after the fix a swipe from the bottom reports xy=30479,20319. \(2\) edge::install returned early once any driver was wrapped, so the second device never had FromEdgeTip injected. \(3\) The per-contact event field was parsed but never read, so a lift was published as a contact still down \(reports fell from 781 to 15 once fixed\). \(4\) Contacts with area 0 were published as real touches. \(5\) native\_hid\_input\_requested answered yes unconditionally, pressing Home every 1.1 s. \(6\) The digitizer service classification backboardd filters on \(Built-In, DisplayIntegrated, PrimaryUsagePage 0x0D, PrimaryUsage 4\) was a no-op stub, and the checkpoint was given the device instead of the event driver. A round with the split off and a finger on the panel has not been captured yet: every no-split capture shows low=0, which is the idle state, so the open question is where the reported x/y land \(top-left should read near 0,0 and the far corner near the axis maxima\) rather than whether reports are accepted.
 
 ### 完成条件
 
@@ -288,35 +311,64 @@ Device template. Complete each area with board-specific inputs and evidence.
 
 ### 当前范围
 
-- Hardware inputs and implementation are pending for this example board.
+- No HID report has reached the OS yet: native\_touch\_hid\_reports stays 0 while contacts arrive, so the remaining work is the publication path, not the sensor.
+- Buttons are not implemented on this board.
 
 ### 下一步
 
-- Inventory the required input inputs before implementation.
+- Boot the image that carries the archived HID objects and confirm native\_touch\_hid\_reports rises and the UI responds to a swipe.
 
 ### 证据
 
-按下一步操作收集证据。
+- `source`: [Frame parsing treats an all-0xFF payload as no data, decodes 15-bit coordinates with the low bits in the pressure byte, and records the CRC it compared so 'passed' is visible rather than inferred.](https://github.com/FFT-infra/UniXNU-alioth/blob/5dcdaca3287c4ca8f9ca15790ff87b9a7d469511/kits/alioth-touch/FocalTouchProtocol.c)
 
 ## GPU {#gpu}
 
-`planned`
+`implemented`
+
+组件: `Adreno650`.
 
 ### 硬件与依赖
 
-- Identify the gpu hardware, resources and existing component interfaces for this board.
+- Adreno 650 on SM8250-AC; chip id 0x06050002; blocks GPU 0x3d00000, GMU 0x3d6a000, GPUCC 0x3d90000, SMMU 0x3da0000.
+- Firmware already embedded in package/GpuFirmwareA650.c: gmu 41548 B, sqe 31632 B, and the zap image 13964 B \(ELF header 148 B at 0, the 6712 B hash at 0x1000, the 1676 B segment at 0x3000\). The vendor's a650\_zap.mdt is packed as \[header 148\]\[hash 6712\] and would not satisfy its own program headers; the embedded image is laid out by those headers, which is what zapLoad and qcom\_mdt\_load read.
+- The pipa fork's A650 driver \(reference/repo/Adreno650\) is the same generation as this board; the upstream Adreno740 is not.
+- The Metal plugin \(drivers/AdrenoMetal\) is pinned to branch \`selftest\` on the FFT-infra fork: upstream main plus the three on-device self-test commits. The upstream feat/ipados27-gpu-parity branch was tried and dropped, not merged: its bridge patch set \(20 files, renamed\) and its translator revision do not match what this core repository's build-adreno-metal-bridge.py lists, so the bridge cannot be built against it until that script is ported too. Branch \`parity-selftest\` keeps that attempt for when it is. The pin therefore needs metal2vulkan 720ef1ce9ae2 in .cache/gpu-reference/metal2vulkan, which build-adreno-metal-bridge.py records as its qualified source pin; a mismatched checkout stops the build at the revision check. The parity branch would have needed 624bab39 instead, which is why the two cannot be mixed.
+- The on-device known-image check \(plugin: NativeAdrenoMetal.selftest beside the bundle, then make-gpu-addon.py --selftest\) reports wrong-pixel counts on the \[gpu client text\] row. Measured 2026-10-29 \(u253\): SpringBoard and iconservicesagent each reported ok cb=0 rb=0 ib=0, so compute, render-to-texture and import are correct on the GPU side and a black panel is not a rendering-correctness fault.
+- Open deviation: packing that marker uses a new --selftest flag on scripts/make-gpu-addon.py in the core repository, which AGENTS.md limits to mount points and build-script macro branches. It is opt-in, changes no default, and implements the known-image step the GPU porting guide asks for; move it into a device-side script, or record it as accepted, before the next core sync.
 
 ### 配置
 
-- Record the board.toml fields, DTS properties and defconfig values used for gpu.
+- board.toml passes pipa-gpu=&lt;mode&gt;; CONFIG\_XNU\_NATIVE\_ADRENO=y links the archive, which must be produced at build/adreno740/libAdreno740.a because build-xnu-4k-baseline.sh hard-codes that name and ignores CONFIG\_XNU\_NATIVE\_ADRENO\_ARCHIVE.
+- CONFIG\_XNU\_NATIVE\_ADRENO\_ARCHIVE uses the &\#123;tree&\#125; token so the path is absolute and satisfies both the checkout-rooted check in scripts/unixnu/kernel.py and the tree-rooted check in the shell script.
+- Mode 12 \(the Metal accelerator\) is compiled out with PIPA\_GPU\_ACCELERATOR=0: the accelerator is an IOAccelerator subclass and this kernel has no IOAccelerator class \(IOAcceleratorFamily2 is absent\).
 
 ### 操作步骤
 
-- Follow the gpu stage in the porting guide and record the actual commands.
+- Build with --local-module driver:Adreno650=&lt;checkout&gt;, ADRENO650\_DRIVER, ADRENO650\_KITS and ADRENO650\_PACKAGE set; the kits and the driver are not in the generated tree because Adreno650 is not in UniXNU's catalogue.
+- Boot with pipa-gpu=&lt;n&gt; and read the GPUROW lines on the console; native\_gpu\_rows is not rendered by this board's page.
 
 ### 开发经验
 
-- Collect the first gpu observation, its cause when established, and the resulting implementation decision.
+- The GPU driver compiled in this image is reference/repo/Adreno650, which cannot be pushed to an upstream repo. Two local commits sit on top of pipa \(bdee54c pool: read pipa-gpu-pool, d7bfe27 publish: keep two client text lines per process\) and make the build reproducible from this machine only. The fork exists and the two commits are on its fft branch; feeds.toml now carries a \[\[source\]\] for Adreno650 pinned at bdee54c. The build script still passes driver:Adreno650 and driver:Adreno740 by --local-module, because neither name is in components.toml and removing the override would resolve Adreno740 to its own submodule \(the A760-family one\) instead of this driver. Switching the build to the feed needs the catalog to carry Adreno650 first."
+- The BO pool is not exhausted, so the upstream change that removes it would not address this board's OutOfMemory. \[bo pool\] on four boots: an idle one reads 277 BOs from the pool, 0 fell back, 182 MiB in use; the two touched ones read 2836 and 2610 BOs with 3 and 4 fell back and peaks of 701 and 683 MiB of 768. Adreno740's 882f4bf describes the opposite shape -- 404 BOs falling back and 96 allocations of 96 MiB failing -- and that is the case its system-memory rewrite answers. Ours allocates from the pool almost always, so whatever refuses SpringBoard's buffer and texture must be elsewhere, and porting that rewrite now would replace a component that is working.
+- Raising the BO pool does not relieve SpringBoard's OutOfMemory; it makes the boot worse. pipa-gpu-pool=1024 \(u261\) measured worse than the default, and that comparison does not hold: the board package parses pipa-gpu-pool \(GpuProbe.cpp:635\) while the driver that is actually compiled parses sheng-gpu-pool \(reference/repo/Adreno650/NativeAdrenoService.cpp:310\) with its own 1536 MiB default. Two names, so the setting probably never reached the allocator and the round measured system memory pressure instead. Before any further pool experiment the two names have to agree.
+- Mode 1 \(read only\) runs: GPU m1 gcc=ok cc=ok smmu=skip gpu=skip io=0.
+- Mode 6 powers the GPU: GPU m6 gcc=ok cc=ok smmu=ok io=0 cx1 clocks1 — the CX domain comes out of collapse and the SMMU/GMU clocks run.
+- Mode 7 stops at the GMU context's Attach step: status e00002ca, routes 0, programme phase 5 with 13 writes issued and no global fault.
+- The Attach failure was the free-slot test, not an ownership wall. ArmSmmu4KStreams.c:47 required an idle slot's S2CR to equal 0x00020000 exactly; this part's idle slots read 0x000203ff, which is FAULT type with CBNDX 0xff left in the low byte, so every slot the kit looked at came back Busy and the attach never wrote a route.
+- The board now writes the canonical FAULT word 0x00020000 into the slots it is about to use, before the attach, and only where the type is already FAULT. Mode 7 then completes: routes 2, phase 5 with 13 writes, SCTLR enabled, GMU firmware in 16 blocks, the CM3 running, and HFI acknowledged. Clearing such a slot to zero instead, which an earlier round did, turns FAULT into TRANSLATE and makes it look busy again.
+- One write remains unexplained and is not an ownership wall: SMR slot 5, 0x8000007f, reads back 0. The same file takes the kit's context writes and the route writes, so the S2CR/SMR path is usable; slot 5 is outside the slots this board uses.
+- Mode 8 powers GX through the GMU on the first attempt: GPUROW17 reads GX on perf 7 vote 0 oob 2 gx 000000c0&gt;00000000 gdscr f8222800 rbbm 00000001. The HFI vote was accepted, the OOB GPU\_SET request was acknowledged on the second poll, GDSCR bit 31 came up, and rows 13-15 stayed identical to mode 7.
+- Mode 9 builds the GPU's own context and runs its first command: GPUROW18 status 0 with routes 4 \(bank 0 / ASID 2, streams 0, 1, 0x400, 0x401\), GPUROW19 CP ok with init 0, ring 0 and the marker a6500c0d written by CP\_MEM\_WRITE into the scratch page and read back by the CPU. GPUROW20 shows rptr and wptr both at 0x1b, hwfault 0 and cpint 0.
+- A K40 vendor kernel tree \(LineageOS lineage-20, reference/k40-kernel\) confirms the board inputs the later modes need: pil\_gpu\_region@8681a000 with size 0x2000 no-map \(the zap shader region\) and the GPU interrupt as SPI 300, level high.
+- Mode 10 completes after the zap image is laid out by its own program headers: GPUROW21 ZAP ok \(init 0/0 in 7 ms, mem 0/0, auth 0/0, resumes 0, secure 0\) and GPUROW22 IRQ attach 0, readback a002, count 1&gt;2, nop fence 1, seen 00100000, masked 0. TrustZone accepted the a650 zap, CP\_SET\_SECURE\_MODE\(0\) fenced, and the SPI 300 line raised an interrupt for a CP\_NOP without a storm.
+- The vendor a650\_zap.mdt is packed as \[ELF header 148 B\]\[hash 6712 B\] while its program headers address the hash at 0x1000 and the a650\_zap.b02 segment at 0x3000. Concatenating the two files, 8536 B, failed zapLoad at -6; the embedded image is now 13964 B in the addressed layout.
+- Mode 11 publishes the device and runs the user-client path: GPUROW23 PUBLISH ok submit 0 timer 0 publish 0 \| uc 36/36 first 0 at 0 \| rounds 4 4, so all 36 steps of two kernel rounds pass.
+- Mode 12 registers the staged accelerator: GPUROW24 METAL ok \(IOGPUFamily loaded, class size 136, Turnip options nocb\). In the same boot GPUROW25 moved from sub 2/2 \| uc 2/2 to sub 7/7 \| uc 4/4 with pool 128/128/768, so two processes outside the kernel opened the GPU service, took the 128 MiB pool and completed five more submissions: the plugin is found through IOAcceleratorES -&gt; MetalPluginName -&gt; NSBundle and connects to the driver.
+- The accelerator builds from the A650 checkout into the same libAdreno740.a that build-xnu links: PIPA\_GPU\_ACCELERATOR=1, the three IOAcceleratorES imports bound to the audited addresses \(0xfffffff004bd3b20 constructor alias, 0xfffffff004bd3b64 destructor, 0xfffffff006aeb688 metaclass\), \_\_mod\_init\_func stripped and the initializer globalised for the probe to run after IOGPUFamily.
+- The plan's control is satisfied in the stronger form: the same image with the accelerator but without the plugin bundle \(the original Data seed\) shows no crash at all, which is the software-rendering fallback the plan predicts.
+- The screenshot channel of the USB console does not work on this board: every SCREENSHOT/SHOTNEXT transfer dies with ENXIO a second in, on the image without the plugin as well, so it is independent of the graphics stack. The LIVE and FAULTS rows are the substitute evidence.
 
 ### 完成条件
 
@@ -324,35 +376,76 @@ Device template. Complete each area with board-specific inputs and evidence.
 
 ### 当前范围
 
-- Hardware inputs and implementation are pending for this example board.
+- Frame pacing, measured on u260 with the desktop in use: \[fence wait\] outer waits=169, 65142 us total, mean 385 us, longest 7787 us -- 47 percent of a 60 Hz frame budget for one wait. The polls behind it run 50 per submission \(GPUROW25 t97388 over 1897 submissions\), each a zero-timeout wait under the connection lock with a pause outside it. That is the quantified form of the report that the desktop is usable but still slow, and it is where the next work belongs rather than in the resource limits.
+- Modes 8 through 12 complete: GX power, the GPU's own context with a CP\_MEM\_WRITE, the zap shader and secure-mode exit with the GPU interrupt, the published device with 36 of 36 user-client steps, and the registered accelerator with two user-space clients connected.
+- Drawing is not confirmed. The wallpaper overlay mounts \(WALLPAPER stage=5 status=0\) and processes now reach the GPU, but nothing reads the panel back: the USB console's SCREENSHOT/SHOTNEXT path fails with ENXIO on every attempt, on images with and without the plugin.
+- The live row carries fence timeouts \(t2 at mode 11, t9 once clients come and go\) and the GPU context bank keeps reading FSR 0x400 with a changing FAR; submissions complete after the driver's stall recovery, so neither stops the path.
+- FSR 0x400 is not a fault under this SoC's own definition: the vendor kernel's arm-smmu-regs.h puts TF at bit 1, and its fault mask is 0xc00001fe \(bits 31, 30, 8, 7, 6, 5, 4, 3, 2, 1\). 0x400 \(bit 10\) is outside that mask, which is why the kit's own fault test never fired; bit 10 is either implementation-defined on this part or the readback is not the register it is believed to be. Recorded, not explained.
+- backboardd finds the accelerator and the plugin: GPUOPEN records it opening type 1 \(the IOAcceleratorES client\), 0x4147 and 0x4148 \(the plugin's types\) with the sandbox gate answering kIOReturnNotPermitted \(0xe00002e2\) and the grant still admitting it, GPUCCLI shows it in slot 0 with a peak GPU address of 650 MiB, and no open was refused.
+- The user-client table runs out: NativeAdrenoMaxClients is 4 \(slots 0..3, 4 is the sentinel\) and NativeAdrenoPublish.cpp:237 answers kIOReturnNoSpace when no slot is free. GPUMOUNT fail 1/e00002db slot 4 is exactly that, so it is connection slots, not the VA window \(0x20000000..0x80000000\) and not the BO pool \(128 of 768 MiB used\). backboardd takes slot 0, the other three go to the next processes, and a restart whose old connection has not been reaped asks for a fifth.
+- The open record's res field is io\_filter\_resolver's opinion and macf is mac\_iokit\_check\_open's, both taken before the driver decides; only type 0x4147 mounts a core, and refused counts outcomes. res NotPermitted with refused 0 therefore means the filter commented and the open was served anyway.
+- The plugin can be carried in the GPU addon instead of the Data seed: make-gpu-addon.py packs the same files and the kernel writes them into the Data volume before its addon mount, so a plugin rebuild no longer needs an APFS remount. With the addon the plugin loads exactly as from the seed \(backboardd opens type 1, 0x4147 and 0x4148\) and backboardd does not always crash: three minutes without one crash in u208.
+- No counter on this board measures the panel yet. The GOP presenter \(native\_gop\_\*\) only exists on offline-legacy-phase=3 and this board runs phase 4, so its counters are zero by construction; native\_legacy\_surfaces\[1\] counts only surfaces the compositor offers to the legacy driver, and this window server draws into the mapped framebuffer instead, so it reads zero while the UI is visible. GPUFRAME reports both and will read zero until the right counter is chosen.
+- The live row's fb and sc fields are native\_adreno\_pool\_stats\[5\] and \[2\], buffer allocation counters, not scanout; an earlier reading of them as framebuffer and swap counts was wrong.
+- The frames stop short of the panel. GPUROW25 keeps swapping at sc12 with fb0, the fence counters show the GPU exactly one fence behind the wait \(waited 8, gpu 7; waited 6, gpu 5\) and the stall recovery is never entered, and only about eleven submissions arrive in three minutes. sheng-fb-gpu=1 did not move the swap counter.
+- The plugin reaches the driver with a full workload before it dies: 50 BoAlloc and 50 BoMap with no failure, 48 BoCpuMap, 7 Submit and 29 WaitFence \(two timeouts\), slot 0 peaking at 32 live objects and 128 MiB, and GetStatus unsupported on all 8 calls. The fault is then a userspace read through an unmapped level-3 entry \(ESR 0x82000007, WnR clear\), at a fixed code site that moves with ASLR between boots.
+- The control isolates the plugin: with the accelerator registered but the original Data seed \(no NativeAdrenoMetal.bundle\), backboardd runs 170 s without one crash and opens only the accelerator's type 1; with the plugin present it opens 0x4147 and 0x4148 as well and crash-loops. So the SIGBUS is the plugin's, not the accelerator's, the driver's or the SMMU's.
+- backboardd then dies with SIGBUS: EXITCRASH pid 54 sig10 PC 0x106da915c LR 0x106dbbd24 ESR 0x82000007 \(data abort, translation fault level 3\) and the same backtrace every time; SpringBoard, PosterBoard and WidgetRenderer are terminated with it and the cycle repeats. ReportCrash itself dies the same way, so no crash report is written.
+- Metal needs the accelerator published plus the IOAccelerator class; until then the wallpaper overlay and poster rendering do not draw, and an app window opens with no content.
+- The wallpaper overlay itself is not an upstream capability: no porting page covers it and no device status table carries a wallpaper row. It arrives through zzy-native-gpu-addon-mount.patch, make-gpu-addon.py and make-wallpaper-overlay.py only, and the mount succeeds here \(WALLPAPER stage=5 status=0\) while the picture does not appear -- PosterBoard chooses the collection by device idiom, and this image carries only \~ipad collections.
 
 ### 下一步
 
-- Inventory the required gpu inputs before implementation.
+- Stop backboardd dying. It finds the plugin and takes slot 0, then faults on a userspace pointer \(SIGBUS at 0x106da915c, ESR 0x82000007\) with the same backtrace every time; the control image without the publish file decides whether the plugin is the cause. In parallel, give the four client windows room for the four processes that ask for one \(kIOReturnNoSpace\), and set sheng-fb-gpu=1 once frames are submitted so the composited frame reaches scanout.
 
 ### 证据
 
-按下一步操作收集证据。
+- `device`: [Mode 1 reads and mode 6 powers the CX domain with the SMMU and GMU clocks running: gcc=ok cc=ok smmu=ok cx1 clocks1.](https://github.com/FFT-infra/UniXNU-alioth/blob/5dcdaca3287c4ca8f9ca15790ff87b9a7d469511/docs/evidence/2026-10-28-gpu-wifi-bringup.md)
+  Command: <code>sh scripts/run-sheng-unattended.sh &lt;boot.img&gt; 180, then read GPUROW lines from the console capture of that run</code>. Revision: `002ccaa75267bcc70ea1ba97dfefea14c6f7211d`.
+- `device`: [Writes to SMR slot 5 \(0x8000007f\) and sCR0 \(0x0026040e\) both read back the pre-existing value while IDR0 reads 0x4c017e06 through the same window.](https://github.com/FFT-infra/UniXNU-alioth/blob/5dcdaca3287c4ca8f9ca15790ff87b9a7d469511/docs/evidence/2026-10-28-gpu-wifi-bringup.md)
+  Command: <code>boot a pipa-gpu=7 image and read the GPUROW14 line from the console capture</code>. Revision: `e240b0e810988bf1012b2aa37bd3ae4fd6d84e67`.
+- `device`: [routes 2, phase 5 with 13 writes, rb 1, en 1; GMU firmware 16 blocks, version 20010008, cm3 1, HFI acked c6.](https://github.com/FFT-infra/UniXNU-alioth/blob/5dcdaca3287c4ca8f9ca15790ff87b9a7d469511/docs/evidence/2026-10-29-gpu-smmu-slot.md)
+  Command: <code>boot a pipa-gpu=7 image built with the slot normalisation and read GPUROW13/14/15 from the console capture</code>. Revision: `7946cba83f32b768075a071a5d47bb0a2fd3eeb2`.
+- `device`: [GX on perf 7 vote 0 oob 2 gx 000000c0&gt;00000000 gdscr f8222800 rbbm 00000001 gbif halt 0/3 rbbm halt 0/0.](https://github.com/FFT-infra/UniXNU-alioth/blob/5dcdaca3287c4ca8f9ca15790ff87b9a7d469511/docs/evidence/2026-10-29-gpu-gx-and-context.md)
+  Command: <code>boot a pipa-gpu=8 image (usb191) and read GPUROW17 from the serial console capture</code>. Revision: `6642723982701653e2546fb4b83859bb3bf41a17`.
+- `device`: [GPUCTX step 7 status 0 routes 4; CP ok init 0 ring 0 fence 0/1 marker a6500c0d read back; rptr and wptr 0x1b, hwfault 0.](https://github.com/FFT-infra/UniXNU-alioth/blob/5dcdaca3287c4ca8f9ca15790ff87b9a7d469511/docs/evidence/2026-10-29-gpu-gx-and-context.md)
+  Command: <code>boot a pipa-gpu=9 image (usb192) and read GPUROW18/19/20 from the serial console capture</code>. Revision: `ce0c65a1cbe872e44da38cbe51812cdbc775f32a`.
+- `device`: [ZAP ok step 7 init 0/0 mem 0/0 auth 0/0 secure 0; IRQ attach 0 readback a002 count 1&gt;2 nop fence 1 seen 00100000 masked 0.](https://github.com/FFT-infra/UniXNU-alioth/blob/5dcdaca3287c4ca8f9ca15790ff87b9a7d469511/docs/evidence/2026-10-29-gpu-gx-and-context.md)
+  Command: <code>boot a pipa-gpu=10 image with the re-laid zap image (usb194) and read GPUROW21/22 from the serial console capture</code>. Revision: `32cdcd97f19d21d8e684ca4670bf1c834d9e681d`.
+- `device`: [PUBLISH ok submit 0 timer 0 publish 0 \| uc 36/36 first 0 at 0 cpumap 0 \| rounds 4 4.](https://github.com/FFT-infra/UniXNU-alioth/blob/5dcdaca3287c4ca8f9ca15790ff87b9a7d469511/docs/evidence/2026-10-29-gpu-gx-and-context.md)
+  Command: <code>boot a pipa-gpu=11 image (usb195) and read GPUROW23 from the serial console capture</code>. Revision: `1d954032604c986bd98de483447cb06ab8896cff`.
+- `device`: [METAL ok: accelerator registered \(IOGPUFamily loaded, class size 136\); LIVE moved from sub 2/2 uc 2/2 to sub 7/7 uc 4/4 with pool 128/128/768.](https://github.com/FFT-infra/UniXNU-alioth/blob/5dcdaca3287c4ca8f9ca15790ff87b9a7d469511/docs/evidence/2026-10-29-gpu-gx-and-context.md)
+  Command: <code>boot a pipa-gpu=12 image (usb199) carrying the staged Data seed and read GPUROW24/25 from the serial console capture</code>. Revision: `fe2e366add2343efa48f8fe0cb01ff99ffa598d6`.
 
 ## 网络 {#network}
 
-`planned`
+`implemented`
 
 ### 硬件与依赖
 
-- Identify the network hardware, resources and existing component interfaces for this board.
+- QCA6390 at 17cb:1101 behind qcom,pcie@1c00000; parf 0x01c00000+0x3000, phy 0x01c06000+0x1000, dm\_core 0x60000000+0xf1d, ELBI 0x60000f20+0xa8, IATU 0x60001000+0x1000, conf 0x60100000+0x100000.
+- package/alioth\_pcie.c is the 723-line bring-up measured on this phone in the ios-sweet series.
 
 ### 配置
 
-- Record the board.toml fields, DTS properties and defconfig values used for network.
+- board.toml passes pcie=&lt;steps&gt;; pcie\_skip=&lt;mask&gt; skips a step, and pcie\_skip=32 skips the PHY sequence.
+- The file was wrapped in \#if defined\(ARM64\_BOARD\_CONFIG\_SWEET\) and compiled to an empty object under this board; the guard now accepts BCM2837 as well.
+- The kernel's C record carries -Werror and the driver leaves struct fields implicit, so the recipe passes -Wno-missing-field-initializers; sweet\_log\_flush is shimmed because that log belongs to the ios-sweet tree.
+- printf does not reach this board's console, so the driver's line\(\) tees to qcom\_usb\_debug\_write and the rows appear as PCIE &lt;step&gt;: &lt;text&gt;.
 
 ### 操作步骤
 
-- Follow the network stage in the porting guide and record the actual commands.
+- Build with the archive entry and call alioth\_pcie\_init\(\) from the late display probe; a run is pcie=&lt;n&gt; on the kernel command line.
 
 ### 开发经验
 
-- Collect the first network observation, its cause when established, and the resulting implementation decision.
+- Step 9 now reads the clock vote register once more after the PHY reference generator is running, and changes nothing. The question it answers: step 3 votes CLOCK\_VOTES \(0x2f, bits 0-3 and 5\) and leaves bit 4, pipe, out because that clock comes from the PHY. If bit 4 is still clear when step 10 touches the IATU window, the controller's AXI branches are unclocked at that moment, which is what a bus that never returns looks like. This is the read the next board session should take before any vote is changed.
+- Step 10 was run on the board on 2026-10-30 and produced exactly what step\_dbi's own comment predicts: with pcie=10 the board never returned, no console device enumerated and no fastboot or adb endpoint appeared, so the first access to the controller's DBI window \(the iatu\_viewport read\) takes the machine down. The step table in alioth\_pcie.c already carries all ten steps including step\_dbi, so the record's earlier statement that step 10 had never run is out of date; what is now known is that it runs and kills the board rather than that it is missing. Deciding between the mapping and the access rule needs a probe that writes its line before the access and survives it, which this board has no channel for.
+- Step 1 reads gcc pcie\_0\_gdscr = 0x22f001: PWR\_ON clear, SW\_COLLAPSE set, the controller fully off — the same value the ios-sweet series recorded.
+- Step 2 powers it: writing 0x22f000 reads back 0xf822f000 within a millisecond.
+- Step 3 finds the halt registers already zero; step 2's power-up cleared them.
+- Step 4 reports phy\_status 0x68 with bit 6 set before any PHY write, so the bootloader left the PHY initialised and the sequence can be skipped.
+- Step 9 with pcie\_skip=32 reaches the PARF: parf\_mhi\_clock\_reset\_ctrl 0x3 written to 0x13, parf\_axi\_mstr\_wr\_addr\_halt\_v2 unchanged at 0x80000014, both matching the reference.
 
 ### 完成条件
 
@@ -360,15 +453,21 @@ Device template. Complete each area with board-specific inputs and evidence.
 
 ### 当前范围
 
-- Hardware inputs and implementation are pending for this example board.
+- Step 10 stops at its first access, and the window addresses are not the reason. Every one of parf, phy, dm\_core, elbi and iatu matches the vendor DTS byte for byte \(kona-pcie.dtsi:7-13\); only the conf window differs, 0x100000 there against 0x1000 here, and that is not the access that hangs. What differs is the clock vote set: step\_clocks votes slv\_axi, mstr\_axi, cfg\_ahb, aux and slv\_q2a, while the vendor clock-names also carries pcie\_0\_ldo, pcie\_phy\_refgen\_clk, pcie\_0\_ref\_clk\_src, pcie\_tbu\_clk and pcie\_ddrss\_sf\_tbu\_clk. The LDO and the PHY reference generator decide whether the core and the PHY are powered and clocked at all, so a bus that never returns is what their absence predicts. Next: vote those two only and run to step 9 without touching DBI, then retry step 10.
+- No link has ever trained \(parf\_ltssm 0\) and no endpoint has been enumerated; MHI, QMI and ath11k do not exist in this tree, and the local reference Ath12kWifi is ath12k, a different driver for a different part.
 
 ### 下一步
 
-- Inventory the required network inputs before implementation.
+- Establish the pipe clock without the PHY sequence that hangs this phone, then run step 10 and read the configuration space for 17cb:1101.
 
 ### 证据
 
-按下一步操作收集证据。
+- `device`: [gcc pcie\_0\_gdscr reads 0x22f001, the value the ios-sweet series recorded for a fully collapsed controller.](https://github.com/FFT-infra/UniXNU-alioth/blob/5dcdaca3287c4ca8f9ca15790ff87b9a7d469511/docs/evidence/2026-10-28-gpu-wifi-bringup.md)
+  Command: <code>boot a pcie=1 image and read the PCIE 1 lines from the console capture</code>. Revision: `dc3ab04aa4b05d38a1c372fa2ec257b3ae8547ce`.
+- `device`: [Writing 0x22f000 reads back 0xf822f000 within a millisecond: the controller has power.](https://github.com/FFT-infra/UniXNU-alioth/blob/5dcdaca3287c4ca8f9ca15790ff87b9a7d469511/docs/evidence/2026-10-28-gpu-wifi-bringup.md)
+  Command: <code>boot a pcie=2 image and read the PCIE 2 lines from the console capture</code>. Revision: `28be364f4dc9223a006770635dbc0f352d230401`.
+- `device`: [With pcie\_skip=32 the PARF setup completes and parf\_mhi\_clock\_reset\_ctrl 0x3 becomes 0x13, matching the reference.](https://github.com/FFT-infra/UniXNU-alioth/blob/5dcdaca3287c4ca8f9ca15790ff87b9a7d469511/docs/evidence/2026-10-28-gpu-wifi-bringup.md)
+  Command: <code>boot a pcie=9 pcie_skip=32 image and read the PCIE 9 lines from the console capture</code>. Revision: `eeda5a8139786ca8029044708679c40e7382eb1e`.
 
 ## 音频 {#audio}
 
@@ -500,15 +599,23 @@ Device template. Complete each area with board-specific inputs and evidence.
 - ./unixnu build kernel, then build payload and bootimg, then fastboot flash boot\_b.
 - Read the console at /dev/tty.usbmodem&lt;N&gt; with a raw 115200 8N1 tty; the dock's SN234567892 node is not the phone.
 - Control frames are SXNU1 &lt;16 hex session&gt; &lt;8 hex seq&gt; &lt;VERB&gt; &lt;8 hex crc32&gt;, HELLO first to learn the session.
+- One unattended round is scripts/run-sheng-unattended.sh &lt;image&gt; \[timeout\]: fastboot boot the image, wait for the board's own return, boot the reader from slot a, read and decode into build/sheng-logs/&lt;tag&gt;-&lt;boot id&gt;/, then restore the slot. Fail-closed, and the timeout must exceed sheng-autoreset by 60 s.
 
 ### 开发经验
 
+- Four images in a row failed to reach the kernel through fastboot boot \(u268, u269 twice, u271\) while the same u269 image reached the GPU and the wallpaper after a manual power cycle. The four span different contents -- two carried timer rows, one was rebuilt without them, one differs by a single driver string -- so the content is not what decides it. What all four share is the load path: fastboot boot has the bootloader pull 182.4 MB over USB into memory and jump to it, while a power cycle reads the active slot from flash. Whether the board then runs the slot image rather than the booted one is unverified; the persistent log's tag field would say, and reading it needs a boot that reaches the kernel.
+- The timer rows were withdrawn the same day they were added. Two images carried them and both failed to reach a usable kernel, so they came out; but the same image booted to the GPU and the wallpaper after a manual power cycle, so the rows were not shown to be the cause and the withdrawal is a control, not a verdict. The instrument itself is sound: ArmCpu already counts the virtual timer's lead and its short deadlines, and re-adding it needs a boot that survives regardless.
+- The persistent log kept the oldest 128 KiB of the kernel message buffer, not the newest: copy\_msgbuf started at msg\_bufx, the ring's oldest byte, and stopped at the region's limit, so every read-back carried the start of the boot and dropped the seconds before a crash -- the only window an abort diagnosis needs. Every header from u250 to u255 reports msg\_bytes 131072, which is the cap, not the buffer. u259 starts at msg\_bufx + size - cap instead; its msgbuf covers a later slice of the kernel log than u258's on the same image family \(986..1126 s against 516..638 s\).
 - The CDC-ACM console refused to start with error=10 core=0 domain=5. QcomUsbDomainInstall calls halted\(\) before scan\(\), so a PRTCAPDIR of 3 would have returned CoreRunning=4; it returned 5, which proves the controller already reported device mode.
 - Firmware leaves an SMR entry for SID 0 pointing at context bank 5 with SCTLR=0xe0 \(M=0\) and TTBR0=0: the stream is programmed but no table exists under it. scan\(\) now reclaims that slot only when translation is off and there is no table, and still refuses a bank that holds a live mapping.
 - With that, the console enumerates as 1209:316d named QcomXnuUsbDebug and the kernel log is readable on the host. It is the only channel that keeps a record after the panel has moved on.
 - printf and kprintf both fail to reach the console: a DEVELOPMENT kernel leaves disable\_kprintf\_output true without -enable\_kprintf\_spam, and printf's console path did not reach the \_cnputs tee either. qcom\_usb\_debug\_write\(\) is the entry point that works.
 - Exit records measured over 420 s: 180 xpcproxy exits with status=0 \(normal fork and exit\), 13 cryptexd SIGABRT with ns=18 code=2 \(OS\_REASON\_LIBSYSTEM\_CODE\_FAULT\), 11 liveactivitiesd SIGTRAP, 2 lsd SIGSEGV. Each process crashes at one fixed PC repeated, so the fault is deterministic rather than a race.
 - A software REBOOT via the control channel is acknowledged \(state=queued\) but does not reach fastboot: the worker calls reboot\_kernel\(0, NULL\), an orderly restart that unmounts every filesystem and returns through UEFI. Entering fastboot needs the ABL IMEM handshake, whose address is not measured here.
+- The persistent log writer runs: boot-usb101 recorded 273 rounds over 546 s with zero write errors after the console had already stopped, so the medium is the only record past the link's death.
+- Returning to fastboot works with sheng-log=1 and sheng-autoreset=&lt;seconds&gt; together: boot-usb102 rebooted at 153 s and boot-usb103 at 120 s, both landing in the board's own bootloader with the PON spare cell written \('pon: subtype 04 shift 1 spare 00 -&gt; 04 want 04 rc=0 ok pon\_rc=0'\) and IMEM reading the reason back \(known=1\). PSCI alone cannot do it: SYSTEM\_RESET, SYSTEM\_RESET2\(32\) and SYSTEM\_RESET2\(64\) all report NOT\_SUPPORTED, so PS\_HOLD is the path that works.
+- The reader must seek relative to the partition: /dev/block/by-name/userdata starts at LBA 0x2a8000, so the window's last 8192 blocks are skip=59086843, not the absolute LBA 61872123 the header records. Passing the absolute value reads nothing at all and looks like a hung read.
+- The console's death is a latch, not a transient: dwc3\_poll\(\) returns -1 forever once d-&gt;failed is set \(Dwc3.c:570/581/584\), and nothing in the driver clears it, so the worker's retry path cannot revive the link.
 
 ### 完成条件
 
@@ -523,14 +630,15 @@ Device template. Complete each area with board-specific inputs and evidence.
 
 ### 下一步
 
+- Make the console survive its first error: clear d-&gt;failed and re-initialise the controller from the worker, with backoff, and draw the worker's retry and error counters on the diagnostic page so the failure is readable without the link it is about.
 - Attribute cryptexd's fault, then decide whether the fix is a stub, a mount change, or accepting the crash.
 - Wait for the MAC refusal to reproduce and read the ip\_mac\_return value it now prints.
 
 ### 证据
 
-- `device`: [Console enumerated as 1209:316d named QcomXnuUsbDebug; STATUS returned usb=3 er=0 with the worker polling, so the port is live in both directions.](https://github.com/FFT-infra/UniXNU-alioth/blob/695a35bd11337a27473a1ef6687977c0527b6878/docs/evidence/2026-10-27-boot-diagnostics.md)
+- `device`: [Console enumerated as 1209:316d named QcomXnuUsbDebug; STATUS returned usb=3 er=0 with the worker polling, so the port is live in both directions.](https://github.com/FFT-infra/UniXNU-alioth/blob/5dcdaca3287c4ca8f9ca15790ff87b9a7d469511/docs/evidence/2026-10-27-boot-diagnostics.md)
   Command: <code>read /dev/tty.usbmodem&lt;N&gt; at 115200 8N1 and send SXNU1 ... HELLO / STATUS</code>. Revision: `15a15d7cc526262a64531ff56b3a33bdbc46379c`.
-- `device`: [215 exit records captured. 180 xpcproxy status=0 \(normal\), 13 cryptexd ns=18 code=2, 11 liveactivitiesd sig5, 2 lsd sig11; each process repeats one fixed crash PC, so the faults are deterministic.](https://github.com/FFT-infra/UniXNU-alioth/blob/695a35bd11337a27473a1ef6687977c0527b6878/docs/evidence/2026-10-27-serial-exit-records.log)
+- `device`: [215 exit records captured. 180 xpcproxy status=0 \(normal\), 13 cryptexd ns=18 code=2, 11 liveactivitiesd sig5, 2 lsd sig11; each process repeats one fixed crash PC, so the faults are deterministic.](https://github.com/FFT-infra/UniXNU-alioth/blob/5dcdaca3287c4ca8f9ca15790ff87b9a7d469511/docs/evidence/2026-10-27-serial-exit-records.log)
   Command: <code>./unixnu build kernel; ./unixnu bootimg; fastboot flash boot_b; read the CDC-ACM console for 420 s</code>. Revision: `15a15d7cc526262a64531ff56b3a33bdbc46379c`.
 
 </div>
