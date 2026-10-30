@@ -15,6 +15,7 @@ from pathlib import Path
 import shutil
 import struct
 import subprocess
+import tomllib
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -77,13 +78,18 @@ def main():
     if not build_id:
         parser.error('UNIXNU_IPSW_BUILD is not set; run through unixnu build kernel')
     policies = (args.policy_dir or tree / f'build/verified-root-{build_id}').resolve()
-    # The resolved build tree links the device package as kits/sheng, while an
+    # The resolved build tree links the device package as kits/<board.kit>, while an
     # explicit device repository keeps package/ and drivers/ side by side.
+    kit = 'sheng'
+    try:
+        kit = tomllib.loads((device / 'board.toml').read_text()).get('board', {}).get('kit', 'sheng')
+    except (FileNotFoundError, tomllib.TOMLDecodeError):
+        pass
     package_dirs = [device / 'package']
     if device != tree:
-        package_dirs += [device / 'kits/sheng', tree / 'kits/sheng']
+        package_dirs += [device / f'kits/{kit}', tree / f'kits/{kit}']
     else:
-        package_dirs += [tree / 'kits/sheng']
+        package_dirs += [tree / f'kits/{kit}']
 
     def device_source(relative, *extra):
         for directory in list(extra) + package_dirs + [device, tree]:
@@ -91,6 +97,12 @@ def main():
             if candidate.is_file():
                 return candidate
         parser.error(f'{relative} not found under the device or build tree')
+    def optional_source(relative):
+        for directory in package_dirs + [device, tree]:
+            candidate = directory / relative
+            if candidate.is_file():
+                return candidate
+        return None
     if os.environ.get('UNIXNU_XNU_ARCH', 'arm64e') != 'arm64e':
         parser.error('This adapter requires an arm64e iPadOS profile')
     os.environ['UNIXNU_XNU_ARCH'] = 'arm64e'
@@ -143,7 +155,11 @@ def main():
     # Only the independent trust anchor is linked into the kernel. The large
     # signed hash tables are a separate firmware handoff, authenticated in XNU.
     boot_log_defaults = out / 'BootLogDefaults.c'
-    boot_log_defaults.write_text(weak_defaults(device_source('BootLog.c')))
+    boot_log = optional_source('BootLog.c')
+    if boot_log is not None:
+        boot_log_defaults.write_text(weak_defaults(boot_log))
+    else:
+        boot_log_defaults.write_text('/* No board log page in this device: nothing to default. */\n')
     anchor = out / 'RootAnchor.c'
     anchor.write_text('#include <stdint.h>\nconst uint8_t verified_root_key[395] = {' +
                       ','.join(str(b) for b in key) + '};\n')
@@ -173,20 +189,27 @@ OSDefineOperatorMethods(IOBlockStorageDevice)
     # The RAM disk carries the Data seed; like NativeUfs its class registers with the source storage classes.
     sources = [base, device / 'drivers/ShengUfs/NativeUfs.cpp', ROOT / 'drivers/RamBlock/NativeRamBlock.cpp',
                device_source('SourceStorage.cpp'), device_source('SourceRootPolicies.cpp'),
-               device_source('SourceRootBinding.cpp'), device_source('BootLog.c'), boot_log_defaults, device_source('BootReset.c'),
+               device_source('SourceRootBinding.cpp'), boot_log_defaults,
+               *[source for source in (boot_log, optional_source('BootReset.c')) if source is not None],
                ROOT / 'kits/VerifiedRoot/src/verified_root.c',
                ROOT / 'kits/VerifiedRoot/adapters/xnu_crypto.c', anchor]
     if int(os.environ['UNIXNU_IOS_VERSION'].split('.')[0]) >= 27:
         # The source path does not run BootProgress's process worker. Reuse its
         # native capture code in a separate worker owned by the UFS log.
         flags.append('-DNATIVE_BOOT_PROCESS_CAPTURE=1')
-        sources += [device_source(name) for name in
-                    ('BootProcessProbe.c', 'BootUiTraceProbe.c', 'BootProcessWorker.c')]
+        sources += [source for source in
+                    (optional_source(name) for name in
+                     ('BootProcessProbe.c', 'BootUiTraceProbe.c', 'BootProcessWorker.c'))
+                    if source is not None]
         # The launchd job policy (sheng-disable-watchdogd, sheng-lite, sheng-disable-jobs, sheng-setup) that BootProgress carries on
         # iPadOS 17; the kernel runs it after the Data mount.
-        sources.append(device_source('BootWatchdogPolicy.c'))
+        policy = optional_source('BootWatchdogPolicy.c')
+        if policy is not None:
+            sources.append(policy)
         # The diagnostic file export (sheng-diag-export): the unified log, crash reports and a screenshot, read through the VFS.
-        sources.append(device_source('BootDiagExport.c'))
+        export = optional_source('BootDiagExport.c')
+        if export is not None:
+            sources.append(export)
     objects, inputs = [], {}
     objcopy = shutil.which('llvm-objcopy') or '/opt/homebrew/opt/llvm/bin/llvm-objcopy'
     for source in sources:
