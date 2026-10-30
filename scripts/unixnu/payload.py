@@ -229,7 +229,9 @@ def build(ctx, kernel=None):
         os.utime(path, (EPOCH, EPOCH))
     size = int(spec.get('size_mib', 192))
     content = sum(p.stat().st_size for p in stage.rglob('*') if p.is_file())
-    if content > size * 1024 * 1024 * 0.95:
+    # FAT slack is cluster rounding (a few KiB per file), not 5%: the 24A446 fileset kernel leaves only
+    # ~1.5 MiB under the 96 MiB vendor_boot partition, so the margin is the real overhead plus a page.
+    if content > size * 1024 * 1024 * 0.98:
         raise Error(f'the payload files take {content >> 20} MiB; raise size_mib (now {size}) in board.toml [payload]')
     write_volume(stage, image, spec.get('volume', 'UNIXNU')[:11], size)
     data_report = {'kernel_sha256': sha256_file(kernel), 'payload_kernel_sha256': sha256_file(payloads / 'kernel.macho'),
