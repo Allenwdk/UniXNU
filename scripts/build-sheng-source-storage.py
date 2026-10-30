@@ -79,12 +79,19 @@ def main():
         parser.error('UNIXNU_IPSW_BUILD is not set; run through unixnu build kernel')
     policies = (args.policy_dir or tree / f'build/verified-root-{build_id}').resolve()
     # The resolved build tree links the device package as kits/<board.kit>, while an
-    # explicit device repository keeps package/ and drivers/ side by side.
-    kit = 'sheng'
+    # explicit device repository keeps package/ and drivers/ side by side. The assembled tree has no
+    # board.toml: find the linked kit by the runtime sources it must contain instead of assuming sheng.
+    kit = None
     try:
-        kit = tomllib.loads((device / 'board.toml').read_text()).get('board', {}).get('kit', 'sheng')
+        kit = tomllib.loads((device / 'board.toml').read_text()).get('board', {}).get('kit')
     except (FileNotFoundError, tomllib.TOMLDecodeError):
         pass
+    if kit is None:
+        matches = sorted(path.name for path in (device / 'kits').glob('*')
+                         if (path / 'SourceStorage.cpp').is_file())
+        if len(matches) != 1:
+            parser.error(f'cannot identify the device package under {device / "kits"}: {matches}')
+        kit = matches[0]
     package_dirs = [device / 'package']
     if device != tree:
         package_dirs += [device / f'kits/{kit}', tree / f'kits/{kit}']
@@ -197,9 +204,10 @@ OSDefineOperatorMethods(IOBlockStorageDevice)
         # The source path does not run BootProgress's process worker. Reuse its
         # native capture code in a separate worker owned by the UFS log.
         flags.append('-DNATIVE_BOOT_PROCESS_CAPTURE=1')
+        # BootProcessProbe.c and BootUiTraceProbe.c live in the display archive; only the worker that the
+        # source path does not run is added here (a device that has it).
         sources += [source for source in
-                    (optional_source(name) for name in
-                     ('BootProcessProbe.c', 'BootUiTraceProbe.c', 'BootProcessWorker.c'))
+                    (optional_source(name) for name in ('BootProcessWorker.c',))
                     if source is not None]
         # The launchd job policy (sheng-disable-watchdogd, sheng-lite, sheng-disable-jobs, sheng-setup) that BootProgress carries on
         # iPadOS 17; the kernel runs it after the Data mount.
