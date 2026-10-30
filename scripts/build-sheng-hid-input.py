@@ -60,6 +60,7 @@ class IOGraphicsDevice;
                 '-Wno-reorder-init-list', '-Wno-deprecated-enum-enum-conversion', '-Wno-unnecessary-virtual-specifier',
                 '-I', str(ROOT / '.cache/xnu-work/osfmk'), '-DNATIVE_HID_SOURCE_API=1',
                 '-I', str(include), '-idirafter', str(sdk)]
+    (OUT / 'NativeHidInput.command.json').write_text(json.dumps([str(part) for part in command], indent=2) + '\n')
     result = subprocess.run([str(part) for part in command], cwd=record['directory'], text=True,
                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     (OUT / 'NativeHidInput.log').write_text(result.stdout)
