@@ -2,16 +2,68 @@
 """Qualify an owned offline HID source against the unchanged target IOHIDDevice."""
 import hashlib,json,struct,subprocess,sys
 from pathlib import Path
-from kernel_target import ARCH, IOS_VERSION
-if ARCH != 'arm64' or IOS_VERSION.split('.')[0] != '17':
-    raise SystemExit('The original HID ABI builder only supports arm64 iOS 17. '
-                     'Use build-sheng-source-drivers.py for a source-interface compile audit; '
-                     'its output still requires target-family linking and runtime qualification.')
 ROOT=Path(__file__).resolve().parents[1];OUT=ROOT/'build/sheng-hid-input';OUT.mkdir(exist_ok=True)
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from kernel_target import ARCH, IOS_VERSION, TRIPLE
+if ARCH != 'arm64' or IOS_VERSION.split('.')[0] != '17':
+    # arm64e iPadOS 26+: compile the source driver against the public IOHIDFamily headers. The original IOHIDDevice
+    # is linked, and every owned vtable entry's PAC diversity checked, by the device's legacy display builder.
+    import importlib.util
+    import shutil
+    spec = importlib.util.spec_from_file_location('source_storage_headers', ROOT / 'scripts/prepare-storage-headers.py')
+    headers = importlib.util.module_from_spec(spec); spec.loader.exec_module(headers)
+    storage = (ROOT / 'refer/IOStorageFamily').resolve()
+    hid_tree = (ROOT / 'refer/IOHIDFamily').resolve()
+    report = headers.prepare(storage, subprocess.check_output(['git', '-C', str(storage), 'rev-parse', 'HEAD'], text=True).strip(),
+                             OUT / 'headers')
+    include = OUT / 'headers/include'
+    for source_dir, relative in ((hid_tree / 'IOHIDFamily', 'IOKit/hid'),
+                                 (hid_tree / 'IOHIDSystem/IOKit/hidsystem', 'IOKit/hidsystem')):
+        destination = include / relative
+        destination.mkdir(parents=True, exist_ok=True)
+        for header in sorted(source_dir.glob('*.h')):
+            shutil.copyfile(header, destination / header.name)
+    sdk = Path(report['sdk']) / 'System/Library/Frameworks/Kernel.framework/Versions/A/Headers'
+    record = json.loads((ROOT / 'build/xnu/ios-obj/DEVELOPMENT_ARM64_BCM2837/iokit/DEVELOPMENT/IOPlatformExpert.cpo.json')
+                        .read_text().strip().rstrip(','))
+    source = ROOT / 'drivers/ShengHidInput/NativeHidInput.cpp'
+    obj = OUT / 'NativeHidInput.o'
+    command, arguments, index, replaced = [], record['arguments'], 0, False
+    while index < len(arguments):
+        value = arguments[index]
+        if value == record['file']:
+            command.append(str(source)); replaced = True
+        elif value == '-o':
+            command += ['-o', str(obj)]; index += 1
+        elif value in ('-MF', '-MT', '-MQ', '-MJ'):
+            index += 1
+        elif value == '-Xclang' and arguments[index + 1].startswith('-W'):
+            index += 1
+        elif not value.startswith('-W'):
+            command.append(value)
+        index += 1
+    if not replaced:
+        raise SystemExit('Kernel compilation record does not contain its source argument')
+    command += ['-Wall', '-Wextra', '-Werror', '-Wno-unused-parameter', '-Wno-c99-designator',
+                '-Wno-reorder-init-list', '-Wno-deprecated-enum-enum-conversion', '-Wno-unnecessary-virtual-specifier',
+                '-I', str(ROOT / '.cache/xnu-work/osfmk'), '-DNATIVE_HID_SOURCE_API=1',
+                '-I', str(include), '-idirafter', str(sdk)]
+    result = subprocess.run([str(part) for part in command], cwd=record['directory'], text=True,
+                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    (OUT / 'NativeHidInput.log').write_text(result.stdout)
+    if result.returncode:
+        raise SystemExit(result.stdout[-4000:])
+    objcopy = shutil.which('llvm-objcopy') or '/opt/unixnu-linux/llvm/bin/llvm-objcopy'
+    late = OUT / 'NativeHidInput.late.o'
+    subprocess.run([objcopy, '--remove-section=__DATA,__mod_init_func',
+                    '--globalize-symbol=__GLOBAL__sub_I_NativeHidInput.cpp', str(obj), str(late)], check=True)
+    archive = OUT / 'libShengHidInput.a'
+    archive.unlink(missing_ok=True)
+    subprocess.run(['xcrun', 'ar', 'rcs', str(archive), str(late)], check=True)
+    print(f'build-sheng-hid-input: {archive} (arm64e source only; the display builder binds the original class)')
+    raise SystemExit(0)
 sys.path.insert(0,str(ROOT/'kits/XnuPrelink'))
 from native_prelink import macho,backed_offset,exports
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from kernel_target import TRIPLE
 
 def run(cmd,**kw):return subprocess.check_output([str(x) for x in cmd],timeout=90,**kw)
 def require(value,why):
