@@ -9,6 +9,7 @@ import hashlib
 import json
 import shutil
 import struct
+import subprocess
 import tempfile
 import zlib
 from pathlib import Path
@@ -47,7 +48,10 @@ def patch_dtb(dtb, nodes, scratch):
     work = scratch / 'device.dtb'
     work.write_bytes(dtb)
     for node in nodes:
-        run([fdtput, '-c', work, node['path']], capture=True)
+        # A full stock DTB already carries /chosen; fdtput -c refuses an existing node, and a bare
+        # `fdtget <file> <node>` is a usage error, so ask fdtget -l (0 for an existing node).
+        if subprocess.run([fdtget, '-l', str(work), node['path']], capture_output=True).returncode:
+            run([fdtput, '-c', work, node['path']], capture=True)
         for prop in node.get('props', []):
             values = prop['value'] if isinstance(prop['value'], list) else [prop['value']]
             run([fdtput, '-t', prop.get('type', 's'), work, node['path'], prop['name'], *[str(v) for v in values]], capture=True)
@@ -119,8 +123,33 @@ def build(ctx, uefi, fd, dtb, ramdisk=None, output=None):
 def verify(path, combined, tree, ramdisk_path, image):
     """Unpack the image and compare every part with its input."""
     data = Path(path).read_bytes()
+    if data[:8] != b'ANDROID!':
+        raise Error('boot image header does not match the requested parameters')
+    version = struct.unpack_from('<I', data, 40)[0]
+    if version != image['header_version']:
+        raise Error('boot image header does not match the requested parameters')
+    if version in (3, 4):
+        # The v3/v4 header drops the load addresses: magic, kernel size, ramdisk size, os version,
+        # header size, reserved[4], header version, cmdline[1536], signature size (v4). Pages are 4096
+        # and the v4 signature block (4096 zero bytes without a GKI key) follows the ramdisk pages.
+        page = 4096
+        kernel_size, ramdisk_size, _, header_size = struct.unpack_from('<4I', data, 8)
+        if header_size != (1584 if version == 4 else 1580) or image['pagesize'] != page:
+            raise Error('boot image header does not match the requested parameters')
+        kernel = data[page:page + kernel_size]
+        unpacker = zlib.decompressobj(16 + zlib.MAX_WBITS)
+        if unpacker.decompress(kernel) != combined or not unpacker.eof or unpacker.unused_data != tree:
+            raise Error('gzip, firmware and appended device tree do not round-trip')
+        start = page * (1 + -(-kernel_size // page))
+        if data[start:start + ramdisk_size] != Path(ramdisk_path).read_bytes():
+            raise Error('ramdisk bytes differ')
+        end = start + page * -(-ramdisk_size // page)
+        if version == 4 and data[end:end + 4096] != bytes(4096):
+            raise Error('the v4 signature block does not follow the ramdisk')
+        return {'kernel_sha256': hashlib.sha256(kernel).hexdigest(), 'ramdisk_bytes': ramdisk_size,
+                'header_version': version, 'header_bytes': header_size}
     kernel_size, kernel_address, ramdisk_size, _, second_size, _, tags, page, version, _ = struct.unpack_from('<10I', data, 8)
-    if data[:8] != b'ANDROID!' or second_size or version != image['header_version'] or page != image['pagesize']:
+    if second_size or version != image['header_version'] or page != image['pagesize']:
         raise Error('boot image header does not match the requested parameters')
     if kernel_address != image['base'] + image['kernel_offset'] or tags != image['base'] + image['tags_offset']:
         raise Error('boot image load addresses do not match the requested offsets')
