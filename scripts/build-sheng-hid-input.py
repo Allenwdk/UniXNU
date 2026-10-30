@@ -23,6 +23,18 @@ if ARCH != 'arm64' or IOS_VERSION.split('.')[0] != '17':
         destination.mkdir(parents=True, exist_ok=True)
         for header in sorted(source_dir.glob('*.h')):
             shutil.copyfile(header, destination / header.name)
+    # The public IOHIDFamily headers include <IOKit/graphics/IOGraphicsTypes.h> for the IOGraphics types, which
+    # the xnu 12377 export headers no longer carry (and the Linux fakeroot never had). Only the named types are
+    # needed here; no IOGraphics driver is built.
+    graphics = include / 'IOKit/graphics'
+    graphics.mkdir(parents=True, exist_ok=True)
+    (graphics / 'IOGraphicsTypes.h').write_text('''// SPDX-License-Identifier: BSD-2-Clause-Patent
+// Minimal kernel-build shim for the IOHIDFamily headers: the IOGraphics types they name, nothing else.
+#pragma once
+typedef struct { short x, y; } IOGPoint;
+typedef struct { short minx, miny, maxx, maxy; } IOGBounds;
+class IOGraphicsDevice;
+''')
     sdk = Path(report['sdk']) / 'System/Library/Frameworks/Kernel.framework/Versions/A/Headers'
     record = json.loads((ROOT / 'build/xnu/ios-obj/DEVELOPMENT_ARM64_BCM2837/iokit/DEVELOPMENT/IOPlatformExpert.cpo.json')
                         .read_text().strip().rstrip(','))
