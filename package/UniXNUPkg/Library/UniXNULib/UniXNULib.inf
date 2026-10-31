@@ -50,6 +50,7 @@
   gFdtTableGuid                   ## SOMETIMES_CONSUMES ## SOMETIMES_PRODUCES
   gLinuxEfiInitrdMediaGuid        ## SOMETIMES_PRODUCES
   gUniXNUBlockSliceGuid        ## SOMETIMES_PRODUCES
+  gUkeMemStatusGuid               ## CONSUMES
 
 [Protocols]
   gEfiAcpiTableProtocolGuid         ## SOMETIMES_CONSUMES
