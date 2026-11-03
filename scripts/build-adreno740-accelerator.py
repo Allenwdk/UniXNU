@@ -112,7 +112,7 @@ else:
     asm.write_text(''.join(f'.globl {n}\n.set {n}, {a:#x}\n' for n, a in sorted(bindings.items()) if n in undefined))
 run(['xcrun', 'clang', '-target', TRIPLE, '-isysroot', sdk, '-c', asm, '-o', OUT / 'original-bindings.o'])
 
-llvm = Path(run(['brew', '--prefix', 'llvm'], text=True).strip()) / 'bin'
+llvm = Path('/usr/bin') if sys.platform.startswith('linux') else Path(run(['brew', '--prefix', 'llvm'], text=True).strip()) / 'bin'
 late = OUT / 'NativeAdrenoAccelerator.late.o'
 run([llvm / 'llvm-objcopy', '--remove-section=__DATA,__mod_init_func',
      '--globalize-symbol=__GLOBAL__sub_I_NativeAdrenoAccelerator.cpp', obj, late])

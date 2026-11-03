@@ -140,3 +140,10 @@ python3 scripts/check-quartzcore-turnip-cache-host.py
 - [Xiaomi Pad 6S Pro (sheng)](/devices/sheng)
 - [XNU drivers](/drivers/xnu-drivers)
 - [Four-kilobyte pages](/xnu/four-k-page-tables)
+
+## SM7675 integration
+
+The gen7_11_0 profile carries chip ID 0x43030b00, 1.5 MiB GMEM,
+2196 KiB CP preemption records and gen71100 firmware. uke uses the same
+mode-2 scheduler, per-process VM and Metal frontend as sheng. Its iPadOS 27
+images are build candidates; hardware qualification is pending.

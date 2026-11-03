@@ -278,8 +278,27 @@ def build(ctx, kernel=None):
                    'trust_cache_sha256': sha256_file(trust) if trust else None, 'gpu_addon_sha256': sha256_file(addon) if addon else None,
                    'data_ramdisk_sha256': sha256_file(data) if data else None, 'skip_setup': bool(getattr(args, 'skip_setup', False)), 'panic_screen': bool(spec.get('panic_screen')),
                    'payload_sha256': sha256_file(image), 'payload_bytes': image.stat().st_size, 'hardware_tested': False}
+    compression = spec.get('compression', 'none')
+    if compression not in ('none', 'uefi'):
+        raise Error(f'unsupported payload compression: {compression}')
+    transport = image
+    if compression == 'uefi':
+        transport = image.with_suffix('.uefi')
+        compressor = tool('TianoCompress', 'build EDK II BaseTools TianoCompress')
+        run([compressor, '-e', '--uefi', '-o', transport, image], capture=True)
+        # One real round trip per release; the firmware uses the same UEFI algorithm.
+        decoded = image.with_suffix('.roundtrip')
+        try:
+            run([compressor, '-d', '--uefi', '-o', decoded, transport], capture=True)
+            if sha256_file(decoded) != sha256_file(image):
+                raise Error('UEFI payload compression round trip differs')
+        finally:
+            decoded.unlink(missing_ok=True)
+        data_report.update(compression='uefi', transport_path=str(transport),
+                           transport_bytes=transport.stat().st_size,
+                           transport_sha256=sha256_file(transport))
     report.write_text(json.dumps(data_report, indent=2) + '\n')
     shutil.rmtree(stage)
     log(f'payload: {image} ({image.stat().st_size >> 20} MiB)')
     log('next: run ./unixnu bootimg to pack this payload into the boot image')
-    return image
+    return transport

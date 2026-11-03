@@ -101,6 +101,7 @@ if component=='NativeOfflineGPU':
 if component in ('NativeLegacyDisplay','NativeHidInput'):
     command += ['-I', str(out)]
 if component == 'NativeAdreno':
+    command += ['-I', str(ROOT / 'kits/Sm7675Platform'), '-I', str(ROOT / 'kits/uke'), '-I', str(ROOT / 'build/sheng-gpu-smmu')]
     command += ['-I', str(ROOT / 'kits/ArmSmmu4K'), '-I', str(ROOT / 'kits/AdrenoPM4'),
                 '-I', str(ROOT / 'kits/sheng'), '-I', str(ROOT / 'kits/Sm8550Platform'), '-I', str(ROOT / 'kits/AdrenoFirmware'),
                 '-I', str(ROOT / 'build/sheng-gmu'), '-I', str(ROOT / 'build/adreno740/include')]

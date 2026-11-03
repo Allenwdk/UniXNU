@@ -140,3 +140,7 @@ python3 scripts/check-quartzcore-turnip-cache-host.py
 - [小米平板 6S Pro（sheng）](/zh/devices/sheng)
 - [XNU 驱动](/zh/drivers/xnu-drivers)
 - [4 KiB 页表](/zh/xnu/four-k-page-tables)
+
+## SM7675 集成
+
+gen7_11_0 profile 使用真实 chip ID 0x43030b00、1.5 MiB GMEM、2196 KiB 抢占记录和 gen71100 固件。uke 沿用 sheng 的 mode 2 调度、每进程 VM 与 Metal 前端；iPadOS 27 当前为构建候选，待真机验收。
