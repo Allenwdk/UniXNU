@@ -38,6 +38,21 @@ def check_args(arguments):
     return line
 
 
+def check_data_input(ctx, data):
+    """An owner-Data kernel needs a seed even when it resumes a persistent overlay."""
+    if data:
+        return
+    from .config import parse_config
+    config = ctx.config
+    if not ctx.config_path.is_file() and ctx.config_name:
+        selected = ctx.device / 'configs' / ctx.config_name
+        if selected.is_file():
+            config = parse_config(selected.read_text())
+    if config.get('XNU_OWNER_DATA_MOUNT'):
+        raise Error('CONFIG_XNU_OWNER_DATA_MOUNT requires --data-ramdisk FILE (or [build] data_ramdisk); '
+                    'persistent Data still needs its original seed to publish the volume')
+
+
 def check_native_root(kernel, arguments, vmm_present=False):
     """Refuse the known bare-metal AMFI panic before the volume is written.
 
@@ -58,13 +73,18 @@ def check_native_root(kernel, arguments, vmm_present=False):
         raise Error('the native UFS root kernel lacks the linked sheng PMGR integration')
 
 
-def write_volume(stage, image, label, size_mib):
+def write_volume(stage, image, label, size_mib, cluster_sectors=None):
     for tool_name in ('mformat', 'mcopy'):
         tool(tool_name, 'brew install mtools')
     image.unlink(missing_ok=True)
     env = dict(os.environ, MTOOLS_SKIP_CHECK='1', TZ='UTC')
     sectors = size_mib * 2048
-    run(['mformat', '-C', '-F', '-T', str(sectors), '-v', label, '-N', '53484e47', '-i', image, '::'], env=env, capture=True)
+    # mformat sizes the clusters by volume size (1 KiB at 94 MiB, 2 KiB at 176 MiB). A board may pin a
+    # larger cluster to match the geometry a bigger payload would get; the FAT type then follows the
+    # cluster count (2 KiB at 94 MiB is FAT16: FAT32 requires at least 65 525 clusters).
+    cluster = ['-c', str(int(cluster_sectors))] if cluster_sectors else []
+    kind = [] if cluster_sectors else ['-F']
+    run(['mformat', '-C', *kind, '-T', str(sectors), *cluster, '-v', label, '-N', '53484e47', '-i', image, '::'], env=env, capture=True)
     for entry in sorted(stage.iterdir()):
         run(['mcopy', '-i', image, '-s', '-Q', '-m', entry, '::/'], env=env, capture=True)
 
@@ -111,6 +131,7 @@ def build(ctx, kernel=None):
         if allowed and not owner_trust and sha256_file(trust) not in allowed:
             raise Error(f'{trust} is not one of the trust caches this board accepts (board.toml [payload] trust_cache_sha256)')
     data = expand(args.data_ramdisk) if getattr(args, 'data_ramdisk', None) else None
+    check_data_input(ctx, data)
     if data and not data.is_file():
         raise Error(f'Data ramdisk not found: {data}')
     if getattr(args, 'skip_setup', False):
@@ -144,26 +165,9 @@ def build(ctx, kernel=None):
     shutil.rmtree(stage, ignore_errors=True)
     payloads = stage / 'EFI/UniXNU/Payloads'
     payloads.mkdir(parents=True)
-    shutil.copyfile(kernel, payloads / 'kernel.macho')
-    # The entry probe (stage bars, optional reset) is wanted with either setting; the panic screen is only one part of it.
-    if spec.get('panic_screen') or spec.get('entry_probe_reset_delay'):
-        probe = (['--reset-delay', str(int(spec['entry_probe_reset_delay']))]
-                 if spec.get('entry_probe_reset_delay') else ['--no-reset'])
-        screen = ['--panic-screen'] if spec.get('panic_screen') else []
-        if spec.get('entry_probe_reset_delay') and spec.get('entry_probe_reset_after'):
-            # Stage 4 in place of stage 3: reset after the Nth call to SYMBOL in FUNCTION.
-            probe += ['--reset-after', spec['entry_probe_reset_after'], '--in', spec.get('entry_probe_reset_in', '_arm_init'),
-                      '--occurrence', str(int(spec.get('entry_probe_reset_occurrence', 1)))]
-            if spec.get('entry_probe_reset_before'):
-                # At the call site, without making the call (and without the delay).
-                probe.append('--reset-before')
-        run(['python3', ctx.tree / 'scripts/patch-xnu-entry-probe.py', payloads / 'kernel.macho', *screen, *probe],
-            cwd=ctx.tree, env=dict(os.environ, UNIXNU_UEFI=str(ctx.uefi or '')), log_file=ctx.logs / 'payload-patch.log')
-        # The probes rewrite instructions inside __text, which the source corecrypto POST hashes.
-        if b'_source_corecrypto14_bootstrap\0' in Path(kernel).read_bytes():
-            boot_args = ' '.join([line, *spec.get('install', {}).get('confirm_args', [])])
-            run(['python3', ctx.tree / 'scripts/seal-source-crypto-kernel.py', payloads / 'kernel.macho', '--kernel-args', boot_args],
-                cwd=ctx.tree, env=dict(os.environ, **kernel_step.version_env({}, ctx)), log_file=ctx.logs / 'payload-seal.log')
+    # The small payload files are created BEFORE the kernel so their FAT cluster positions stay fixed
+    # when the kernel grows: the DarwinBoot loader reads them separately and a cluster-position shift
+    # with kernel size is exactly what once corrupted its reads past an EDK2 FAT size cliff.
     if trust:
         shutil.copyfile(trust, payloads / 'kernel.macho.trustcache')
     if addon:
@@ -187,7 +191,7 @@ def build(ctx, kernel=None):
         if seed:
             command += ['--unique-chip-id', seed]
         if data:
-            command.append('--packed-data-ramdisk' if adt.get('packed_data_ramdisk') else '--data-ramdisk')
+            command.append('--persistent-data')
         if trust:
             command.append('--trust-cache')
         if addon:
@@ -202,6 +206,40 @@ def build(ctx, kernel=None):
                 raise Error(f'malformed text fixup in board.toml [payload] text_fixups: {fixup}')
             command += ['--text-fixup', fixup]
         run(command, cwd=ctx.tree, env=dict(os.environ, UNIXNU_UEFI=str(ctx.uefi or '')), log_file=ctx.logs / 'payload-adt.log')
+    # The volume is written one file at a time, but the loader only ever reads the whole kernel, so
+    # the bytes on the medium never change. The volume is also split into two files: the loader on
+    # this board reads back wrong content past ~90 MiB of the volume, and each half stays well under
+    # that, so DarwinBoot can assemble the image from parts it can trust.
+    kernel_bytes = Path(kernel).read_bytes()
+    (payloads / 'kernel.macho').write_bytes(kernel_bytes)
+    # The entry probe (stage bars, optional reset) is wanted with either setting; the panic screen is only one part of it.
+    if spec.get('panic_screen') or spec.get('entry_probe_reset_delay'):
+        probe = (['--reset-delay', str(int(spec['entry_probe_reset_delay']))]
+                 if spec.get('entry_probe_reset_delay') else ['--no-reset'])
+        screen = ['--panic-screen'] if spec.get('panic_screen') else []
+        if spec.get('entry_probe_reset_delay') and spec.get('entry_probe_reset_after'):
+            # Stage 4 in place of stage 3: reset after the Nth call to SYMBOL in FUNCTION.
+            probe += ['--reset-after', spec['entry_probe_reset_after'], '--in', spec.get('entry_probe_reset_in', '_arm_init'),
+                      '--occurrence', str(int(spec.get('entry_probe_reset_occurrence', 1)))]
+            if spec.get('entry_probe_reset_before'):
+                # At the call site, without making the call (and without the delay).
+                probe.append('--reset-before')
+        run(['python3', ctx.tree / 'scripts/patch-xnu-entry-probe.py', payloads / 'kernel.macho', *screen, *probe],
+            cwd=ctx.tree, env=dict(os.environ, UNIXNU_UEFI=str(ctx.uefi or '')), log_file=ctx.logs / 'payload-patch.log')
+        # The probes rewrite instructions inside __text, which the source corecrypto POST hashes.
+        if b'_source_corecrypto14_bootstrap\0' in Path(kernel).read_bytes():
+            boot_args = ' '.join([line, *spec.get('install', {}).get('confirm_args', [])])
+            run(['python3', ctx.tree / 'scripts/seal-source-crypto-kernel.py', payloads / 'kernel.macho', '--kernel-args', boot_args],
+                cwd=ctx.tree, env=dict(os.environ, **kernel_step.version_env({}, ctx)), log_file=ctx.logs / 'payload-seal.log')
+    # Split the final image (after the probes and the seal) into halves small enough for the loader.
+    final_kernel = Path(payloads / 'kernel.macho')
+    final_bytes = final_kernel.read_bytes()
+    if len(final_bytes) > (90 << 20):
+        half = (len(final_bytes) + 1) // 2
+        (payloads / 'kernel.macho.0').write_bytes(final_bytes[:half])
+        (payloads / 'kernel.macho.1').write_bytes(final_bytes[half:])
+        final_kernel.unlink()
+        print(f'payload: kernel split {len(final_bytes):,} -> {half:,} + {len(final_bytes) - half:,}')
     initrd = 'initrd = "Payloads/scratch-data.img"\n' if data else ''
     loader = '' if spec.get('loader', 'firmware') == 'firmware' else '[[driver]]\npath = "Payloads/DarwinBoot.efi"\n'
     config = (f'version = 1\n[boot]\ntimeout = {spec.get("timeout", 3)}\ndefault = "xnu"\n[kits]\nautoload = false\n{loader}'
@@ -229,12 +267,13 @@ def build(ctx, kernel=None):
         os.utime(path, (EPOCH, EPOCH))
     size = int(spec.get('size_mib', 192))
     content = sum(p.stat().st_size for p in stage.rglob('*') if p.is_file())
-    # FAT slack is cluster rounding (a few KiB per file), not 5%: the 24A446 fileset kernel leaves only
-    # ~1.5 MiB under the 96 MiB vendor_boot partition, so the margin is the real overhead plus a page.
-    if content > size * 1024 * 1024 * 0.98:
+    # Reject an impossible raw byte count here; mformat/mcopy below enforce the actual FAT
+    # metadata and cluster allocation capacity. A fixed percentage can reject a volume that
+    # fits, and enlarging it can exceed a device's vendor_boot partition once its DTB is added.
+    if content >= size * 1024 * 1024:
         raise Error(f'the payload files take {content >> 20} MiB; raise size_mib (now {size}) in board.toml [payload]')
-    write_volume(stage, image, spec.get('volume', 'UNIXNU')[:11], size)
-    data_report = {'kernel_sha256': sha256_file(kernel), 'payload_kernel_sha256': sha256_file(payloads / 'kernel.macho'),
+    write_volume(stage, image, spec.get('volume', 'UNIXNU')[:11], size, spec.get('cluster_sectors'))
+    data_report = {'kernel_sha256': sha256_file(kernel), 'payload_kernel_sha256': sha256_file(final_kernel) if final_kernel.exists() else sha256_file(payloads / 'kernel.macho.0'),
                    'adt_sha256': sha256_file(payloads / 'kernel.macho.adt'), 'kernel_args': line,
                    'trust_cache_sha256': sha256_file(trust) if trust else None, 'gpu_addon_sha256': sha256_file(addon) if addon else None,
                    'data_ramdisk_sha256': sha256_file(data) if data else None, 'skip_setup': bool(getattr(args, 'skip_setup', False)), 'panic_screen': bool(spec.get('panic_screen')),

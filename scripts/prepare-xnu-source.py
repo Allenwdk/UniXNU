@@ -13,6 +13,11 @@ TAG = os.environ.get('UNIXNU_DRIVERKIT_TAG', 'xnu-10063.121.3')
 TRUST_TAG = os.environ.get('UNIXNU_TRUSTCACHE_TAG', 'xnu-8796.101.5')
 DESTINATION = Path('.cache/xnu-work/iokit/DriverKit')
 CACHE = Path(f'.cache/sources/xnu-driverkit-{TAG.removeprefix("xnu-")}.json')
+# Local mirrors of the omitted headers, tried before the network (layout: iokit/DriverKit,
+# EXTERNAL_HEADERS/TrustCache relative to each root). Every mirror file still passes the
+# git blob hash check below, so a stale mirror degrades to the network instead of lying.
+MIRRORS = [Path(part) for part in os.environ.get('UNIXNU_XNU_HEADERS_DIR', '').split(os.pathsep) if part]
+MIRRORS += [Path('build/xnu/fileset-reference/source'), Path.home() / 'xnu-headers-backup']
 URL = f'https://api.github.com/repos/apple-oss-distributions/xnu/contents/iokit/DriverKit?ref={TAG}'
 # Anonymous GitHub API calls share a small per-address quota that hosted CI runners exhaust (HTTP 403);
 # a token in GITHUB_TOKEN or GH_TOKEN is sent to GitHub hosts only.
@@ -27,6 +32,22 @@ def fetch(url):
         return response.read()
 
 
+def blob_digest(data):
+    return hashlib.sha1(b'blob ' + str(len(data)).encode() + b'\0' + data).hexdigest()
+
+
+def mirror_data(destination, name, sha):
+    prefix = destination.relative_to('.cache/xnu-work')
+    for root in MIRRORS:
+        try:
+            data = (root / prefix / name).read_bytes()
+        except OSError:
+            continue
+        if blob_digest(data) == sha:
+            return data
+    return None
+
+
 def restore(entry, destination=DESTINATION, tag=TAG):
     if entry['type'] != 'file' or not entry['name'].endswith('.h'):
         return None
@@ -34,8 +55,10 @@ def restore(entry, destination=DESTINATION, tag=TAG):
     target = destination / name
     if target.exists():
         return None
-    data = fetch(entry['download_url'])
-    digest = hashlib.sha1(b'blob ' + str(len(data)).encode() + b'\0' + data).hexdigest()
+    data = mirror_data(destination, name, entry['sha'])
+    if data is None:
+        data = fetch(entry['download_url'])
+    digest = blob_digest(data)
     if digest != entry['sha']:
         raise ValueError(f'Git blob hash mismatch: {entry["name"]}')
     target.parent.mkdir(parents=True, exist_ok=True)

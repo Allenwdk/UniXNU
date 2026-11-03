@@ -310,6 +310,7 @@ def iig(xctoolchain, work, host):
     src = work / 'iig-port'
     git_checkout(src, 'https://github.com/Nyktis/iig-port', IIG_PORT_COMMIT)
     run(['patch', '-d', src, '-p1', '--batch', '--forward', '-i', HERE / 'iig-port-darwin-target.patch'])
+    run(['patch', '-d', src, '-p1', '--batch', '--forward', '-i', HERE / 'iig-port-ptrauth-cast.patch'])
     flags = shlex.split(run([host.config, '--cxxflags', '--ldflags'], input=''))
     (xctoolchain / 'bin').mkdir(parents=True, exist_ok=True)
     run([host.cxx, *flags, '-std=c++17',

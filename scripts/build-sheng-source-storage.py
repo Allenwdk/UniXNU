@@ -129,13 +129,13 @@ def main():
     out = tree / 'build/sheng-source-storage'
     out.mkdir(parents=True, exist_ok=True)
     header_report = headers.prepare(storage, '7edb88fbae296fb7c8ce2f64e115e116e566d51c', out / 'headers')
-    # A bring-up image can carry one policy: the boot image must stay under the
-    # 192 MiB fastboot limit, and the second table does not fit yet.
+    # The runtime requires OS and SystemOS. Header-only bundles keep both
+    # policies small; their complete tables can live in userdata objects.
     tables_in_userdata = os.environ.get('XNU_SOURCE_STORAGE_TABLES', '') == 'userdata'
     selected = [name.strip() for name in (os.environ.get('UNIXNU_SOURCE_STORAGE_POLICIES') or os.environ.get('XNU_SOURCE_STORAGE_POLICIES', 'OS,SystemOS')).split(',')
                 if name.strip() in ('OS', 'SystemOS')]
-    if not selected:
-        parser.error('UNIXNU_SOURCE_STORAGE_POLICIES names no policy')
+    if len(selected) != 2 or set(selected) != {'OS', 'SystemOS'}:
+        parser.error('ShengUfs root publication requires both OS and SystemOS policies; use header-only tables in userdata when payload space is limited')
     manifest_paths = [policies / name / 'manifest.bin' for name in selected]
     key = (policies / f'{selected[0]}/trusted-key.bin').read_bytes()
     if len(key) != 395 or any(key != (policies / f'{name}/trusted-key.bin').read_bytes() for name in selected):
@@ -180,10 +180,17 @@ def main():
     # signed hash tables are a separate firmware handoff, authenticated in XNU.
     boot_log_defaults = out / 'BootLogDefaults.c'
     boot_log = optional_source('BootLog.c')
+    # Uke's recovery reader consumes UKELLOG1 records from its existing writer.
+    # Prefer a board's BootLog when present; never run two writers on one window.
+    uke_log = optional_source('UkeLastLog.c') if boot_log is None else None
     if boot_log is not None:
         boot_log_defaults.write_text(weak_defaults(boot_log))
     else:
-        boot_log_defaults.write_text('/* No board log page in this device: nothing to default. */\n')
+        # bsd_init may wait for the first writer round. UkeLastLog increments
+        # this counter after a successful disk record; otherwise it stays zero.
+        boot_log_defaults.write_text(
+            '#include <stdint.h>\n'
+            'volatile uint32_t boot_log_rounds;\n')
     anchor = out / 'RootAnchor.c'
     anchor.write_text('#include <stdint.h>\nconst uint8_t verified_root_key[395] = {' +
                       ','.join(str(b) for b in key) + '};\n')
@@ -205,11 +212,13 @@ OSDefineOperatorMethods(IOBlockStorageDevice)
     c = json.loads((obj / 'osfmk/DEVELOPMENT/startup.o.json').read_text().strip().rstrip(','))
     # BSD sources (sys/proc.h, the system calls) take kern_exec's flags.
     bsd = json.loads((obj / 'bsd/DEVELOPMENT/kern_exec.o.json').read_text().strip().rstrip(','))
-    bsd_sources = {'BootWatchdogPolicy.c', 'BootDiagExport.c'}
+    bsd_sources = {'BootWatchdogPolicy.c', 'BootDiagExport.c', 'CrashLogProbe.c'}
     includes = ['-I', str(out / 'headers/include'), '-I', str(ROOT / 'kits/VerifiedRoot/include'),
                 '-I', str(ROOT / 'drivers/VirtioMmioBlock'), '-I', str(tree / '.cache/xnu-work/osfmk')]
     flags = ['-DNATIVE_UFS_SOURCE_API=1', '-DNATIVE_VERIFIED_BLOCK=1',
              '-DNATIVE_VERIFIED_BLOCK_MULTI_POLICY=1', '-DNATIVE_VERIFIED_POLICY_HANDOFF=1']
+    if uke_log is not None:
+        flags.append('-DUKE_SOURCE_STORAGE_LOG=1')
     # The RAM disk carries the Data seed; like NativeUfs its class registers with the source storage classes.
     sources = [base, device / 'drivers/ShengUfs/NativeUfs.cpp', ROOT / 'drivers/RamBlock/NativeRamBlock.cpp',
                device_source('SourceStorage.cpp'), device_source('SourceRootPolicies.cpp'),
@@ -217,6 +226,8 @@ OSDefineOperatorMethods(IOBlockStorageDevice)
                *[source for source in (boot_log, optional_source('BootReset.c')) if source is not None],
                ROOT / 'kits/VerifiedRoot/src/verified_root.c',
                ROOT / 'kits/VerifiedRoot/adapters/xnu_crypto.c', anchor]
+    if uke_log is not None:
+        sources += [uke_log, device_source('CrashLogProbe.c')]
     if int(os.environ['UNIXNU_IOS_VERSION'].split('.')[0]) >= 27:
         # The source path does not run BootProgress's process worker. Reuse its
         # native capture code in a separate worker owned by the UFS log.

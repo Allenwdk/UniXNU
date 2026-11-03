@@ -388,3 +388,5 @@ jq . out/<device>/<os_profile>/<config>/boot/boot.json
 - [故障排查](/zh/reference/troubleshooting)
 - [QEMU 测试](/zh/reference/qemu)
 - [sheng 设备页](/zh/devices/sheng)
+
+Uke诊断panic renderer在清屏前原子抢占单个写入者，可追加最多6个有界帧的原始返回地址。打包前核验实际机器码和入口填充边界；QEMU夹具结果不等于真实锁故障已修复。

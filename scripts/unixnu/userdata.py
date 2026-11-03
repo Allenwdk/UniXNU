@@ -23,6 +23,7 @@ decoded by udif.py on other hosts. Nothing is flashed: the report prints the fas
 import contextlib
 import hashlib
 import json
+import os
 import platform
 import plistlib
 import re
@@ -126,6 +127,15 @@ def build(ctx, dry_run=False):
         size = path.stat().st_size - skip
         if skip < 0 or size <= 0:
             raise Error(f'--object {spec_text}: offset outside the file')
+        if name.endswith('.vroot'):
+            window_name = name[:-6]
+            window_bytes = next((length for label, _, length in layout if label == window_name), None)
+            if window_bytes is None:
+                raise Error(f'{name}: no corresponding root window {window_name}')
+            hash_bytes = ((window_bytes + 4095) // 4096) * 32
+            if size != hash_bytes:
+                raise Error(f'{name}: expected {hash_bytes} bytes of raw block hashes, got {size}; '
+                            'use hashes.bin or manifest.bin:544, without the signed header')
         objects.append((name, cursor, size, path, skip))
         cursor += (size + MIB - 1) // MIB * MIB
     if len(layout) + len(objects) > 8 or len(layout) > 4 or len(objects) > 4:
@@ -139,7 +149,9 @@ def build(ctx, dry_run=False):
     out, image, report = paths(ctx)
     out.mkdir(parents=True, exist_ok=True)
     entries = []
-    with image.open('wb') as target:
+    # Preserve an earlier archived hard link and publish only after writeback succeeds.
+    partial = image.with_name(image.name + '.partial')
+    with partial.open('wb') as target:
         target.truncate(total)
         for (name, offset, size), (_, dmg) in zip(layout, sources):
             digest = hashlib.sha256()
@@ -149,9 +161,15 @@ def build(ctx, dry_run=False):
                 for data in blocks:
                     digest.update(data)
                     target.write(data)
+                    target.flush()
+                    os.fsync(target.fileno())
                     done += len(data)
             if done != size:
                 raise Error(f'{dmg.name}: {done} bytes of raw disk, expected {size}')
+            root_pins = ctx.board.get('root', {})
+            expected_digest = root_pins.get(name.lower() + '_image_sha256')
+            if expected_digest and digest.hexdigest() != expected_digest:
+                raise Error(f'{name}: raw image digest {digest.hexdigest()} differs from the root profile {expected_digest}')
             entries.append((name, offset, size, digest.digest()))
             log(f'userdata: {name} {size} bytes at {offset:#x} sha256 {digest.hexdigest()}')
         object_entries = []
@@ -163,6 +181,8 @@ def build(ctx, dry_run=False):
                 raise Error(f'{path}: short read for object {name}')
             target.seek(offset)
             target.write(data)
+            target.flush()
+            os.fsync(target.fileno())
             object_entries.append((name, offset, size, hashlib.sha256(data).digest()))
             log(f'userdata: object {name} {size} bytes at {offset:#x} from {path.name}')
         header = bytearray(4096)
@@ -174,6 +194,9 @@ def build(ctx, dry_run=False):
         header[4064:4096] = hashlib.sha256(bytes(header[:4064])).digest()
         target.seek(0)
         target.write(header)
+        target.flush()
+        os.fsync(target.fileno())
+    partial.replace(image)
     data = {'image_bytes': total, 'image_sha256': sha256_file(image), 'manifest_sha256': hashlib.sha256(bytes(header)).hexdigest(),
             'windows': [{'name': n, 'offset': o, 'size': s, 'sha256': d.hex()} for n, o, s, d in entries],
             'objects': [{'name': n, 'offset': o, 'size': s, 'sha256': d.hex()} for n, o, s, d in object_entries],

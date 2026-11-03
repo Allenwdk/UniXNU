@@ -3,8 +3,8 @@
 /Build/
 /Conf/
 /out/
-/.cache/
-/refer/
+/.cache
+/refer
 /.local*/
 /Mu_Basecore/
 
@@ -23,6 +23,7 @@
 .DS_Store
 .vscode/
 .idea/
+.zcode/
 __pycache__/
 *.pyc
 *.dSYM/

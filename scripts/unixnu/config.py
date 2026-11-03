@@ -31,11 +31,11 @@ def load_toml(path):
 
 BUILD_PATHS = {'device', 'out', 'uefi', 'edk2', 'kernelcache', 'kernel',
                'trust_cache', 'owner_trust_cache', 'data_ramdisk', 'gpu_addon',
-               'dtb', 'fd', 'ramdisk', 'output'}
+               'dtb', 'fd', 'ramdisk', 'output', 'lto_linker', 'lto_library', 'iig'}
 BUILD_ENV = {'device': 'UNIXNU_DEVICE', 'out': 'UNIXNU_OUT', 'uefi': 'UNIXNU_UEFI',
              'edk2': 'UNIXNU_EDK2', 'kernelcache': 'UNIXNU_KERNELCACHE',
              'dtb': 'UNIXNU_DTB', 'ipsw': 'UNIXNU_IPSW',
-             'unique_chip_id': 'UNIXNU_UNIQUE_CHIP_ID', 'jobs': 'JOBS'}
+             'unique_chip_id': 'UNIXNU_UNIQUE_CHIP_ID', 'jobs': 'JOBS', 'lto_linker': 'UNIXNU_LTO_LD', 'lto_library': 'LIBLTO', 'iig': 'UNIXNU_IIG'}
 
 
 def load_build_options(args):

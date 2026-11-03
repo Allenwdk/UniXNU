@@ -37,6 +37,8 @@ Supported path keys are `device`, `out`, `uefi`, `edk2`, `kernelcache`, `kernel`
 
 `status` reports the selected file as `build_config`. Build inputs use `unixnu.local.toml`; module source overrides use the device repository's `local.toml`.
 
+On Linux, optional `[build].iig` (or `UNIXNU_IIG`) selects a local IIG executable for kernel generation. `scripts/linux/setup-toolchain.py` applies the portable generator PAC-cast patch.
+
 ## Profile fields
 
 | Table | Key | Meaning |
@@ -257,3 +259,8 @@ The first match wins.
 - [Boot configuration](/reference/boot-configuration)
 - [Device repository](/porting/device-repository)
 - [Command line](/reference/cli)
+
+
+Userdata root images are checked against `[root]` SHA256 pins. The writer synchronizes bounded batches to disk and publishes a temporary image only after successful writeback, preserving archived hard links.
+
+For header-only ShengUfs root policies, .vroot objects contain only the raw block-hash table: use hashes.bin or manifest.bin:544. The 544-byte signed header travels separately in kernel.macho.vroot. The userdata builder validates each .vroot size against its corresponding window.

@@ -36,6 +36,8 @@ kernel_args = ["-v", "serial=3", "debug=0x14e"]
 
 `status` 的 `build_config` 字段显示选中的文件。`unixnu.local.toml` 保存构建输入，设备仓库的 `local.toml` 保存组件源码覆盖路径。
 
+Linux 下可用 `[build].iig`（或 `UNIXNU_IIG`）指定本地 IIG 可执行文件；内核生成过程采用此工具。`scripts/linux/setup-toolchain.py` 包含 portable generator 的 PAC 转换补丁。
+
 ## 配置字段
 
 | 表 | 键 | 含义 |
@@ -256,3 +258,8 @@ commit = "0123456789abcdef"
 - [启动配置](/zh/reference/boot-configuration)
 - [设备仓库](/zh/porting/device-repository)
 - [命令行](/zh/reference/cli)
+
+
+userdata 根镜像会核对 `[root]` 的 SHA256。构建器按批同步写盘，全部写回成功后才替换正式镜像，避免覆写旧归档硬链接。
+
+ShengUfs 使用 header-only 策略时，.vroot 对象只放原始块哈希表：使用 hashes.bin 或 manifest.bin:544。544 B signed header 单独随 kernel.macho.vroot 传递；userdata 构建器核对表长度与对应窗口。

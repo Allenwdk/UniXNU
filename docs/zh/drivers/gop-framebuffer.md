@@ -8,6 +8,8 @@
 
 实现通过 PE_current_console 读取固件 framebuffer，并集成所选 MobileFramebuffer ABI。板级接口提供显示策略和 GPU scanout 集成。
 
+已核对的 24A446 ABI 通过生成头启用 `NATIVE_LEGACY_BOOT_SCANOUT_REQUESTED`：验证主 GOP 映射可用后，使用原族的状态设置函数同时发布初始 requested 和固件已供电状态。原提交路径在 requested 为零时会丢弃 swap。这是逻辑 scanout 初始化，不实现面板电源切换；原客户端错误与校验保持。主机构建通过不能证明画面已到面板。
+
 ## 集成
 
 组件目录记录实现范围、硬件与 OS 要求、板级依赖、源码版本、构建阶段、输出和运行时标识符。所选配置按依赖顺序运行构建命令。

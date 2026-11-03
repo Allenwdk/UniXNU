@@ -1,0 +1,14 @@
+iig-port: preserve arm64e member pointer authentication when casting nonvirtual _Impl callbacks.
+
+--- a/iig.cpp
++++ b/iig.cpp
+@@ -4769,6 +4769,9 @@
+ 	out << "\n"
+ 	    << "#if __has_builtin(__builtin_load_member_function_pointer)\n"
+ 	    << "#define SimpleMemberFunctionCast(cfnty, self, func) (cfnty)__builtin_load_member_function_pointer(self, func)\n"
++	    << "#elif __has_feature(ptrauth_calls)\n"
++	    << "/* Read the nonvirtual _Impl address with its member-pointer schema; the load then authenticates and resigns for cfnty. */\n"
++	    << "#define SimpleMemberFunctionCast(cfnty, self, func) ({ union { typeof(func) memfun; cfnty __ptrauth(0, 0, __builtin_ptrauth_type_discriminator(typeof(func))) cfun; } pair; pair.memfun = func; pair.cfun; })\n"
+ 	    << "#else\n"
+ 	    << "#define SimpleMemberFunctionCast(cfnty, self, func) ({ union { typeof(func) memfun; cfnty cfun; } pair; pair.memfun = func; pair.cfun; })\n"
+ 	    << "#endif\n";

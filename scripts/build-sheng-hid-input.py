@@ -38,6 +38,37 @@ class IOGraphicsDevice;
     sdk = Path(report['sdk']) / 'System/Library/Frameworks/Kernel.framework/Versions/A/Headers'
     record = json.loads((ROOT / 'build/xnu/ios-obj/DEVELOPMENT_ARM64_BCM2837/iokit/DEVELOPMENT/IOPlatformExpert.cpo.json')
                         .read_text().strip().rstrip(','))
+    # Public IOHIDFamily sources ship the DriverKit declaration as IIG input.
+    # Generate that declaration with the same tool XNU uses instead of requiring
+    # a proprietary SDK header or substituting an ABI-empty stub.
+    driverkit = include / 'HIDDriverKit'
+    driverkit.mkdir(exist_ok=True)
+    shutil.copyfile(hid_tree / 'IOHIDFamily/IOHIDDeviceTypes.h', driverkit / 'IOHIDDeviceTypes.h')
+    prelude = driverkit / 'iig-kernel-types.h'
+    prelude.write_text('#define KERNEL 1\n#include <stdint.h>\n#include <stddef.h>\n'
+                       '#include <IOKit/IOTypes.h>\n#include <mach/port.h>\n'
+                       '#include <HIDDriverKit/IOHIDDeviceTypes.h>\n#undef KERNEL\n')
+    iig_includes, index = [], 0
+    arguments = record['arguments']
+    while index < len(arguments):
+        if arguments[index] in ('-I', '-isystem', '-idirafter', '-isysroot'):
+            path = Path(arguments[index + 1])
+            path = path if path.is_absolute() else Path(record['directory']) / path
+            iig_includes += [arguments[index], str(path)]
+            index += 2
+        elif arguments[index].startswith('-I'):
+            iig_includes.append(arguments[index]); index += 1
+        else:
+            index += 1
+    iig_command = ['xcrun', 'iig', '--def', str(hid_tree / 'HIDDriverKit/IOHIDDevice.iig'),
+                   '--header', str(driverkit / 'IOHIDDevice.h'),
+                   '--impl', str(driverkit / 'IOHIDDevice.iig.cpp'), '--framework-name', 'HIDDriverKit',
+                   '--', '-x', 'c++', '-std=gnu++2b', '-D__IIG=1', '-DDRIVERKIT_PRIVATE=1',
+                   '-DPRIVATE_WIFI_ONLY=1', '-D__LP64__=1', '-ffreestanding', '-I' + str(include),
+                   *iig_includes, '-I' + str(ROOT / '.cache/fakeroot/usr/include'),
+                   '-include', str(prelude)]
+    (OUT / 'IOHIDDevice.iig.command.json').write_text(json.dumps(iig_command, indent=2) + '\n')
+    subprocess.run(iig_command, cwd=record['directory'], check=True)
     source = ROOT / 'drivers/ShengHidInput/NativeHidInput.cpp'
     obj = OUT / 'NativeHidInput.o'
     command, arguments, index, replaced = [], record['arguments'], 0, False

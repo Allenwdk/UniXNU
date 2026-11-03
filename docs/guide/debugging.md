@@ -389,3 +389,5 @@ jq . out/<device>/<os_profile>/<config>/boot/boot.json
 - [Troubleshooting](/reference/troubleshooting)
 - [QEMU testing](/reference/qemu)
 - [sheng device page](/devices/sheng)
+
+The Uke diagnostic panic renderer claims a single writer atomically before clearing the screen and can append up to six bounded raw frame return addresses. Validate the exact compiled renderer and entry padding before packaging; QEMU fixture results do not qualify a real lock failure.
