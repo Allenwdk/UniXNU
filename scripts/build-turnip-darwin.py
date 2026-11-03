@@ -56,9 +56,14 @@ if args.target in ('ios', 'ios27'):
         % (find('clang'), find('clang++'), find('clang'), find('ar'), find('strip')) +
         "[host_machine]\nsystem = 'darwin'\ncpu_family = 'aarch64'\ncpu = 'arm64'\nendian = 'little'\n"
         "[properties]\nneeds_exe_wrapper = true\n[built-in options]\n" +
-        ''.join('%s = %r\n' % (k, flags) for k in ('c_args', 'cpp_args', 'objc_args', 'c_link_args', 'cpp_link_args',
-                                                    'objc_link_args')))
+        ''.join('%s = %r\n' % (k, flags + (['-Wl,-fixup_chains'] if args.target == 'ios27' and k.endswith('link_args') else []))
+                for k in ('c_args', 'cpp_args', 'objc_args', 'c_link_args', 'cpp_link_args', 'objc_link_args')))
     setup += ['--cross-file', cross]
+    if args.target == 'ios27':
+        # Cross files are cached by Meson: also set the current link arguments
+        # explicitly when reconfiguring an existing build tree.
+        options += ['-D' + k + '=' + repr(flags + ['-Wl,-fixup_chains'])
+                    for k in ('c_link_args', 'cpp_link_args', 'objc_link_args')]
     # Release with NDEBUG for the tablet: Mesa's default debugoptimized keeps assertions and NIR validation after
     # every pass, which the tablet's pipeline makings paid for (int-143: 58 pipeline states took 68 s). The host
     # build keeps them for the simulation checks.

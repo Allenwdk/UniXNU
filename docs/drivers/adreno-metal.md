@@ -35,3 +35,10 @@ python3 scripts/build-adreno-metal-plugin.py
 ```
 
 See [Adreno740](/drivers/adreno740) for the runtime path, staging commands, and checks.
+
+
+## iOS 27 Turnip load format
+
+Build Turnip with `python3 scripts/build-turnip-darwin.py --target ios27` as well as the plugin's `--target ios27`. The Turnip link explicitly enables `-Wl,-fixup_chains`, including when Meson reconfigures a cached build. Confirm the final signed dylib contains `LC_DYLD_CHAINED_FIXUPS`. The owner trust module must use its new CDHash.
+
+An uke 24A446 iconservicesagent report showed a stack guard fault in dyld `MachOAnalyzer::withChainStarts` while Metal opened Turnip. Legacy arm64e `LC_DYLD_INFO_ONLY` made dyld synthesize chain starts on the workqueue stack: the old library required 439,304 bytes, matching crash register x8 exactly. Chained metadata avoids that legacy synthesis. This is a load-format fix, with rendering behavior and compiler pins preserved; actual icon/widget recovery and freeze acceptance still require hardware testing. See [Apple's implementation](https://github.com/apple-oss-distributions/dyld/blob/main/common/MachOAnalyzer.cpp).
