@@ -40,3 +40,10 @@ python3 scripts/build-adreno-metal-plugin.py
 Turnip 与插件均用 `--target ios27` 构建。Turnip 链接显式启用 `-Wl,-fixup_chains`，并向 Meson 已有构建目录重新传递链接参数；最终签名 dylib 应包含 `LC_DYLD_CHAINED_FIXUPS`，owner trust 需使用新 CDHash。
 
 uke 24A446 的同 boot iconservicesagent 报告显示，Metal 打开 Turnip 时在 dyld `MachOAnalyzer::withChainStarts` 中触发线程栈 guard fault。旧 arm64e `LC_DYLD_INFO_ONLY` 导致 dyld 在工作队列栈上临时合成链元数据；旧库需要 439,304 字节，与崩溃 x8 精确相符。显式链元数据避开该兼容分支。修正保留渲染逻辑与编译器 pin；图标/小组件恢复及卡死验收仍需真机。见 [Apple 实现](https://github.com/apple-oss-distributions/dyld/blob/main/common/MachOAnalyzer.cpp)。
+
+
+## iOS 27 Core Image 原库查找
+
+uke iOS27 前端先保留 `CIKernelLibrary internalLibraryWithName:device:` 的原结果；仅当结果为nil且设备为本前端时，对已知Core Image标准库、stitchable库名从标准 `/System/Library/Frameworks/CoreImage.framework` 路径重试，继续使用原 `newLibraryWithURL:error:` 和运行时解析器。保持原helper的retained返回约定；其他设备/成功结果保持，重试失败仍返回nil并记录真实原因。不复制原资源、不改全局VFS视图。
+
+该修正针对uke24A446图标服务库加载失败，实际效果待真机。上一版source-union VFS实验引入卡Apple标志回归，已撤回。内核仅在恢复时记录已有fence/restart/fault结果，插件原marker文本以NUL结尾时持久保留有界拒绝摘要；不改变调度、抢占、错误传递或恢复策略。
