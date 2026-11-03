@@ -47,3 +47,8 @@ uke 24A446 的同 boot iconservicesagent 报告显示，Metal 打开 Turnip 时�
 uke iOS27 前端先保留 `CIKernelLibrary internalLibraryWithName:device:` 的原结果；仅当结果为nil且设备为本前端时，对已知Core Image标准库、stitchable库名从标准 `/System/Library/Frameworks/CoreImage.framework` 路径重试，继续使用原 `newLibraryWithURL:error:` 和运行时解析器。保持原helper的retained返回约定；其他设备/成功结果保持，重试失败仍返回nil并记录真实原因。不复制原资源、不改全局VFS视图。
 
 该修正针对uke24A446图标服务库加载失败，实际效果待真机。上一版source-union VFS实验引入卡Apple标志回归，已撤回。内核仅在恢复时记录已有fence/restart/fault结果，插件原marker文本以NUL结尾时持久保留有界拒绝摘要；不改变调度、抢占、错误传递或恢复策略。
+
+
+## Uke实机确认
+
+2026-11-03用户确认定向CoreImage原库加载修复版（CRC `90B6BC701210D9DB`）已解决此前启动、桌面/设置图标与小组件加载、设置中上划Dock导致界面重启的问题，设为当前uke27线GPU可交互基线。镜像身份和用户证据见设备仓 `docs/GPU-IOS27.md`；精确延迟、长时间并发、冷启动缓存测试另行量测。

@@ -49,3 +49,8 @@ An uke 24A446 iconservicesagent report showed a stack guard fault in dyld `MachO
 The uke iOS 27 frontend retains the original `CIKernelLibrary` `internalLibraryWithName:device:` result. A nil result for this frontend's own device retries only the known Core Image standard-library and stitchable-library names at their standard `/System/Library/Frameworks/CoreImage.framework` paths, using the unchanged `newLibraryWithURL:error:` implementation and runtime parser. The original helper's retained return convention is preserved. Successes and other clients are unchanged; a refused retry remains nil and retains its actual failure text. No files are copied and the global VFS view is not changed.
 
 This targets observed library-load failures in uke 24A446 iconservicesagent; its device effect remains unqualified. The earlier source-union VFS experiment caused an Apple-logo boot regression and was reverted. Kernel recovery now records the existing fence/restart/fault result once per recovery, and the existing plugin marker text can terminate with NUL to persist bounded failure summaries. This does not change scheduling, preemption, error propagation or recovery policy.
+
+
+## Uke device confirmation
+
+On 2026-11-03, the user confirmed all previously reported boot, desktop/Settings icon/widget loading and Settings/Dock UI-restart symptoms resolved on the scoped Core Image retry build, kernel CRC `90B6BC701210D9DB`. This is the current uke GPU27 interactive baseline. Device image identity and acceptance evidence are recorded in the device repository's `docs/GPU-IOS27.md`; independent latency, long-run concurrency and cold-boot cache measurements remain separate.
