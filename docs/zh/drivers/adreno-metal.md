@@ -40,3 +40,10 @@ python3 scripts/build-adreno-metal-plugin.py
 Turnip 与插件均用 `--target ios27` 构建。Turnip 链接显式启用 `-Wl,-fixup_chains`，并向 Meson 已有构建目录重新传递链接参数；最终签名 dylib 应包含 `LC_DYLD_CHAINED_FIXUPS`，owner trust 需使用新 CDHash。
 
 uke 24A446 的同 boot iconservicesagent 报告显示，Metal 打开 Turnip 时在 dyld `MachOAnalyzer::withChainStarts` 中触发线程栈 guard fault。旧 arm64e `LC_DYLD_INFO_ONLY` 导致 dyld 在工作队列栈上临时合成链元数据；旧库需要 439,304 字节，与崩溃 x8 精确相符。显式链元数据避开该兼容分支。修正保留渲染逻辑与编译器 pin；图标/小组件恢复及卡死验收仍需真机。见 [Apple 实现](https://github.com/apple-oss-distributions/dyld/blob/main/common/MachOAnalyzer.cpp)。
+
+
+## owner cryptex 视图中的框架资源
+
+启动时对 SystemOS union 目录建立的 bind 视图需要保留源 union 的下层 OS 目录。只展示上层内容，会遗漏 Core Image 的 `ci_stdlib.metallib` 等原 OS 资源。arm64e 系列的 `native-bindfs-source-union.patch` 让 owner boot bind 挂载继承源 union 标志，并通过现有 VFS union 查找、目录枚举路径访问源的下层目录；普通 bind 挂载仍走原 covered-directory 语义。保留只读、访问检查及原 vnode 引用管理。
+
+该修正针对 uke 24A446 图标慢和 Core Image 程序创建失败中发现的视图缺口。不能据此提前宣称全部库加载或 GPU context loss 已修；应保留正常故障恢复，在真机验证框架资源路径、图标、小组件和应用切换。
