@@ -62,6 +62,3 @@
 ../../../../../patches/xnu-12377/trustcache-runtime-layout.patch
 ../../../../../patches/xnu-12377/fileset-unmapped-call.patch
 ../../../../../patches/xnu-12377/native-4k-block-split.patch
-
-# Preserve the native OS/SystemOS union through the owner cryptex bind views.
-../../../../../patches/xnu-12377/native-bindfs-source-union.patch

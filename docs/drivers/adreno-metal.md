@@ -42,10 +42,3 @@ See [Adreno740](/drivers/adreno740) for the runtime path, staging commands, and 
 Build Turnip with `python3 scripts/build-turnip-darwin.py --target ios27` as well as the plugin's `--target ios27`. The Turnip link explicitly enables `-Wl,-fixup_chains`, including when Meson reconfigures a cached build. Confirm the final signed dylib contains `LC_DYLD_CHAINED_FIXUPS`. The owner trust module must use its new CDHash.
 
 An uke 24A446 iconservicesagent report showed a stack guard fault in dyld `MachOAnalyzer::withChainStarts` while Metal opened Turnip. Legacy arm64e `LC_DYLD_INFO_ONLY` made dyld synthesize chain starts on the workqueue stack: the old library required 439,304 bytes, matching crash register x8 exactly. Chained metadata avoids that legacy synthesis. This is a load-format fix, with rendering behavior and compiler pins preserved; actual icon/widget recovery and freeze acceptance still require hardware testing. See [Apple's implementation](https://github.com/apple-oss-distributions/dyld/blob/main/common/MachOAnalyzer.cpp).
-
-
-## Resources in owner cryptex views
-
-A boot-time bind view of the union-mounted SystemOS tree must preserve the source union's lower OS directories. Otherwise the framework view exposes upper files but cannot find or enumerate lower resources such as Core Image's `ci_stdlib.metallib` and stitchable libraries. The arm64e series includes `native-bindfs-source-union.patch`: owner boot bind mounts inherit the source union flag, and the existing VFS union lookup and directory enumeration follow the source's lower directory. Ordinary bind mounts keep their covered-directory behavior. Read-only mounts, access checks and vnode reference ownership stay on the existing VFS paths.
-
-This closes a resource-view gap found while investigating uke 24A446 slow icons and repeated Core Image program failures. It is not hardware proof that every library load or GPU context loss is repaired. Keep GPU fault recovery and its normal error propagation enabled; qualify the actual framework/resource path, icons, widgets and application transitions on the device.
