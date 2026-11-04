@@ -144,3 +144,22 @@ python3 scripts/check-quartzcore-turnip-cache-host.py
 ## SM7675 集成
 
 gen7_11_0 profile 使用真实 chip ID 0x43030b00、1.5 MiB GMEM、2196 KiB 抢占记录和 gen71100 固件。uke 沿用 sheng 的 mode 2 调度、每进程 VM 与 Metal 前端；iPadOS 27 当前为构建候选，待真机验收。
+
+
+## Native-XNU 页面准备候选
+
+uke候选把尚未发布的系统BO页面准备移到IOUserClient原映射排斥锁之外。可选prepare/finish入口用活动IPC计数覆盖预准备、原锁内校验/采用及锁外清理；close抢先完成时拒绝采用并回收页面。分配诊断的用户栈读取也在锁外。map/unmap/close同步、请求ABI和真实错误保留；未搭配原生适配时走原分配路径，BO trace bit16标识preflight。主机并发检查与镜像构建通过，实机收益和120Hz尚未验证。
+
+
+可选preflight路径要求GPU发布后的运行时ready，不能只凭回调符号存在即启用。早期client不进入新增IPC pin，driver在类型转换前再次检查ready；记录ready/entries区分启动阶段与实际GPU工作。GPU就绪后的BO锁外准备优化保留；开机和帧时间收益须实机验证。
+
+
+同一ready门控私有context扩展非零超时WaitFence：原校验/超时/等待/恢复在映射排斥锁前执行，原锁内复核请求/live再消费实际结果；关闭成功使等待停止或拒绝消费。零timeout poll和map/unmap/close原锁不变，不伪造fence完成。板级导出calls/elapsed/max/non-success，后者包含真实timeout。
+
+preflight context在IONew后显式赋值初始化；IONew只分配存储，不执行C++成员默认初始化。仅零填充会让method=0而不是BoAlloc2，导致已准备页面不被采用、在映射排斥锁内再次准备。uke0A3F的58条大BO记录均为回退flags11，真实原始分配语义的宿主负对照已复现，修正后通过。四分多钟无响应的完整因果仍未确认。
+
+开启sheng-diag时，前八次判定挂起在复位前持久记录CP寄存器，并将已有stall/IB/切环记录明确标为此前数据。诊断读取失败只报错，不改变ring健康状态，原stallState失败契约保留。正常帧不加采样，恢复/提交/超时策略不变；该候选用于定位，尚不是性能修复。
+
+## 轻量shader等待计数
+
+uke的`sheng-diag=2 sheng-gpu-trace=2`保留原21个BR计数，以event69追加十个SP计数：UCHE/RB阻塞、wave context/wait、长短同步、local-memory load/store、片元half ALU和EFU working。BR采样使用SP7–16槽及第一组RBBM_PERFCTR_SP，event69显式标记0x4252001f。旧marker31实际选到BV的SP24–33，按bv_legacy解码并排除BR归因；忙于shader时新增计数全平也视为无效，即使selector读回正确。原约32ms采样、epoch及读回校验保持，不加逐pass GPU时间戳。旧21计数可继续解码，跨计数计划的窗口排除。这些聚合计数用于下一步分类，不当作某个pass的独占耗时或已证明的提速；local-memory访问也不全部等于寄存器spill。

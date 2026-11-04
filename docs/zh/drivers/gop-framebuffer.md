@@ -19,3 +19,11 @@
 ```
 
 [组件目录](/zh/reference/components)
+已核对的 24A446 ABI 通过生成头启用 `NATIVE_LEGACY_BOOT_SCANOUT_REQUESTED`：验证主 GOP 映射可用后，使用原族的状态设置函数同时发布初始 requested 和固件已供电状态。原提交路径在 requested 为零时会丢弃 swap。这是逻辑 scanout 初始化，不实现面板电源切换；原客户端错误与校验保持。主机构建通过不能证明画面已到面板。
+
+
+同一已验证的队头直扫请求在重试时先查 GPU fence。确认完成后，驱动重新校验表面和扫描输出，再提交 flip。轻量诊断模式 2 记录最终 latch 状态，包括超时。
+
+CP fence 中断可唤醒显示工作循环重查 GPU fence。保留定时器兜底、表面复核和 latch 后退休。
+
+fence 中断提交合并的内核回调，由显示工作循环的 gate 串行处理回调、定时器与停用。实际执行过 IRQ 重查后，兜底定时器才从 200 µs 调整为 500 µs。

@@ -15,3 +15,5 @@ ARM64 CPU、GIC 和定时器驱动。发布 CPU、中断控制器和架构定时
 ## 构建
 
 选定内核配方通过 `component:ArmCpu` 构建 `build/armcpu/libArmCpu.a`。启用对应内核配置，按平台适配流程核对 GIC、定时器和 PSCI 资源。
+
+使用 `armcpu-spi-ipi=1` 时，重分发器启用 SGI 0 和虚拟定时器 PPI 27。实验性 SGI 扫描关闭，IPI 自测使用实际配置的 SPI 通道。

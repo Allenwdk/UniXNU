@@ -52,3 +52,10 @@ uke iOS27 前端先保留 `CIKernelLibrary internalLibraryWithName:device:` 的�
 ## Uke实机确认
 
 2026-11-03用户确认定向CoreImage原库加载修复版（CRC `90B6BC701210D9DB`）已解决此前启动、桌面/设置图标与小组件加载、设置中上划Dock导致界面重启的问题，设为当前uke27线GPU可交互基线。镜像身份和用户证据见设备仓 `docs/GPU-IOS27.md`；精确延迟、长时间并发、冷启动缓存测试另行量测。
+
+编码drain记录所需排队前缀，batch仅在目标满足时广播，工作队列仅空→非空通知。保留FIFO、scheduled/completed和所有权条件。uke同时在DT验证的CPU域接入sheng原动态频控并启用既有固定120Hz刷新范围，实机收益待验。
+
+
+`sheng-diag=2` 保留 backboardd 命令摘要、提交至编码阶段和扫描输出客户端事件。Turnip 逐 pass 打点和运行时诊断关闭，内核跟踪独立配置。
+
+本轮 Uke 诊断候选对限定的大尺寸 IOSurface/memoryless pass 请求 GMEM 或 SYSMEM，并记录 command 策略。SYSMEM backing 会改变内存占用，需同时验证画面和整作业耗时。

@@ -147,3 +147,32 @@ The gen7_11_0 profile carries chip ID 0x43030b00, 1.5 MiB GMEM,
 2196 KiB CP preemption records and gen71100 firmware. uke uses the same
 mode-2 scheduler, per-process VM and Metal frontend as sheng. Its iPadOS 27
 images are build candidates; hardware qualification is pending.
+
+
+## Native-XNU page preparation candidate
+
+The uke candidate separates unowned system-BO page preparation from the original IOUserClient mapping-exclusion lock. Optional native prepare/finish callbacks keep active IPC ownership across preflight, locked validation/adoption and post-lock cleanup. A racing close refuses adoption; unused pages are returned outside the lock. The allocation diagnostic's user-stack walk also runs after the lock. Map/unmap/close serialization, request ABI and failure results remain. Without the matching native adapter the original allocation path applies; BO trace flag16 identifies preflight. Host concurrency checks and image assembly pass; hardware latency and120Hz remain unqualified.
+
+
+The optional preflight path requires runtime readiness after GPU publication, not just linked callback symbols. Early clients retain the original call path without the new IPC pin; the driver repeats the readiness check before class access. Readiness/entry counters distinguish startup-stage behavior from actual GPU work. The BO preflight optimization remains enabled after publication; startup/performance require device validation.
+
+
+Nonzero-timeout WaitFence calls can use the same runtime-ready preflight context: the original fence wait/validation/timeout/recovery runs before mapping exclusion; the original locked dispatch consumes its real result after checking request and liveness. Close stops or refuses consumption; zero-timeout polls and map/unmap/close locking remain. Board diagnostics report calls/elapsed/max/non-success; timeout is not treated as successful completion.
+
+The preflight context is explicitly value-initialized after IONew, which allocates storage without running C++ default member initializers. Zero-filled storage otherwise leaves the method at0 instead of BoAlloc2, rejecting prepared-page adoption and repeating preparation under mapping exclusion. Uke0A3F recorded58 large BOs with fallback flags11; a raw-allocation host control reproduces this and passes after initialization. The later UI freeze has not yet been causally attributed.
+
+Diagnostic hangs (first eight, sheng-diag) persist CP state before reset erases registers/stamps, with prior stall/IB/switch data explicitly labeled. Register-read failure is reported without changing ring health; the original stallState contract remains. No normal-frame work or recovery policy change is introduced.
+
+## Lightweight shader wait counters
+
+The opt-in uke `sheng-diag=2 sheng-gpu-trace=2` capture keeps the original21
+BR counters and appends ten SP counters in event69: UCHE/RB backpressure,
+wave context/wait, long/short synchronization, local-memory loads/stores,
+fragment half ALU and EFU working. BR SP slots7–16 use RBBM_PERFCTR_SP.
+Event69 carries the explicit BR marker0x4252001f. The old marker31 selected
+BV slots24–33 and decodes as bv_legacy, excluded from BR attribution.
+All-flat extra counters with shader activity are invalid, even if selectors match.
+The existing32ms sampling/epoch/readback guards remain; no per-pass GPU
+timestamp packets are added. Old21-counter captures still decode. Windows
+crossing counter plans are excluded. These aggregate counters classify the
+next investigation; they are not exclusive pass times or a proven speedup.

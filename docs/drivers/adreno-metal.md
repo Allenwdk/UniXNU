@@ -54,3 +54,10 @@ This targets observed library-load failures in uke 24A446 iconservicesagent; its
 ## Uke device confirmation
 
 On 2026-11-03, the user confirmed all previously reported boot, desktop/Settings icon/widget loading and Settings/Dock UI-restart symptoms resolved on the scoped Core Image retry build, kernel CRC `90B6BC701210D9DB`. This is the current uke GPU27 interactive baseline. Device image identity and acceptance evidence are recorded in the device repository's `docs/GPU-IOS27.md`; independent latency, long-run concurrency and cold-boot cache measurements remain separate.
+
+Encoding drains retain queued-prefix targets. The worker broadcasts only for newly completed targets; producers notify work only on empty-to-nonempty transitions. This reduces redundant condition-variable work while preserving FIFO, scheduling/completion and ownership. Uke also selects sheng's original governor on DT-qualified CPU domains and the existing fixed120Hz refresh-range option; actual throughput requires hardware validation.
+
+
+`sheng-diag=2` keeps backboardd command summaries, commit-to-encode phases and scanout-client events in the frame trace. Turnip pass stamps and runtime diagnostics stay off. Kernel tracing is configured separately.
+
+The current Uke diagnostic candidate compares GMEM and SYSMEM on a restricted set of large IOSurface passes with memoryless auxiliary targets. Requests and command metadata are recorded for analysis. SYSMEM backing can change memory use. Hardware qualification includes pixels, job timing and memory pressure.

@@ -19,3 +19,11 @@ The catalog records implementation scope, hardware and OS requirements, board de
 ```
 
 [Component catalog](/reference/components)
+For the qualified 24A446 family, the generated ABI enables `NATIVE_LEGACY_BOOT_SCANOUT_REQUESTED`: a validated primary GOP mapping publishes the initial requested and firmware-powered states through the original family setter. The original submit path otherwise discards swaps while its requested field remains zero. This is logical scanout initialization, not a panel power transition; original user-client errors and validation remain in effect. A host build does not establish that frames reach the panel.
+
+
+A retry of the same validated direct scanout request checks GPU fence progress first. Once ready, the driver repeats the surface and scanout checks before submitting the flip. Diagnostic mode 2 records the final latch status, including a timeout.
+
+A CP fence IRQ may wake the display work loop to recheck GPU fence progress. The timer fallback, surface checks, and latch-based retirement remain in use.
+
+Fence notifications queue a coalesced thread call. The display gate serializes delivery with the timer and teardown. The fallback stays at 200 µs until an IRQ-triggered fence recheck runs, then uses 500 µs.

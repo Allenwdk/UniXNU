@@ -15,3 +15,5 @@ The catalog targets ARM GICv3 and the ARM generic timer with the selected XNU AB
 ## Build
 
 The selected kernel recipe builds `build/armcpu/libArmCpu.a` through `component:ArmCpu`. Enable its kernel configuration and verify the GIC/timer/PSCI resources using the platform adaptation procedure.
+
+With `armcpu-spi-ipi=1`, the redistributor enables SGI 0 and the virtual timer PPI 27. The experimental SGI sweep is disabled and the IPI self-test uses the SPI transport.
