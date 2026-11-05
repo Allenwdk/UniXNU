@@ -151,7 +151,7 @@ def merge_launchd_cache(source, daemons, destination, job_environment=None):
             raise ValueError('OS launchd cache already owns ' + key)
         jobs[key] = job
         added.append(key)
-    if not added:
+    if not added and not job_environment:
         raise ValueError('no owner launchd jobs')
     assert all(merged[key] == value for key, value in original.items() if key != 'LaunchDaemons')
     assert all(jobs[key] == value for key, value in original['LaunchDaemons'].items())
@@ -161,7 +161,9 @@ def merge_launchd_cache(source, daemons, destination, job_environment=None):
             raise ValueError(f'expected one OS launchd job for {label}, found {len(matches)}')
         if not isinstance(environment, dict) or not all(isinstance(value, str) for value in environment.values()):
             raise ValueError(f'launchd environment values for {label} must be strings')
-        matches[0].setdefault('EnvironmentVariables', {}).update(environment)
+        variables = dict(matches[0].get('EnvironmentVariables', {}))
+        variables.update(environment)
+        matches[0]['EnvironmentVariables'] = variables
     destination.parent.mkdir(parents=True, exist_ok=True)
     # This dictionary is consumed by launchd's private cached-plist parser.
     # Use the platform serializer for its binary representation.
