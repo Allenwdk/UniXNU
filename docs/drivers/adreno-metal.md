@@ -61,3 +61,5 @@ Encoding drains retain queued-prefix targets. The worker broadcasts only for new
 `sheng-diag=2` keeps backboardd command summaries, commit-to-encode phases and scanout-client events in the frame trace. Turnip pass stamps and runtime diagnostics stay off. Kernel tracing is configured separately.
 
 The current Uke diagnostic candidate compares GMEM and SYSMEM on a restricted set of large IOSurface passes with memoryless auxiliary targets. Requests and command metadata are recorded for analysis. SYSMEM backing can change memory use. Hardware qualification includes pixels, job timing and memory pressure.
+
+The C352 non-fetch ROAA experiment was withdrawn after icon/rendering regressions. The repair uses the original Turnip ordering code. `sheng-diag=4` adds explicit pass stamps and pass/attachment events to lightweight frontend timing, including its pass-ring consumer. The board exports mode4 after180seconds of its worker and logs addon installation counts. Addon writes set exact file size as well as mode before syncing. Hardware pixel recovery and pass timing delivery remain pending.

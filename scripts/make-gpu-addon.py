@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 """Pack the owner-built Adreno Metal plugin into a GPU addon file for the boot payload.
 
-  make-gpu-addon.py [--publish] [--no-daemon] [--wallpaper DIR] [--wallpaper-floating DIR] [--prime-list FILE] [--pipeline-pack FILE] [--cache-export] OUTPUT
+  make-gpu-addon.py [--publish] [--no-daemon] [--wallpaper DIR] [--wallpaper-floating DIR] [--prime-list FILE] [--pipeline-pack FILE] [--cache-export] [--debug-flags FLAGS] [--per-pass] OUTPUT
 
 The files are the ones add-gpu-plugin-data.py stages into a Data seed, with the same paths below /private/var/ngpu and the same modes:
 addons/NativeAdrenoMetal.bundle/*, addons/NativeAdrenoMetal.publish (--publish),
 bin/adrenoprobed and daemons/*.plist. --wallpaper adds the files of DIR (scripts/make-wallpaper-overlay.py) as wallpaper/*, which the
 kernel mounts over the default wallpaper's layered animation; --wallpaper-floating DIR as wallpaper-floating/*, mounted over the same
-wallpaper's floating layer (iPadOS 27). --prime-list adds FILE (the absolute paths of the OS image's .metallib
+wallpaper's floating layer (iPadOS 27). --debug-flags FLAGS adds /private/var/ngpu/tu_debug with that TU_DEBUG line;
+--per-pass adds /private/var/ngpu/per-pass, which the plugin reads in mode 2 to set SHENG_PER_PASS (Turnip's per-pass GPU stamps
+and GMEM swap trace). --prime-list adds FILE (the absolute paths of the OS image's .metallib
 files, one per line) as addons/NativeAdrenoMetal.primelist, the libraries the render server compiles ahead (PrimeShaders.h). The payload carries the file next to the kernel (unixnu build payload --gpu-addon), the loader
 hands it to the kernel as /chosen/memory-map/GpuAddon, and the kernel writes every file whose content or mode differs into the mounted
 Data volume before its addon mounts (sheng-gpu-addon=1). The Data seed then no longer changes with the plugin, so its persistent store
@@ -63,6 +65,16 @@ def main():
     cache_export = '--cache-export' in args
     if cache_export:
         args.remove('--cache-export')
+    debug_flags = None
+    if '--debug-flags' in args:
+        at = args.index('--debug-flags')
+        debug_flags = args[at + 1]
+        del args[at:at + 2]
+        if not debug_flags or any(c not in 'abcdefghijklmnopqrstuvwxyz_0123456789,' for c in debug_flags):
+            sys.exit('--debug-flags takes comma-separated lower-case TU_DEBUG flag names')
+    per_pass = '--per-pass' in args
+    if per_pass:
+        args.remove('--per-pass')
     pipeline_pack = None
     if '--pipeline-pack' in args:
         at = args.index('--pipeline-pack')
@@ -87,6 +99,10 @@ def main():
         files.append(('addons/NativeAdrenoMetal.primelist', 0o644, prime_list.read_bytes()))
     if cache_export:   # the plugin sends its cache directory to the UFS log (CacheExport.h)
         files.append(('addons/NativeAdrenoMetal.cacheexport', 0o644, b'1\n'))
+    if debug_flags:    # TU_DEBUG override read by the plugin (/private/var/ngpu/tu_debug)
+        files.append(('tu_debug', 0o644, (debug_flags + '\n').encode()))
+    if per_pass:       # per-pass GPU stamps in mode 2 (/private/var/ngpu/per-pass)
+        files.append(('per-pass', 0o644, b'1\n'))
     if pipeline_pack:
         files.append(('addons/NativeAdrenoMetal.m2vpack', 0o644, pipeline_pack.read_bytes()))
     # --no-daemon: only the plugin (iPadOS 27 runs no probe daemon and keeps its launchd jobs).
