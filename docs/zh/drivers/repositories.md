@@ -15,6 +15,7 @@
 | RamBlock | [UniXNU/RamBlock](https://github.com/UniXNU/RamBlock) | XNU 存储 | [RamBlock](/zh/drivers/ram-block) |
 | GopFramebuffer | [UniXNU/GopFramebuffer](https://github.com/UniXNU/GopFramebuffer) | XNU 显示 | [GopFramebuffer](/zh/drivers/gop-framebuffer) |
 | QcomGeniSpi | [UniXNU/QcomGeniSpi](https://github.com/UniXNU/QcomGeniSpi) | XNU SPI | [QcomGeniSpi](/zh/drivers/qcom-geni-spi) |
+| QcomBaseband | [UniXNU/QcomBaseband](https://github.com/UniXNU/QcomBaseband) | XNU 基带 | [QcomBaseband](/zh/drivers/qcom-baseband) |
 | SoftwareAES | [UniXNU/SoftwareAES](https://github.com/UniXNU/SoftwareAES) | XNU 加密 | [SoftwareAES](/zh/drivers/software-aes) |
 | AppleKeyStoreState | [UniXNU/AppleKeyStoreState](https://github.com/UniXNU/AppleKeyStoreState) | XNU keystore | [AppleKeyStoreState](/zh/drivers/apple-key-store-state) |
 | VirtioMmioBlock | [UniXNU/VirtioMmioBlock](https://github.com/UniXNU/VirtioMmioBlock) | XNU 存储 | [VirtioMmioBlock](/zh/drivers/virtio-mmio-block) |
@@ -51,6 +52,7 @@
 | NativeEmmc | Redmi Note 9 | [Dracen-W/NativeEmmc](https://github.com/Dracen-W/NativeEmmc) | [NativeEmmc](/zh/drivers/community-native-emmc) |
 | NativeDwc3 | 小米平板 5 | [Lux12138/NativeDwc3](https://github.com/Lux12138/NativeDwc3) | [NativeDwc3](/zh/drivers/community-native-dwc3) |
 | unixnu-nativefocaltechtouch | Galaxy Tab S7 FE Wi-Fi | [RigoLigoRLC/unixnu-nativefocaltechtouch](https://github.com/RigoLigoRLC/unixnu-nativefocaltechtouch) | [unixnu-nativefocaltechtouch](/zh/drivers/community-nativefocaltechtouch) |
+| Adreno830 | 一加 13T（SM8750） | [Shad0w23333/Adreno830](https://github.com/Shad0w23333/Adreno830) | [Adreno830](/zh/drivers/community-adreno830) |
 
 ## 设备分支
 

@@ -17,7 +17,7 @@ same script text. A board changes `board.toml`, never the script.
    only source. A device repository copies it unchanged. The one board value it
    reads itself is `[package] unixnu`, the path of the UniXNU checkout.
 4. **The build target is a parameter.** One branch serves every OS profile.
-   `--os 17|26|27|PROFILE` selects the profile for the run. The values that differ
+   `--os 17|27|PROFILE` selects the profile for the run. The values that differ
    per profile sit in `board.toml` under `[os_overrides."<profile>"]`; there is no
    branch and no second copy of a driver, patch or optimization per target.
 5. **Sources are pinned.** `deps` fetches only the revisions that `feeds.toml`,
@@ -39,7 +39,7 @@ same script text. A board changes `board.toml`, never the script.
 ## Interface
 
 ```sh
-scripts/package.sh [--os 17|26|27|PROFILE] [--no-deps] [--check] [unixnu options]
+scripts/package.sh [--os 17|27|PROFILE] [--no-deps] [--check] [unixnu options]
 ```
 
 | Option | Meaning |
@@ -55,13 +55,15 @@ The platform seed (`--unique-chip-id HEX` or `UNIXNU_UNIQUE_CHIP_ID`) and the fi
 ## On GitHub
 
 The device repository carries `.github/workflows/package.yml`. It runs
-`scripts/package.sh` on a macOS runner, with the UniXNU and uefi-sheng
+`scripts/package.sh` on a macOS runner, with the UniXNU and device UEFI
 checkouts beside the device repository, and offers `boot.img`, `payload.img`,
 `kernel.macho` and `package.manifest.json` as the run's artifacts.
 
 The run installs its tools itself (Homebrew dtc, llvm, lld, cmake, mtools and
-the ipsw tap for the AEA keys) and asserts them before the build; the firmware
-checkout comes with its submodules, the binary modules the volume builds from.
+the ipsw tap for the AEA keys) and asserts them before the build. The board
+names the official firmware archive in board.toml `[firmware.image]`; the run
+downloads it with concurrent HTTP ranges, keeps only the named inputs, deletes
+the archive and generates the binary modules the firmware volume builds from.
 
 Run it in a fork of the device repository:
 
@@ -123,7 +125,7 @@ Booting the artifacts is a separate step with its own record.
 
 [Build and boot](/building), [Device repository](/porting/device-repository)
 
-## Runtime inputs for sheng iPadOS 27
+## Runtime inputs for iOS 27
 
 The payload's `runtime` table enables preparation before kernel compilation.
 Apple static/System/App trust modules come from the selected IPSW unchanged. Turnip,
@@ -142,7 +144,7 @@ For a **first installation**, `scripts/package.sh --os 27 --init-data` creates a
 APFS seed from the IPSW's initial `private/var`, uses the board's `data_gib` and
 Setup preferences, and binds the new UUID into the kernel configuration. This
 writes host build files only; it does not erase or flash a device. Keep the seed
-at `out/sheng/ipados-27.0.1-24A446/sheng_ipados27/runtime/data.dbr` for every later
+at `out/<device>/<os_profile>/<config>/runtime/data.dbr` for every later
 build of that installation. Its content identity, not just its UUID, identifies
 the persistent Data store. Regenerating it cannot preserve an older installation.
 

@@ -212,7 +212,7 @@ OSDefineOperatorMethods(IOBlockStorageDevice)
     c = json.loads((obj / 'osfmk/DEVELOPMENT/startup.o.json').read_text().strip().rstrip(','))
     # BSD sources (sys/proc.h, the system calls) take kern_exec's flags.
     bsd = json.loads((obj / 'bsd/DEVELOPMENT/kern_exec.o.json').read_text().strip().rstrip(','))
-    bsd_sources = {'BootWatchdogPolicy.c', 'BootDiagExport.c', 'CrashLogProbe.c'}
+    bsd_sources = {'BootWatchdogPolicy.c', 'BootDiagExport.c', 'CrashLogProbe.c', 'WifiFirmware.c'}
     includes = ['-I', str(out / 'headers/include'), '-I', str(ROOT / 'kits/VerifiedRoot/include'),
                 '-I', str(ROOT / 'drivers/VirtioMmioBlock'), '-I', str(tree / '.cache/xnu-work/osfmk')]
     flags = ['-DNATIVE_UFS_SOURCE_API=1', '-DNATIVE_VERIFIED_BLOCK=1',
@@ -243,9 +243,10 @@ OSDefineOperatorMethods(IOBlockStorageDevice)
         if policy is not None:
             sources.append(policy)
         # The diagnostic file export (sheng-diag-export): the unified log, crash reports and a screenshot, read through the VFS.
-        export = optional_source('BootDiagExport.c')
-        if export is not None:
-            sources.append(export)
+        for name in ('BootDiagExport.c', 'WifiFirmware.c', 'BootLatencyTrace.c'):
+            export = optional_source(name)
+            if export is not None:
+                sources.append(export)
     objects, inputs = [], {}
     objcopy = shutil.which('llvm-objcopy') or '/opt/homebrew/opt/llvm/bin/llvm-objcopy'
     for source in sources:
@@ -268,6 +269,9 @@ OSDefineOperatorMethods(IOBlockStorageDevice)
             output = late
         objects.append(output)
         inputs[str(source)] = build.sha(source)
+    if latency:
+        for name in ('BootLatencyStore.h','BootLatencyUnwind.h','BootLatencyTrace.h','BootLatencyFiles.h'):
+            inputs[str(latency.with_name(name))] = build.sha(latency.with_name(name))
     archive = out / 'libShengSourceStorage.a'
     archive.unlink(missing_ok=True)
     subprocess.run(['xcrun', 'ar', 'rcs', archive, *objects], check=True)
