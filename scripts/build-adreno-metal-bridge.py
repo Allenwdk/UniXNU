@@ -75,7 +75,9 @@ PATCHES = [ROOT / 'drivers/AdrenoMetal/bridge/patches' / name for name in [
     '0029-latency-stage-selection.patch',
     # Spare image blocks have no byte limit (they age, go when a block cannot be made and on memory pressure), and the room keeper takes
     # a spare block before it makes a new one: the limit freed spares the render server made again within seconds, each a fresh wiring.
-    '0030-spare-image-blocks-give-room.patch']]
+    '0030-spare-image-blocks-give-room.patch',
+    # Scoped Uke full-screen memoryless passes use the original deferred secondary path.
+    '0031-defer-fullscreen-memoryless-pass.patch']]
 
 
 def git_tree(*steps):
