@@ -85,3 +85,5 @@ The Uke integration includes upstream iconservicesagent device/queue/completion 
 Uke now stages upstream sheng iconservicesagent environment policy (FORCE_SOFTWARE_RENDERER=0, CI_ENABLE_METAL_GPU=0) through a signed owner launchd cache and the existing read-only union mount. Original service fields and loader/signature checks remain. Host cache semantics and page hashes pass; private libxpc consumption, boot and pixels remain pending on candidate209862415C7884EC.
 
 Uke modes2/4 now scope per-pass GPU stamps to backboardd, the only process exporting that ring. Icon device/queue/eight-work records and full mode1 diagnostics remain. This removes unused diagnostic writes; hardware speedup remains pending.
+
+The per-pass reader now converts19.2MHz ticks using exact quotient/remainder arithmetic. Frame records24/25 snapshot existing pass split and host texture copy counters from the writer;26 identifies the clock. No rendering change or speedup is inferred. Legacy integer52ns pass times must be scaled625/624 before joining kernel ticks.

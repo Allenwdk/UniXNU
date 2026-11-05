@@ -85,3 +85,5 @@ Uke集成在模式4接入上游iconservicesagent设备、队列和完成记录�
 Uke已将上游sheng图标服务环境（FORCE_SOFTWARE_RENDERER=0、CI_ENABLE_METAL_GPU=0）通过owner签名launchd缓存和既有只读union挂载接入。原服务字段与装载/签名校验保留。主机缓存语义及页面哈希检查通过；候选209862415C7884EC的私有libxpc消费、启动和图标像素仍待真机。
 
 Uke模式2/4的逐pass GPU时间戳现仅在真正导出pass ring的backboardd启用；图标设备/队列/首八次工作记录及模式1全量诊断保留。仅移除未消费的诊断GPU写入，实际收益待真机。
+
+逐pass reader按19.2MHz商/余数精确换算；旧整数52ns的pass时间需625/624校正后才能与内核整job对齐。前端24/25由writer读取既有拆分/纹理复制累计计数，26标记精确时钟。未改变渲染，不据此宣称提速；26 exact记录不重复校正。
