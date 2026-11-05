@@ -168,5 +168,8 @@ def verify(path, combined, tree, ramdisk_path, image, compression='gzip'):
         end = ramdisk_start + page * -(-ramdisk_size // page)
         if data[end:end + 4096] != bytes(4096):
             raise Error('the v4 signature block does not follow the ramdisk')
-    return {'kernel_sha256': hashlib.sha256(kernel).hexdigest(), 'ramdisk_bytes': ramdisk_size,
-            'header_version': version, 'kernel_address': hex(kernel_address), 'tags_address': hex(tags)}
+    report = {'kernel_sha256': hashlib.sha256(kernel).hexdigest(), 'ramdisk_bytes': ramdisk_size,
+              'header_version': version, 'kernel_address': hex(kernel_address), 'tags_address': hex(tags)}
+    if version >= 3:
+        report['header_bytes'] = header_size
+    return report

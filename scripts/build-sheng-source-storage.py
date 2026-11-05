@@ -243,10 +243,14 @@ OSDefineOperatorMethods(IOBlockStorageDevice)
         if policy is not None:
             sources.append(policy)
         # The diagnostic file export (sheng-diag-export): the unified log, crash reports and a screenshot, read through the VFS.
-        for name in ('BootDiagExport.c', 'WifiFirmware.c', 'BootLatencyTrace.c'):
+        for name in ('BootDiagExport.c', 'WifiFirmware.c'):
             export = optional_source(name)
             if export is not None:
                 sources.append(export)
+    # Uke's legacy-display archive already owns this shared trace implementation.
+    latency = optional_source('BootLatencyTrace.c') if uke_log is None else None
+    if latency is not None:
+        sources.append(latency)
     objects, inputs = [], {}
     objcopy = shutil.which('llvm-objcopy') or '/opt/homebrew/opt/llvm/bin/llvm-objcopy'
     for source in sources:
