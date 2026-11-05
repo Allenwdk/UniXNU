@@ -79,3 +79,5 @@ Encoding drains retain queued-prefix targets. The worker broadcasts only for new
 The current Uke diagnostic candidate compares GMEM and SYSMEM on a restricted set of large IOSurface passes with memoryless auxiliary targets. Requests and command metadata are recorded for analysis. SYSMEM backing can change memory use. Hardware qualification includes pixels, job timing and memory pressure.
 
 The C352 non-fetch ROAA experiment was withdrawn after icon/rendering regressions. The repair uses the original Turnip ordering code. `sheng-diag=4` adds explicit pass stamps and pass/attachment events to lightweight frontend timing, including its pass-ring consumer. The board exports mode4 after180seconds of its worker and logs addon installation counts. Addon writes set exact file size as well as mode before syncing. Hardware pixel recovery and pass timing delivery remain pending.
+
+The Uke integration includes upstream iconservicesagent device/queue/completion records in mode4. CP preemption completion runs in the board thread call, and the waiting-stack sampler checks thread state and stack bounds before accessing saved registers. Hardware qualification is pending.

@@ -79,3 +79,5 @@ uke iOS27 前端先保留 `CIKernelLibrary internalLibraryWithName:device:` 的�
 本轮 Uke 诊断候选对限定的大尺寸 IOSurface/memoryless pass 请求 GMEM 或 SYSMEM，并记录 command 策略。SYSMEM backing 会改变内存占用，需同时验证画面和整作业耗时。
 
 C352非fetch ROAA实验因图标/渲染回归撤回，修正版使用原Turnip顺序代码。`sheng-diag=4`在轻量前端计时中启用逐pass时间戳和附件事件，前端reader同步接通。板级在worker启动180秒后导出，安装完成记录addon计数。addon写入后显式设置精确文件长度并sync。像素恢复与pass交付仍待真机。
+
+Uke集成在模式4接入上游iconservicesagent设备、队列和完成记录。CP抢占完成移到板级thread call，等待线程栈读取先核线程状态和栈边界。实际稳定性及性能待真机。
