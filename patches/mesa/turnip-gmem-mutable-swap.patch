@@ -482,8 +482,8 @@ index 33a22aa..bc779a7 100644
 +         const volatile uint64_t *words = (const volatile uint64_t *) bo->map + (s % 512) * 2;
 +         const uint64_t begin = words[0], end = words[1];
 +         if (begin && end) {
-+            rec.gpu_begin = tu_device_ticks_to_ns(tu_pass_ts_dev, begin);
-+            rec.gpu_end = tu_device_ticks_to_ns(tu_pass_ts_dev, end);
++            rec.gpu_begin = (begin / 19200000ull) * 1000000000ull + (begin % 19200000ull) * 1000000000ull / 19200000ull;
++            rec.gpu_end = (end / 19200000ull) * 1000000000ull + (end % 19200000ull) * 1000000000ull / 19200000ull;
 +         }
 +      }
 +      out[n++] = rec;
