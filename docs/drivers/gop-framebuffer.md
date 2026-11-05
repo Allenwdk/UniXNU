@@ -15,7 +15,7 @@ For the qualified 24A446 family, the generated ABI enables `NATIVE_LEGACY_BOOT_S
 The catalog records implementation scope, hardware and OS requirements, board dependencies, revision, build stage, outputs, and runtime identifiers. The selected profile orders build commands by dependency.
 
 ```sh
-./unixnu build kernel -D ../UniXNU-sheng
+./unixnu build kernel -D /path/to/device
 ```
 
 [Component catalog](/reference/components)
@@ -27,3 +27,9 @@ A retry of the same validated direct scanout request checks GPU fence progress f
 A CP fence IRQ may wake the display work loop to recheck GPU fence progress. The timer fallback, surface checks, and latch-based retirement remain in use.
 
 Fence notifications queue a coalesced thread call. The display gate serializes delivery with the timer and teardown. The fallback stays at 200 µs until an IRQ-triggered fence recheck runs, then uses 500 µs.
+
+
+
+Frame diagnostics retain allocation, command, completion and GPU/display timing. Pixel capture is disabled. See [GPU frame diagnostics](/porting/gpu-diagnostics).
+
+Frame diagnostics read physical addresses from prepared direct-display slots. Validation reports zero until mapping, and the flip records the mapped address. Diagnostic observers do not prepare descriptors or query their physical segments.

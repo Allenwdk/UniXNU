@@ -1,12 +1,5 @@
 # Migrate a device port
 
-The sheng 23F84 source runtime now has a dedicated UFS build entry,
-`build-sheng-source-storage.py`, and a `RootPolicies` firmware handoff.
-`SourceStorage.cpp` loads the original storage family and APFS before deferred
-source-class registration. The board uses the actual 23F84 root UUID. These
-runtime changes are implementation work awaiting build and device qualification;
-the earlier source archive checks do not cover them.
-
 ## Why migrate
 
 Format 2 lets devices reuse SoC support, OS profiles and component build recipes.
@@ -163,7 +156,7 @@ Keep the source filenames, runtime classes, bundle IDs, plugin filenames,
 exported symbols, and protocol IDs recorded in `runtime_identifiers`.
 
 Adreno740 provides the A740 kernel GPU interface. AdrenoMetal provides the Metal
-frontend. Their metadata records A740/SM8550 scope and sheng verification.
+frontend. Their metadata records A740/SM8550 scope and per-device verification.
 The board supplies firmware, power policy, memory adjustments, and display
 integration.
 
@@ -225,7 +218,7 @@ Complete these edits before running the resolver:
 4. Compare the inherited archive plan with the port's required archive builders.
    When setting `kernel.archives`, include the full ordered plan. Use
    `component:<ID>` for catalog recipes and bare script names for auxiliary builders.
-   The [sheng board file](https://github.com/UniXNU/UniXNU-sheng/blob/main/board.toml)
+   The [reference board file](https://github.com/UniXNU/UniXNU-sheng/blob/main/board.toml)
    shows an explicit plan containing both.
 5. Keep the board's firmware paths, partition layout, boot image settings and
    payload policy. Put OS properties in the selected OS profile and board-specific
@@ -334,9 +327,9 @@ For `panic_screen = true`, the firmware checkout supplies
 `FrameBufferSerialPortLib/Font.h`; the main UniXNU checkout supplies the entry
 probe and renderer. See [panic screen inputs](/guide/debugging#panic-screen).
 
-### sheng build inputs {#build-inputs}
+### Build inputs {#build-inputs}
 
-The sheng archive and image steps require:
+Prepare the inputs used by the selected archive and image recipes:
 
 - A full Xcode installation with the iPhoneOS SDK.
 - `storage-abi/interface-audit.json` and its matching storage ABI inputs.
@@ -346,8 +339,8 @@ The sheng archive and image steps require:
 - `.cache/mesa-work`, built Turnip, and metal2vulkan inputs for the Metal plugin.
 - The selected IPSW members, platform seed, trust-cache bundle, Data seed, and firmware DTB.
 
-For another device, follow its selected recipes and the subsystem guides linked
-from [driver adaptation](/porting/drivers) to prepare matching inputs.
+Use the selected recipes and the subsystem guides linked from
+[driver adaptation](/porting/drivers) to identify the required inputs.
 
 **Result:** firmware integration and local input paths are complete. Record
 missing inputs with the build step that needs them.
@@ -458,13 +451,11 @@ Its shared source is
 its OS profile is `profiles/os/ipados-17.7.11-21H461/`, and its firmware is
 [uefi-sheng](https://github.com/UniXNU/uefi-sheng).
 
-For existing sheng checkouts, set `DEVICE=sheng`,
-`DEVICE_DIR=../UniXNU-sheng` and `DEFCONFIG=sheng_defconfig`, then follow
-steps 6 through 9 with the [sheng inputs](#build-inputs). The output directory
-is `out/sheng/ipados-17.7.11-21H461/sheng/`. Its component selection includes
-Adreno740 and AdrenoMetal together with the board's storage, input, display
-and image components. The [device page](/devices/sheng) records its scope and
-verification results.
+Set `DEVICE`, `DEVICE_DIR` and `DEFCONFIG` from the selected device repository,
+then follow steps 6 through 9 with the [build inputs](#build-inputs).
+Outputs use `out/<device>/<os_profile>/<config>/`. The selected profile supplies
+the GPU, storage, input, display and image components. Record results in the
+device's `porting.toml`.
 
 ## Next steps
 
@@ -474,21 +465,21 @@ verification results.
 
 ## Public-source storage and input builds {#source-drivers}
 
-For the `ipados-26.5.2-23F84` profile, `build-sheng-source-drivers.py` compiles
+For the `ipados-27.0.1-24A446` profile, `build-sheng-source-drivers.py` compiles
 ShengUfs, ShengHidInput and the board input transport using the prepared XNU
 12377 C/C++ recipes. The profile pins IOStorageFamily 337.100.1 and IOHIDFamily
 2238.120.5 from Apple's [macOS 26.5 source manifest](https://github.com/apple-oss-distributions/distribution-macOS/blob/83390100289cedfe669c31a96c94326d31afa1ed/release.json).
 Apple's [iOS 26.5 manifest](https://github.com/apple-oss-distributions/distribution-iOS/blob/f92ef8bfffdb54c4aa4709717e3609f1647f59ed/release.json)
 does not publish these families. The public macOS pins are source inputs, not
-proof of compatibility with the stripped iPadOS binaries.
+proof of compatibility with the stripped iOS or iPadOS binaries.
 
 From UniXNU, with a prepared kernel tree, clean source checkouts at the profile
-pins and extracted Novatek firmware in the device cache, run:
+pins and extracted Novatek firmware in the device cache, run the reference builder:
 
 ```sh
 python3 scripts/build-sheng-source-drivers.py \
-  --tree out/sheng/ipados-26.5.2-23F84/sheng_ipados26/tree \
-  --device ../UniXNU-sheng \
+  --tree /path/to/resolved/tree \
+  --device /path/to/device \
   --storage-source out/driver-sources/IOStorageFamily \
   --hid-source out/driver-sources/IOHIDFamily \
   --with-storage-family
@@ -508,7 +499,7 @@ recorded and do not become errors. The input transport archive includes board
 touch/buttons, GENI SPI, Novatek protocol/contact processing and firmware,
 without requiring the legacy display builder. HID uses `IOHIDDevice.h` and
 `kIOHIDReportTypeInput`; this source mode does not install the Darwin 23 virtual
-table edge-event patch. The original HID builder rejects arm64e/iOS 26.
+table edge-event patch. The original HID builder rejects arm64e targets.
 
 These are relocatable archives, not a boot image. The report keeps
 `link_qualified`, `runtime_qualified` and `edge_gestures_qualified` false.

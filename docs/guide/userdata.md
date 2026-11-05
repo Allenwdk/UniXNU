@@ -2,7 +2,7 @@
 
 The userdata image supplies the root file system to XNU. It holds the unchanged `OS` and `Cryptex1,SystemOS` disk images from the target IPSW behind a manifest that the kernel reads.
 
-Prepare the selected IPSW and the device GPT values. On Linux, install the [Linux toolchain](/guide/requirements#linux), which provides `lzfse`. Growing the Data seed (step 4) needs macOS `hdiutil` and `diskutil`. AEA encrypted images, such as those of iPadOS 26, need macOS `aea` and the `ipsw` tool. Select the device and save local inputs using [Build and boot](/building) first.
+Prepare the selected IPSW and the device GPT values. On Linux, install the [Linux toolchain](/guide/requirements#linux), which provides `lzfse`. Growing the Data seed (step 4) needs macOS `hdiutil` and `diskutil`. AEA encrypted images, such as those of iOS and iPadOS 27, need macOS `aea` and the `ipsw` tool. Select the device and save local inputs using [Build and boot](/building) first.
 
 ## 1. Check partition geometry {#partition}
 
@@ -65,7 +65,7 @@ The writable Data volume comes from the Data ramdisk seed in the payload. The se
 ./unixnu build payload --data-ramdisk data.img
 ```
 
-For sheng's persistent-store layout, the macOS growth tool can resize a seed:
+On macOS, resize a seed to fit the selected persistent-store layout:
 
 ```sh
 python3 scripts/seed-data-grow.py --gib 8 /path/to/data.dbr /path/to/data-grow.dbr

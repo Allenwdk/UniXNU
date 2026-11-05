@@ -15,7 +15,7 @@
 组件目录记录实现范围、硬件与 OS 要求、板级依赖、源码版本、构建阶段、输出和运行时标识符。所选配置按依赖顺序运行构建命令。
 
 ```sh
-./unixnu build kernel -D ../UniXNU-sheng
+./unixnu build kernel -D /path/to/device
 ```
 
 [组件目录](/zh/reference/components)
@@ -27,3 +27,9 @@
 CP fence 中断可唤醒显示工作循环重查 GPU fence。保留定时器兜底、表面复核和 latch 后退休。
 
 fence 中断提交合并的内核回调，由显示工作循环的 gate 串行处理回调、定时器与停用。实际执行过 IRQ 重查后，兜底定时器才从 200 µs 调整为 500 µs。
+
+
+
+帧诊断保留分配、命令、完成处理及 GPU、显示时间线，像素抓取关闭。使用方法见 [GPU 帧诊断](/zh/porting/gpu-diagnostics)。
+
+帧诊断从已准备好的直接显示槽位读取物理地址。验证阶段尚未映射时记录零地址，提交切换时补充映射地址。诊断观察代码不准备描述符，也不查询其物理段。
