@@ -83,3 +83,5 @@ The C352 non-fetch ROAA experiment was withdrawn after icon/rendering regression
 The Uke integration includes upstream iconservicesagent device/queue/completion records in mode4. CP preemption completion runs in the board thread call, and the waiting-stack sampler checks thread state and stack bounds before accessing saved registers. Hardware qualification is pending.
 
 Uke now stages upstream sheng iconservicesagent environment policy (FORCE_SOFTWARE_RENDERER=0, CI_ENABLE_METAL_GPU=0) through a signed owner launchd cache and the existing read-only union mount. Original service fields and loader/signature checks remain. Host cache semantics and page hashes pass; private libxpc consumption, boot and pixels remain pending on candidate209862415C7884EC.
+
+Uke modes2/4 now scope per-pass GPU stamps to backboardd, the only process exporting that ring. Icon device/queue/eight-work records and full mode1 diagnostics remain. This removes unused diagnostic writes; hardware speedup remains pending.
