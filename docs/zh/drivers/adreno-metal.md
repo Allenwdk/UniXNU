@@ -87,3 +87,9 @@ Uke已将上游sheng图标服务环境（FORCE_SOFTWARE_RENDERER=0、CI_ENABLE_M
 Uke模式2/4的逐pass GPU时间戳现仅在真正导出pass ring的backboardd启用；图标设备/队列/首八次工作记录及模式1全量诊断保留。仅移除未消费的诊断GPU写入，实际收益待真机。
 
 逐pass reader按19.2MHz商/余数精确换算；旧整数52ns的pass时间需625/624校正后才能与内核整job对齐。前端24/25由writer读取既有拆分/纹理复制累计计数，26标记精确时钟。未改变渲染，不据此宣称提速；26 exact记录不重复校正。
+
+## Uke 上游同步（2026-11-07）
+
+Uke 集成上游 AdrenoMetal main `6d7f734` 与 metal2vulkan `963f0e64f103d2e682cd0cc454a8fe50f52c8cbb`。上游重基后保留25项补丁，Uke另保留受限开关控制的 `0031-defer-fullscreen-memoryless-pass.patch` 实验。Core Image 原结果为空时的定向重试和 Uke 诊断模式保留。
+
+`sheng-metal-flow=1` 启用 worker 转换、commit 线程提交与管线记录后台预热；默认关闭。显式 `=0`/`=1` 均记录变化的 FL 计数。Uke 尚未真机验收这些路径。旧 translator 缓存保留供回退；translator 与补丁树变化会改变 runtime 缓存身份。

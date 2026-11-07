@@ -87,3 +87,9 @@ Uke now stages upstream sheng iconservicesagent environment policy (FORCE_SOFTWA
 Uke modes2/4 now scope per-pass GPU stamps to backboardd, the only process exporting that ring. Icon device/queue/eight-work records and full mode1 diagnostics remain. This removes unused diagnostic writes; hardware speedup remains pending.
 
 The per-pass reader now converts19.2MHz ticks using exact quotient/remainder arithmetic. Frame records24/25 snapshot existing pass split and host texture copy counters from the writer;26 identifies the clock. No rendering change or speedup is inferred. Legacy integer52ns pass times must be scaled625/624 before joining kernel ticks.
+
+## Uke upstream synchronization (2026-11-07)
+
+The Uke integration includes upstream AdrenoMetal main `6d7f734` and metal2vulkan `963f0e64f103d2e682cd0cc454a8fe50f52c8cbb`. The rebased upstream series contains 25 patches; Uke retains `0031-defer-fullscreen-memoryless-pass.patch` as a scoped opt-in experiment. Core Image's original-nil retry and Uke diagnostic modes remain.
+
+`sheng-metal-flow=1` enables worker lowering, commit-thread submission and background pipeline-record warming. The default is off; `=0` and `=1` both enable changing FL count logs. Uke has not qualified these paths on hardware. The old translator cache remains available for rollback; the runtime identity changes with the translator and patch tree.
