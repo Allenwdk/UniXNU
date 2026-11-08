@@ -86,6 +86,16 @@ def main():
             parser.error(f'no policy directory for {build_id}: pass --policy-dir or ship scripts/policies/*{build_id}')
         policies = shipped[0]
     policies = policies.resolve()
+    required_policy_files = [
+        policies / name / filename
+        for name in ('OS', 'SystemOS')
+        for filename in ('manifest.bin', 'trusted-key.bin', 'verification.json')
+    ]
+    missing_policy_files = [str(path) for path in required_policy_files if not path.is_file()]
+    if missing_policy_files:
+        parser.error('incomplete signed root-policy inputs: ' + ', '.join(missing_policy_files) +
+                     '; restore the original verified OS/SystemOS policies with their existing owner anchor '
+                     'under device scripts/policies/<profile>/, or pass --policy-dir')
     # The resolved build tree links the device package as kits/<board.kit>, while an
     # explicit device repository keeps package/ and drivers/ side by side. The assembled tree has no
     # board.toml: find the linked kit by the runtime sources it must contain instead of assuming sheng.
