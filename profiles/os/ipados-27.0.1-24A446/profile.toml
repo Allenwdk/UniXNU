@@ -66,6 +66,23 @@ regression_policy = "scripts/policies/ipados-27.0.1-24A446/prelink-regression.js
 "amfi-only-platform-code" = 1
 
 
+# Product identity from the original 24A446 DeviceTree.j820ap.im4p.
+# Keep /chosen/display-scale and the board's display mode unchanged.
+[adt.product.string]
+product-name = "iPad Pro 13-inch (M5)"
+product-description = "iPad Pro 13-inch (M5)"
+artwork-device-idiom = "pad"
+artwork-display-gamut = "P3"
+compatible-device-fallback = "iPad16,5"
+
+[adt.product.u32]
+artwork-device-subtype = 2752
+artwork-scale-factor = 2
+
+[adt.product.bytes]
+product-id = "fcafc1ef9614d7ffe41106f7b7a33e9194429fdf"
+
+
 # Apple sources of the macOS 26.5 release that pairs with xnu-12377.121.6.
 # Public source interfaces; these pins do not qualify the stripped iPadOS family ABI.
 [[source]]
