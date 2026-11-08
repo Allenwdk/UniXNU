@@ -60,3 +60,6 @@
 [submodule "drivers/QcomBaseband"]
 	path = drivers/QcomBaseband
 	url = https://github.com/UniXNU/QcomBaseband.git
+[submodule "drivers/Ath12kWifi"]
+	path = drivers/Ath12kWifi
+	url = https://github.com/UniXNU/Ath12kWifi.git
