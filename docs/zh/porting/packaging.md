@@ -8,7 +8,7 @@
 1. **一条命令。** `scripts/package.sh` 按下列固定步骤运行，写出产物和清单。第一个失败的步骤会终止运行并指出步骤名。
 2. **配置来自 TOML。** 脚本和 `unixnu release` 中不出现设备名、路径、尺寸、内核参数或版本。取值读自 `board.toml`（以及它选择的配置文件和 feeds）。缺少的值先加进 `board.toml`。
 3. **脚本是固定的。** UniXNU 仓库的 `templates/package.sh` 是唯一来源，设备仓库原样复制。脚本自己读取的板级值只有 `[package] unixnu`，即 UniXNU 检出的路径。
-4. **构建目标是参数。** 单一分支服务所有 OS 配置。`--os 17|27|PROFILE` 为本次运行选择配置。随配置不同的取值写在 `board.toml` 的 `[os_overrides."<profile>"]` 下；不按目标建分支，也不为第二个目标另存驱动、补丁或优化。
+4. **构建目标是参数。** 单一分支服务所有 OS 配置。`--os 17|27|macos-27|PROFILE` 为本次运行选择配置。随配置不同的取值写在 `board.toml` 的 `[os_overrides."<profile>"]` 下；不按目标建分支，也不为第二个目标另存驱动、补丁或优化。
 5. **源码已固定。** `deps` 只获取 `feeds.toml`、`.gitmodules` 和 `unixnu.lock` 指定的版本。
 
 ## 步骤
@@ -27,7 +27,7 @@
 ## 接口
 
 ```sh
-scripts/package.sh [--os 17|27|PROFILE] [--no-deps] [--check] [unixnu 选项]
+scripts/package.sh [--os 17|27|macos-27|PROFILE] [--no-deps] [--check] [unixnu 选项]
 ```
 
 | 选项 | 含义 |
@@ -68,6 +68,7 @@ unixnu = "../UniXNU"
 
 [package.defconfig]
 "ipados-27.0.1-24A446" = "<device>_ipados27_defconfig"
+"macos-27.3-26C5035r" = "<device>_macos_defconfig"
 
 [os_overrides."ipados-17.7.11-21H461".kernel]
 archives = [ ... ]
@@ -119,6 +120,10 @@ GPU 和音频更新放在 addon 中，不修改 seed。构建会检查 APFS 卷 
 本次生成的内核配置，并把输入 SHA-256 写入打包清单。只打包 payload 时，若 UUID
 与内核配置不同则报错，要求重新编译内核。
 
+内核插件写入器显式设置替换后的文件长度与权限，较短的更新会截掉旧尾巴，内容
+相同的文件跳过写入。`python3 scripts/check-addon-writer.py` 使用 VFS 模拟及
+ASan/UBSan 检查该路径。
+
 **首次安装**可用 `scripts/package.sh --os 27 --init-data`，从 IPSW 的初始
 `private/var` 生成 APFS seed，采用设备配置的 `data_gib` 和 Setup 偏好，并把新
 UUID 写入内核配置。该命令只写本机构建文件，不擦除或刷写设备。此后应一直保留
@@ -128,7 +133,9 @@ UUID 写入内核配置。该命令只写本机构建文件，不擦除或刷写
 Actions 会恢复安装对应的 seed 缓存，也支持原 seed 的下载 URL 加必填 SHA-256。
 缓存丢失时默认停止，只有明确选择 `init_data` 才会新建。工作流另提供保留一天的
 seed 备份下载；请自行长期保存，Actions 缓存不能作为永久备份。当前设备的原 seed
-无法从官方固件包恢复。自动生成运行输入目前只适用于 iPadOS 27。
+无法从官方固件包恢复。macOS profile 使用同一个 runtime 表，
+`target = "macos27"`。它的 seed 由构建打印的命令以 root 身份制作，不使用 `--init-data`，
+见 [macOS 配置](/zh/porting/macos#data-seed)。
 
 要复现已有镜像，可同时指定 `--gpu-addon FILE` 和配套的
 `--owner-trust-cache FILE`；省略二者则从源码构建。生成的二进制和 seed 不提交 Git。

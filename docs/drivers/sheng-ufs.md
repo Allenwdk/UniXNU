@@ -5,8 +5,8 @@ Start with the [adaptation procedure](/porting/ufs) for board inputs, source cha
 ShengUfs provides the SM8550 UFS storage path. It owns the host
 controller, SMMU mappings, command queues, and root reads. Its board integration
 includes clock resources and the persistent Data and log regions. On request it
-also gives the display bank (`sheng-dpu-scanout`) and the WiFi endpoint
-(`sheng-wifi=2` or more) stage 1 windows; both are off by default.
+also gives the display bank (`dpu-scanout`) and the WiFi endpoint
+(`wifi=2` or more) stage 1 windows; both are off by default.
 
 | Field | Value |
 | --- | --- |
@@ -30,6 +30,15 @@ The device repository supplies ShengUfs as a submodule. Follow the
 DMA, partition and completion details in the [storage record](/devices/sheng#storage).
 
 For the arm64e public-source build path and its current linking/runtime limits, see [public-source driver builds](/porting/migration#source-drivers). Historical iOS 17 device results do not qualify this path.
+
+## Command path
+
+Up to 32 commands run at once, one per command slot. The request list sits on a
+write-combined page of its own. Completion uses the controller interrupt with
+hybrid polling: a wait polls for 200 microseconds, then sleeps. Page-aligned
+buffers are transferred by zero-copy DMA of up to 1 MiB per command. On the
+reference board every read test matches or exceeds the mainline Linux driver;
+see [UFS performance](/porting/ufs#performance).
 
 ## Wi-Fi DMA window
 

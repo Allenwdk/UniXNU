@@ -55,7 +55,7 @@ payload 步骤运行 `dtc`，在解析后的输出目录写入 `device-tree/hard
 | 属性 | 输入 | ADT 表示 |
 | --- | --- | --- |
 | `compatible`, `device_type`, `reg-names`, `interrupt-names`, `clock-names`, `method` | NUL 结尾的字符串 | 字符串字节 |
-| `phandle`, `linux,phandle`, `#interrupt-cells`, `#iommu-cells`, `clock-frequency`, `timebase-frequency` | 一个大端 cell | 小端 u32 |
+| `phandle`, `linux,phandle`, `#interrupt-cells`, `#iommu-cells`, `clock-frequency`, `timebase-frequency`, `transport-encoding`, `transport-speed` | 一个大端 cell | 小端 u32 |
 | `redistributor-stride` | 一或两个 cell | 小端 u64 |
 | `interrupt-controller`, `dma-coherent` | 空属性 | 空属性 |
 | `reg` | 按父节点 cell 宽度编码的地址和长度 | 转换后的物理 u64 地址与长度对 |
@@ -298,7 +298,7 @@ QEMU 生成器是最小完整示例。真实板级的数值记录在[设备](/zh
 ## 下一步
 
 - [启动负载](/zh/concepts/payload)
-- [设备树匹配](/zh/drivers/device-tree-matching)
+- [provider 匹配](/zh/porting/driver-development#matching)
 - [bring-up 顺序](/zh/porting/bring-up)
 
 ## UniXNU 驱动默认项

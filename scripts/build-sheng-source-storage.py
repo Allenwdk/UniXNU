@@ -142,17 +142,19 @@ def main():
     # The runtime requires OS and SystemOS. Header-only bundles keep both
     # policies small; their complete tables can live in userdata objects.
     tables_in_userdata = os.environ.get('XNU_SOURCE_STORAGE_TABLES', '') == 'userdata'
-    selected = [name.strip() for name in (os.environ.get('UNIXNU_SOURCE_STORAGE_POLICIES') or os.environ.get('XNU_SOURCE_STORAGE_POLICIES', 'OS,SystemOS')).split(',')
-                if name.strip() in ('OS', 'SystemOS')]
-    if len(selected) != 2 or set(selected) != {'OS', 'SystemOS'}:
-        parser.error('ShengUfs root publication requires both OS and SystemOS policies; use header-only tables in userdata when payload space is limited')
+    # The App cryptex policy is optional for macOS. The two root policies are required.
+    default_policies = 'OS,SystemOS,App' if (policies / 'App').is_dir() else 'OS,SystemOS'
+    selected = [name.strip() for name in (os.environ.get('UNIXNU_SOURCE_STORAGE_POLICIES') or os.environ.get('XNU_SOURCE_STORAGE_POLICIES', default_policies)).split(',')
+                if name.strip() in ('OS', 'SystemOS', 'App')]
+    if not {'OS', 'SystemOS'} <= set(selected) or len(selected) != len(set(selected)):
+        parser.error('ShengUfs root publication requires exactly one OS and SystemOS policy; use header-only tables in userdata when payload space is limited')
     manifest_paths = [policies / name / 'manifest.bin' for name in selected]
     key = (policies / f'{selected[0]}/trusted-key.bin').read_bytes()
     if len(key) != 395 or any(key != (policies / f'{name}/trusted-key.bin').read_bytes() for name in selected):
         parser.error('All selected policies must share the same complete explicit owner anchor')
     manifests = []
     expected = {}
-    for name, prefix in (('OS', 'UNIXNU_ROOT_OS'), ('SystemOS', 'UNIXNU_ROOT_SYSTEMOS')):
+    for name, prefix in (('OS', 'UNIXNU_ROOT_OS'), ('SystemOS', 'UNIXNU_ROOT_SYSTEMOS'), ('App', 'UNIXNU_ROOT_APP')):
         digest, identity = os.environ.get(prefix + '_SHA256'), os.environ.get(prefix + '_UUID')
         if name in selected and not (digest and identity):
             parser.error(f'the OS profile has no [root] {name.lower()}_image_sha256 and {name.lower()}_volume_uuid')
@@ -222,13 +224,23 @@ OSDefineOperatorMethods(IOBlockStorageDevice)
     c = json.loads((obj / 'osfmk/DEVELOPMENT/startup.o.json').read_text().strip().rstrip(','))
     # BSD sources (sys/proc.h, the system calls) take kern_exec's flags.
     bsd = json.loads((obj / 'bsd/DEVELOPMENT/kern_exec.o.json').read_text().strip().rstrip(','))
-    bsd_sources = {'BootWatchdogPolicy.c', 'BootDiagExport.c', 'CrashLogProbe.c', 'WifiFirmware.c'}
+    bsd_sources = {'BootWatchdogPolicy.c', 'BootDiagExport.c', 'CrashLogProbe.c', 'WifiFirmware.c', 'BluetoothFirmware.c'}
     includes = ['-I', str(out / 'headers/include'), '-I', str(ROOT / 'kits/VerifiedRoot/include'),
                 '-I', str(ROOT / 'drivers/VirtioMmioBlock'), '-I', str(tree / '.cache/xnu-work/osfmk')]
     flags = ['-DNATIVE_UFS_SOURCE_API=1', '-DNATIVE_VERIFIED_BLOCK=1',
              '-DNATIVE_VERIFIED_BLOCK_MULTI_POLICY=1', '-DNATIVE_VERIFIED_POLICY_HANDOFF=1']
     if uke_log is not None:
         flags.append('-DUKE_SOURCE_STORAGE_LOG=1')
+
+    if os.environ.get('UNIXNU_XNU_TARGET') == 'macosx':
+        # The kernel keeps the iOS target triple, so TargetConditionals gives TARGET_OS_OSX 0. The macOS
+        # IOStorageFamily has the TARGET_OS_OSX members (doLockUnlockMedia, reportLockability,
+        # reportPollRequirements and the IOStorage.h fields); without them every later IOBlockStorageDevice
+        # vtable slot sits 3 slots early and the original IOBlockStorageDriver fails PAC on its calls.
+        osx = out / 'macos-target.h'
+        osx.write_text('/* Generated: the macOS IOStorageFamily ABI on the iOS-triple kernel. */\n'
+                       '#include <TargetConditionals.h>\n#undef TARGET_OS_OSX\n#define TARGET_OS_OSX 1\n')
+        flags += ['-include', str(osx)]
     # The RAM disk carries the Data seed; like NativeUfs its class registers with the source storage classes.
     sources = [base, device / 'drivers/ShengUfs/NativeUfs.cpp', ROOT / 'drivers/RamBlock/NativeRamBlock.cpp',
                device_source('SourceStorage.cpp'), device_source('SourceRootPolicies.cpp'),
@@ -242,10 +254,10 @@ OSDefineOperatorMethods(IOBlockStorageDevice)
         # The source path does not run BootProgress's process worker. Reuse its
         # native capture code in a separate worker owned by the UFS log.
         flags.append('-DNATIVE_BOOT_PROCESS_CAPTURE=1')
-        # BootProcessProbe.c and BootUiTraceProbe.c live in the display archive; only the worker that the
-        # source path does not run is added here (a device that has it).
+        # Uke's display archive owns both probes. Other boards compile the available probes here.
+        probes = ('BootProcessWorker.c',) if uke_log is not None else ('BootProcessProbe.c', 'BootUiTraceProbe.c', 'BootProcessWorker.c')
         sources += [source for source in
-                    (optional_source(name) for name in ('BootProcessWorker.c',))
+                    (optional_source(name) for name in probes)
                     if source is not None]
         # The launchd job policy (sheng-disable-watchdogd, sheng-lite, sheng-disable-jobs, sheng-setup) that BootProgress carries on
         # iPadOS 17; the kernel runs it after the Data mount.
@@ -253,7 +265,7 @@ OSDefineOperatorMethods(IOBlockStorageDevice)
         if policy is not None:
             sources.append(policy)
         # The diagnostic file export (sheng-diag-export): the unified log, crash reports and a screenshot, read through the VFS.
-        for name in ('BootDiagExport.c', 'WifiFirmware.c'):
+        for name in ('BootDiagExport.c', 'WifiFirmware.c', 'BluetoothFirmware.c'):
             export = optional_source(name)
             if export is not None:
                 sources.append(export)

@@ -39,6 +39,10 @@ Supported path keys are `device`, `out`, `uefi`, `edk2`, `kernelcache`, `kernel`
 
 On Linux, optional `[build].iig` (or `UNIXNU_IIG`) selects a local IIG executable for kernel generation. `scripts/linux/setup-toolchain.py` applies the portable generator PAC-cast patch.
 
+The device enables the [AppSync adapter](/concepts/security#user-application-installation)
+with `[payload.runtime] appsync = true` and the matching kernel patches. It
+applies to all user application bundles without per-app build inputs.
+
 ## Profile fields
 
 | Table | Key | Meaning |
@@ -55,6 +59,12 @@ Layers apply as ARM64, SoC, OS, device. Tables merge by key; arrays replace.
 The selected defconfig applies after `config_fragments`. File prefixes are
 `arch:`, `soc:`, `os:`, and `device:`. Series entries also accept
 `component:<ID>/path`. `unixnu status --json` reports the effective configuration.
+
+`board.toml` `[os_overrides."<profile>"]` holds the board values that differ for one OS profile. The
+table of the selected profile merges over the board, and the others are dropped. Its `remove` array
+lists dotted keys, such as `payload.runtime.appsync`, that are deleted after the merge. A removed key
+is gone from the merged profile and board values together, so a board list that would replace a
+profile list belongs in the override of the profile that uses it.
 
 ## board.toml
 
@@ -183,6 +193,24 @@ Types are `s` for string, `x` for hex cells, `i` for decimal cells, `u` for unsi
 | `packed_data_ramdisk` | boolean | Use the packed Data format |
 | `ipad_identity` | boolean | Write the Apple device identity properties |
 | `unique_chip_id` | string | `required` when the seed is mandatory |
+
+### [payload.runtime]
+
+Runtime inputs prepared before the kernel build. The Data seed's volume UUID is written to
+`CONFIG_XNU_OWNER_DATA_VOLUME_UUID`.
+
+| Key | Type | Meaning |
+| --- | --- | --- |
+| `tool` | string | Runtime builder in the build tree |
+| `target` | string | Userspace target, such as `ios27` or `macos27` |
+| `build` | string | OS build the inputs were inspected against |
+| `data_gib` | integer | Size of a new Data seed |
+| `skip_setup` | boolean | Mark Setup as done in a new Data seed |
+| `data_seed_tool` | string | Seed script that runs as root. A missing seed stops the build with the command to run |
+| `gpu_addon` | boolean | Build the GPU addon (default `true`). With `false`, the trust bundle holds the original caches only |
+| `boot_shims` | boolean | Add the owner `apfs_boot_util` to the addon, for macOS with `apfs-boot-shim=1` |
+| `trust_components` | array | IPSW trust cache components bundled for the owner trust cache |
+| `wallpapers`, `audio_tool`, `wifi_tool`, `bluetooth_tool`, `appsync` | | Optional userspace layers added to the addon |
 
 ## defconfig
 

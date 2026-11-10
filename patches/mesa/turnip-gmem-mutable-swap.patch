@@ -704,7 +704,7 @@ index 0209408..c12bd00 100644
 +static struct tu_darwin_submit_rec darwin_submit_ring[512];
 +static uint32_t darwin_submit_seq;
 +
-+/* The host's diagnostics switch (SHENG_DIAG, set by the plugin from sheng-diag=1): without it no submission is kept in the ring. */
++/* The host's diagnostics switch (SHENG_DIAG, set by the plugin from diag=1): without it no submission is kept in the ring. */
 +static bool
 +darwin_submit_trace_on(void)
 +{

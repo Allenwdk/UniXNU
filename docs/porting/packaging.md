@@ -17,7 +17,7 @@ same script text. A board changes `board.toml`, never the script.
    only source. A device repository copies it unchanged. The one board value it
    reads itself is `[package] unixnu`, the path of the UniXNU checkout.
 4. **The build target is a parameter.** One branch serves every OS profile.
-   `--os 17|27|PROFILE` selects the profile for the run. The values that differ
+   `--os 17|27|macos-27|PROFILE` selects the profile for the run. The values that differ
    per profile sit in `board.toml` under `[os_overrides."<profile>"]`; there is no
    branch and no second copy of a driver, patch or optimization per target.
 5. **Sources are pinned.** `deps` fetches only the revisions that `feeds.toml`,
@@ -39,7 +39,7 @@ same script text. A board changes `board.toml`, never the script.
 ## Interface
 
 ```sh
-scripts/package.sh [--os 17|27|PROFILE] [--no-deps] [--check] [unixnu options]
+scripts/package.sh [--os 17|27|macos-27|PROFILE] [--no-deps] [--check] [unixnu options]
 ```
 
 | Option | Meaning |
@@ -82,6 +82,7 @@ unixnu = "../UniXNU"
 
 [package.defconfig]
 "ipados-27.0.1-24A446" = "<device>_ipados27_defconfig"
+"macos-27.3-26C5035r" = "<device>_macos_defconfig"
 
 [os_overrides."ipados-17.7.11-21H461".kernel]
 archives = [ ... ]
@@ -140,6 +141,11 @@ that seed. The runtime step checks its APFS volume UUID against the generated
 kernel configuration and records the input SHA-256 values in the package manifest.
 A payload-only build refuses a different Data UUID and asks for a kernel rebuild.
 
+The kernel addon writer sets the replacement file size and mode explicitly.
+Shorter updates remove old tails; identical files skip writes.
+`python3 scripts/check-addon-writer.py` checks this path with simulated VFS
+operations and ASan/UBSan.
+
 For a **first installation**, `scripts/package.sh --os 27 --init-data` creates an
 APFS seed from the IPSW's initial `private/var`, uses the board's `data_gib` and
 Setup preferences, and binds the new UUID into the kernel configuration. This
@@ -153,7 +159,9 @@ an original seed URL with a required SHA-256. A missing cache stops the build
 unless `init_data` is explicitly selected. The workflow uploads a separate seed
 backup with one-day retention. Download and retain it: Actions caches are not a
 permanent backup. The current device's seed is not supplied by either firmware
-archive. Automatic runtime generation currently targets the iPadOS 27 profile.
+archive. The macOS profile uses the same
+runtime table with `target = "macos27"`. Its seed is made as root with the
+command the build prints, not with `--init-data`; see [macOS profile](/porting/macos#data-seed).
 
 `--gpu-addon FILE` and its matching `--owner-trust-cache FILE` remain available
 for reproducing an existing image. Omit both to compile the addon and generate
