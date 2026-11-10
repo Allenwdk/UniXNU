@@ -84,3 +84,9 @@ uke的`sheng-diag=2 sheng-gpu-trace=2`保留原21个BR计数，以event69追加�
 
 
 帧诊断保留分配、命令、完成处理及 GPU、显示时间线，像素抓取关闭。使用方法见 [GPU 帧诊断](/zh/porting/gpu-diagnostics)。
+
+## 完成通知与内存所有权
+
+板级IRQ处理将已确认的RBBM状态交给`native_adreno_gpu_interrupt`。驱动完成线程按ring回收围栏、推进切换并唤醒对应等待者；周期hang检查覆盖漏中断，不能替代板级中断接线。
+
+板级可在GPU发布前通过`native_adreno_pool_add`注册加载器的`darwinboot-memory-outside`范围。输入必须来自最终固件内存图、位于XNU窗口外的conventional内存，并排除固件和设备保留区。池优先提供write-combined system BO，不足时保留原descriptor回退；视图保留grant，默认退役策略不复用已暴露给客户端的页。固件、ADT和板级probe需要成套构建。

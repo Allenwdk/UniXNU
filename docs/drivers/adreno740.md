@@ -97,3 +97,9 @@ next investigation; they are not exclusive pass times or a proven speedup.
 
 
 Frame diagnostics retain allocation, command, completion and GPU/display timing. Pixel capture is disabled. See [GPU frame diagnostics](/porting/gpu-diagnostics).
+
+## Completion and memory ownership
+
+The board IRQ handler passes its acknowledged RBBM status to `native_adreno_gpu_interrupt`. The driver's completion pass retires per-ring fences, drives pending switches and wakes the matching waiters. The periodic hang check covers a missed IRQ; it does not replace board interrupt delivery.
+
+A board may register the loader's `darwinboot-memory-outside` ranges with `native_adreno_pool_add` before GPU publication. The ranges must be final-map conventional memory outside XNU's owned window, excluding all firmware/device reservations. The pool supplies write-combined system BOs before the ordinary descriptor fallback; views retain their grants and the default retirement policy prevents reuse of pages exposed to a client. Firmware, ADT and board probe must agree on this handoff.
