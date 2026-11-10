@@ -34,7 +34,9 @@ def build(ctx, modules, uefi, edk2, target='DEBUG'):
         parts = shlex.split(entry)
         script = Path(parts[0]) if Path(parts[0]).is_absolute() else ctx.tree / parts[0]
         run(['python3', script, *parts[1:]], cwd=ctx.tree,
-            env=dict(os.environ, UNIXNU_UEFI=str(uefi), UNIXNU_DEVICE=str(ctx.device)), log_file=ctx.logs / 'firmware-preflight.log')
+            env=dict(os.environ, UNIXNU_UEFI=str(uefi), UNIXNU_DEVICE=str(ctx.device),
+                     UNIXNU_DTB=str(ctx.option('dtb', 'UNIXNU_DTB') or (ctx.work / 'device-tree/hardware.dtb'))),
+            log_file=ctx.logs / 'firmware-preflight.log')
     defines = {'FD_BASE': hex(base), 'FD_SIZE': hex(size), 'FD_BLOCKS': str(size // 0x1000)}
     defines.update({key: str(value) for key, value in fw.get('defines', {}).items()})
     fields = {'uefi': str(uefi), 'edk2': str(edk2), 'tree': str(ctx.tree)}
