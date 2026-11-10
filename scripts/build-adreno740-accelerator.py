@@ -78,6 +78,12 @@ while i < len(args):
 cmd += ['-Wall', '-Wextra', '-Werror', '-Wno-unused-parameter', '-Wno-unnecessary-virtual-specifier', '-Wno-c99-designator',
         '-Wno-reorder-init-list', '-Wno-deprecated-enum-enum-conversion', '-Wno-overloaded-virtual',
         '-I', str(ROOT / '.cache/xnu-work/osfmk')]
+# The accepted iPadOS frontend header predates the upstream base-name macro.
+# Its audited class is still IOAcceleratorES; supply the macro without changing
+# the signed Metal addon or replacing its ABI declaration.
+abi_header = ROOT / 'drivers/AdrenoMetal/OriginalAcceleratorABI.h'
+if BUILD == '24A446' and 'NATIVE_ACCELERATOR_BASE' not in abi_header.read_text():
+    cmd.append('-DNATIVE_ACCELERATOR_BASE=IOAcceleratorES')
 subprocess.run(cmd, cwd=record['directory'], check=True)
 
 raw = obj.read_bytes()
