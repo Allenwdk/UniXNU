@@ -288,6 +288,8 @@ def platform_node(name, table):
 
 
 def generate(dtb, config, *, unique_chip_id=None, data=False, trust=False, addon=False, root_policies=False):
+    from .driver_args import from_config
+    from_config(config)  # Reject invalid defaults in both CLI and payload generation.
     root = read_fdt(Path(dtb).read_bytes())
     entries = list(root.walk())
     handles = {}

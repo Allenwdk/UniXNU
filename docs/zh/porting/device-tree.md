@@ -300,3 +300,7 @@ QEMU 生成器是最小完整示例。真实板级的数值记录在[设备](/zh
 - [启动负载](/zh/concepts/payload)
 - [设备树匹配](/zh/drivers/device-tree-matching)
 - [bring-up 顺序](/zh/porting/bring-up)
+
+## UniXNU 驱动默认项
+
+实现匹配读取能力的设备内核可使用`[adt.chosen.string] unixnu-driver-args`保存限定驱动键。该属性独立于DarwinBoot的命令行；当前652B命令行与387B属性共同保留uke的输入/显示配置。命令行覆盖ADT，之后才使用内核内置默认。构建器验证白名单/重复键/u32范围/4096B上限，并拒绝不含`unixnu-driver-args-v1`读取能力的旧内核。原XNU参数保持原语义；这不是对所有内核自动启用的通用boot-args替代。

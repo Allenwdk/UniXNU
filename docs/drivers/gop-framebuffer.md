@@ -33,3 +33,5 @@ Fence notifications queue a coalesced thread call. The display gate serializes d
 Frame diagnostics retain allocation, command, completion and GPU/display timing. Pixel capture is disabled. See [GPU frame diagnostics](/porting/gpu-diagnostics).
 
 Frame diagnostics read physical addresses from prepared direct-display slots. Validation reports zero until mapping, and the flip records the mapped address. Diagnostic observers do not prepare descriptors or query their physical segments.
+
+On the direct path, an all-layers-disabled swap fills the GOP buffer before selecting it for scanout. The previous direct slot remains pinned until the DPU latches the new buffer. The blank completion notification follows the latch.

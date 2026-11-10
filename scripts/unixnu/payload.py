@@ -120,6 +120,9 @@ def build(ctx, kernel=None):
     names = {item.split('=', 1)[0] for item in extra}
     arguments = [item for item in spec.get('kernel_args', []) if item.split('=', 1)[0] not in names] + extra
     line = check_args(arguments)
+    from .driver_args import from_config, require_kernel_reader, report as driver_args_report
+    adt_driver_args = from_config(ctx.board)
+    require_kernel_reader(kernel.read_bytes(), adt_driver_args)
     log(f'kernel args: {line}')
     check_native_root(kernel, arguments, bool(ctx.board.get('adt', {}).get('defaults', {}).get('u32', {}).get('vmm-present')))
     owner_trust = getattr(args, 'owner_trust_cache', None)
@@ -278,6 +281,8 @@ def build(ctx, kernel=None):
                    'trust_cache_sha256': sha256_file(trust) if trust else None, 'gpu_addon_sha256': sha256_file(addon) if addon else None,
                    'data_ramdisk_sha256': sha256_file(data) if data else None, 'skip_setup': bool(getattr(args, 'skip_setup', False)), 'panic_screen': bool(spec.get('panic_screen')),
                    'payload_sha256': sha256_file(image), 'payload_bytes': image.stat().st_size, 'hardware_tested': False}
+    data_report.update(driver_args_report(line, adt_driver_args))
+    data_report['kernel_args_bytes'] = len(line.encode())
     compression = spec.get('compression', 'none')
     if compression not in ('none', 'uefi'):
         raise Error(f'unsupported payload compression: {compression}')
