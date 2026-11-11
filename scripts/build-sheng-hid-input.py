@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Qualify an owned offline HID source against the unchanged target IOHIDDevice."""
-import hashlib,json,struct,subprocess,sys
+import hashlib,json,os,struct,subprocess,sys
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1];OUT=ROOT/'build/sheng-hid-input';OUT.mkdir(exist_ok=True)
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -60,7 +60,8 @@ class IOGraphicsDevice;
             iig_includes.append(arguments[index]); index += 1
         else:
             index += 1
-    iig_command = ['xcrun', 'iig', '--def', str(hid_tree / 'HIDDriverKit/IOHIDDevice.iig'),
+    iig = os.environ.get('IIG')
+    iig_command = ([iig] if iig else ['xcrun', 'iig']) + ['--def', str(hid_tree / 'HIDDriverKit/IOHIDDevice.iig'),
                    '--header', str(driverkit / 'IOHIDDevice.h'),
                    '--impl', str(driverkit / 'IOHIDDevice.iig.cpp'), '--framework-name', 'HIDDriverKit',
                    '--', '-x', 'c++', '-std=gnu++2b', '-D__IIG=1', '-DDRIVERKIT_PRIVATE=1',
