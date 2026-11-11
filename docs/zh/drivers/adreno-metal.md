@@ -32,6 +32,8 @@ AdrenoMetal 通过 `MTLAddDevice` 发布 Metal 设备。metal2vulkan 将 AIR 翻
 
 Turnip 为每个渲染通道选择瓦片内存或系统内存，并发分箱默认打开。`tu-debug=<标志>` 为所有 Metal 进程设置 `TU_DEBUG`：`gmem` 让每个通道都在瓦片内存中渲染，`nocb` 关闭并发分箱。`tum=a` 每八秒在 Turnip 的选择和瓦片内存之间轮换，用于测量。
 
+Uke 的 iOS 构建默认使用 `nocb`，启用 `fb-bgra=1` 时使用 `sysmem,nocb`。可显式设置 `tu-debug=` 覆盖。
+
 同一进程的 Metal 逻辑队列共用一个 Vulkan 队列和内核队列。前端汇总存活队列的当前请求，采用其中最高的优先级；队列降级或销毁后撤回提升。getter 返回各队列自身的请求，setter 返回后端是否接受。内核根据任务的 GPU role 选择前台或后台优先级，策略不使用进程名。
 
 
