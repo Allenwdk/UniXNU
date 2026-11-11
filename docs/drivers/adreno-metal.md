@@ -35,7 +35,7 @@ Any value of `metal-flow=` logs the `FL` counts to os_log every ten seconds when
 
 Turnip chooses tile memory or system memory for each render pass, and concurrent binning is on. `tu-debug=<flags>` sets `TU_DEBUG` for every Metal process: `gmem` renders every pass in tile memory and `nocb` turns concurrent binning off. `tum=a` alternates between Turnip's choice and tile memory every eight seconds for measurement.
 
-The Uke iOS build defaults to `nocb`, or `sysmem,nocb` with `fb-bgra=1`. An explicit `tu-debug=` value overrides the board defaults.
+The Uke build uses Turnip render-mode selection and concurrent binning by default. The Uke addon stages an empty `tu_debug` to clear the override installed by earlier builds.
 
 Logical Metal queues share one Vulkan queue and kernel queue per process. The frontend forwards the most urgent **current** request among live queues. Lowering or destroying a queue removes its boost. Getters report each queue's own request; setters report backend acceptance. The kernel chooses foreground or background priority from the task's GPU role. Priority policy does not use process names.
 
