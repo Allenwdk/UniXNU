@@ -51,6 +51,10 @@ python3 scripts/check-native-metal-frontend-host.py
 
 正常构建应用记录在仓库中的翻译器、Turnip 补丁，并开启 Mesa 磁盘 shader cache。主机检查覆盖渲染像素、resolve、资源回收、swizzle、复制、回调、队列容量及优先级汇总。上机验证项目是并发客户端下的帧间隔和抢占行为。
 
+Turnip 顶点绑定使用可返回错误的命令子流分配，分配失败时记录原错误并停止写命令。`scripts/check-turnip-vertex-allocation.py` 对实际函数执行分配失败与成功对照。复用构建目录前核对 Meson 保存的源码路径，路径不同则拒绝构建，防止旧源码被标成新版本。
+
+`diag=1` 的恢复日志匹配运行时公开的 `Degradation::DeviceRecovered.code()`，包含完整前缀 `metal2vulkan-degrade-`。旧代资源拒绝同时保存首次设备失效的源码位置；这不改变恢复或资源生命周期。
+
 设备输入和打包方式见 [GPU 适配流程](/zh/porting/gpu)。
 
 帧诊断保留分配、命令、完成处理及 GPU、显示时间线，像素抓取关闭。使用方法见 [GPU 帧诊断](/zh/porting/gpu-diagnostics)。

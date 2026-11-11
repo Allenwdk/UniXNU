@@ -1,5 +1,9 @@
 # AdrenoMetal
 
+Turnip vertex binding checks command-substream allocation before writing packets. Allocation failures invalidate recording with the original error. `scripts/check-turnip-vertex-allocation.py` exercises the actual function with failing and successful allocation peers. Reused builds must have the selected source directory in Meson's source identity.
+
+With `diag=1`, recovery diagnostics match the runtime's public `Degradation::DeviceRecovered.code()`, including the `metal2vulkan-degrade-` prefix. Recovered-object refusals also preserve the first loss's source location. Recovery and resource lifetime are unchanged.
+
 AdrenoMetal publishes a Metal device through `MTLAddDevice`. It translates AIR through metal2vulkan, compiles SPIR-V with Turnip, and submits work to [Adreno740](/drivers/adreno740). Firmware, power votes and display integration come from the board.
 
 ## Rendering and interfaces

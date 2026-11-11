@@ -33,6 +33,16 @@ pins = json.loads((ROOT / 'scripts/data/adreno-compiler-inputs.json').read_text(
 if read(['git', '-C', SOURCE, 'rev-parse', 'HEAD']) != pins['mesa']['commit']:
     sys.exit('Pinned Mesa source differs')
 validate_recorded_patches(ROOT, SOURCE, pins)
+# Meson keeps its original source directory when `configure` is used. A changed
+# mesa-work symlink must not label a library built from the old tree as the new one.
+meson_info = OUT / 'meson-info/meson-info.json'
+if (OUT / 'build.ninja').exists():
+    if not meson_info.is_file():
+        sys.exit('Existing Turnip build has no Meson source identity; preserve it and configure a fresh build directory')
+    configured_source = Path(json.loads(meson_info.read_text())['directories']['source']).resolve()
+    if configured_source != SOURCE.resolve():
+        sys.exit('Turnip build source differs: configured %s, selected %s; preserve the existing build directory and configure a fresh one'
+                 % (configured_source, SOURCE.resolve()))
 if not shutil.which('glslangValidator'):
     sys.exit('glslangValidator is required by the Vulkan runtime build (brew install glslang)')
 

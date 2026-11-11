@@ -1,0 +1,30 @@
+diff --git a/src/freedreno/vulkan/tu_cmd_buffer.cc b/src/freedreno/vulkan/tu_cmd_buffer.cc
+--- a/src/freedreno/vulkan/tu_cmd_buffer.cc
++++ b/src/freedreno/vulkan/tu_cmd_buffer.cc
+@@ -4821,9 +4821,15 @@
+                                         pStrides);
+    }
+ 
+-   cmd->state.vertex_buffers.size = 4 * cmd->state.max_vbs_bound;
+-   cmd->state.vertex_buffers.iova =
+-      tu_cs_draw_state(&cmd->sub_cs, &cs, cmd->state.vertex_buffers.size).iova;
++   /* The draw-state helper ignores allocation failures. A failed BO allocation
++    * must invalidate recording before any packet is written through its map.
++    */
++   VkResult result = tu_cs_begin_sub_stream(&cmd->sub_cs,
++                                           4 * cmd->state.max_vbs_bound, &cs);
++   if (result != VK_SUCCESS) {
++      vk_command_buffer_set_error(&cmd->vk, result);
++      return;
++   }
+ 
+    for (uint32_t i = 0; i < bindingCount; i++) {
+       if (pBuffers[i] == VK_NULL_HANDLE) {
+@@ -4843,6 +4849,7 @@
+                       A6XX_VFD_VERTEX_BUFFER_SIZE(i, cmd->state.vb[i].size));
+    }
+ 
++   cmd->state.vertex_buffers = tu_cs_end_draw_state(&cmd->sub_cs, &cs);
+    cmd->state.dirty |= TU_CMD_DIRTY_VERTEX_BUFFERS;
+ }
+ 
