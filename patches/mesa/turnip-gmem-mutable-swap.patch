@@ -305,7 +305,7 @@ index 33a22aa..bc779a7 100644
  
        /* If FDM offset is used, the last row and column extend beyond the
         * framebuffer but are shifted over when storing. Expand the width and
-@@ -4056,7 +4060,189 @@ tu_cmd_render_sysmem(struct tu_cmd_buffer *cmd,
+@@ -4056,7 +4060,187 @@ tu_cmd_render_sysmem(struct tu_cmd_buffer *cmd,
   */
  static uint64_t tu_render_mode_counts[8];
  
@@ -344,15 +344,13 @@ index 33a22aa..bc779a7 100644
 +static_assert(sizeof(struct tu_pass_rec) == 72, "pass record");
 +static struct tu_pass_rec tu_pass_ring[512];
 +
-+/* The host's diagnostics switch (SHENG_DIAG from sheng-diag=1, SHENG_PER_PASS from the plugin when sheng-diag=2 is combined with
-+ * /private/var/ngpu/per-pass): without either no pass is stamped or kept in the ring. Mode 2 used to leave SHENG_DIAG unset, so the
-+ * per-pass GPU stamps and the GMEM swap trace never ran there. */
++/* The host's diagnostics switch (SHENG_DIAG, set by the plugin from diag=1): without it no pass is stamped or kept in the ring. */
 +static bool
 +tu_pass_trace_on(void)
 +{
 +   static int on = -1;
 +   if (on < 0)
-+      on = getenv("SHENG_DIAG") != NULL || getenv("SHENG_PER_PASS") != NULL;
++      on = getenv("SHENG_DIAG") != NULL;
 +   return on;
 +}
 +static uint32_t tu_pass_seq;
@@ -482,8 +480,8 @@ index 33a22aa..bc779a7 100644
 +         const volatile uint64_t *words = (const volatile uint64_t *) bo->map + (s % 512) * 2;
 +         const uint64_t begin = words[0], end = words[1];
 +         if (begin && end) {
-+            rec.gpu_begin = (begin / 19200000ull) * 1000000000ull + (begin % 19200000ull) * 1000000000ull / 19200000ull;
-+            rec.gpu_end = (end / 19200000ull) * 1000000000ull + (end % 19200000ull) * 1000000000ull / 19200000ull;
++            rec.gpu_begin = tu_device_ticks_to_ns(tu_pass_ts_dev, begin);
++            rec.gpu_end = tu_device_ticks_to_ns(tu_pass_ts_dev, end);
 +         }
 +      }
 +      out[n++] = rec;
@@ -580,7 +578,7 @@ index 17bebeb..71d4745 100644
     uint32_t drawcall_count;
  
 +   /* The pass's heaviest fragment shader (by ir3 instruction count) and the vertices of its non-indirect draws: what the host's pass record
-+    * (tu_pass_rec) says about why a pass took long. Counted only with SHENG_DIAG or SHENG_PER_PASS set. */
++    * (tu_pass_rec) says about why a pass took long. Counted only with SHENG_DIAG set. */
 +   uint16_t fs_instrs, fs_tex, fs_systall, fs_sstall;
 +   int8_t fs_waves, fs_regs;
 +   uint32_t fs_hash;   /* its tu_hash32 */
