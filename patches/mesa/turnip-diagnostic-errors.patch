@@ -1,0 +1,13 @@
+diff --git a/src/freedreno/vulkan/tu_device.cc b/src/freedreno/vulkan/tu_device.cc
+--- a/src/freedreno/vulkan/tu_device.cc
++++ b/src/freedreno/vulkan/tu_device.cc
+@@ -1970,6 +1970,9 @@
+       return vk_error(NULL, result);
+    }
+ 
++   /* Keep Vulkan errors in the existing perf diagnostic log in release builds. */
++   instance->vk.enable_debug_logging = TU_DEBUG(PERF);
++
+    instance->vk.physical_devices.try_create_for_drm =
+       tu_physical_device_try_create;
+    instance->vk.physical_devices.enumerate = tu_enumerate_devices;
