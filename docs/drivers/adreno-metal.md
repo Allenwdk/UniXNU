@@ -105,3 +105,7 @@ The per-pass reader now converts19.2MHz ticks using exact quotient/remainder ari
 The Uke integration includes upstream AdrenoMetal main `6d7f734` and metal2vulkan `963f0e64f103d2e682cd0cc454a8fe50f52c8cbb`. The rebased upstream series contains 25 patches; Uke retains `0031-defer-fullscreen-memoryless-pass.patch` as a scoped opt-in experiment. Core Image's original-nil retry and Uke diagnostic modes remain.
 
 `sheng-metal-flow=1` enables worker lowering, commit-thread submission and background pipeline-record warming. The default is off; `=0` and `=1` both enable changing FL count logs. Uke has not qualified these paths on hardware. The old translator cache remains available for rollback; the runtime identity changes with the translator and patch tree.
+
+## Uke runtime recovery compatibility
+
+Runtime recovery invalidates textures and pipelines from its previous generation. After completion handlers receive DeviceLost, GpuHang or GpuRecoveryVictim, the Uke render server enters its existing restart path. The Metal error codes retain their defined values. With diag=1, a bounded os_log callback retains runtime errors and recovery notices. tu-debug=perf also enables Vulkan error logging in the Mesa release build.

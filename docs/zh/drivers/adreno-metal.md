@@ -105,3 +105,7 @@ Uke模式2/4的逐pass GPU时间戳现仅在真正导出pass ring的backboardd�
 Uke 集成上游 AdrenoMetal main `6d7f734` 与 metal2vulkan `963f0e64f103d2e682cd0cc454a8fe50f52c8cbb`。上游重基后保留25项补丁，Uke另保留受限开关控制的 `0031-defer-fullscreen-memoryless-pass.patch` 实验。Core Image 原结果为空时的定向重试和 Uke 诊断模式保留。
 
 `sheng-metal-flow=1` 启用 worker 转换、commit 线程提交与管线记录后台预热；默认关闭。显式 `=0`/`=1` 均记录变化的 FL 计数。Uke 尚未真机验收这些路径。旧 translator 缓存保留供回退；translator 与补丁树变化会改变 runtime 缓存身份。
+
+## Uke 运行时恢复兼容
+
+运行时恢复会让旧代纹理和管线失效。Uke 的渲染服务在完成处理器收到 DeviceLost、GpuHang 或 GpuRecoveryVictim 后进入已有的重建流程。各错误的 Metal 数值保持原定义。diag=1 将运行时错误和恢复通知通过有界的 os_log 出口持久记录，tu-debug=perf 同时启用 Mesa 发布构建的 Vulkan 错误日志。
