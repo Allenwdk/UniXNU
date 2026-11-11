@@ -1,9 +1,9 @@
 [submodule "drivers/ArmCpu"]
 	path = drivers/ArmCpu
-	url = https://github.com/UniXNU/ArmCpu.git
+	url = https://github.com/Allenwdk/ArmCpu.git
 [submodule "drivers/ArmDTPlatform"]
 	path = drivers/ArmDTPlatform
-	url = https://github.com/UniXNU/ArmDTPlatform.git
+	url = https://github.com/Allenwdk/ArmDTPlatform.git
 [submodule "drivers/ArmVirtPlatform"]
 	path = drivers/ArmVirtPlatform
 	url = https://github.com/UniXNU/ArmVirtPlatform.git
@@ -62,4 +62,4 @@
 	url = https://github.com/UniXNU/QcomBaseband.git
 [submodule "drivers/Ath12kWifi"]
 	path = drivers/Ath12kWifi
-	url = https://github.com/UniXNU/Ath12kWifi.git
+	url = https://github.com/Allenwdk/Ath12kWifi.git
