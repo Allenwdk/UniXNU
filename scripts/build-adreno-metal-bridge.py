@@ -50,7 +50,9 @@ PATCHES = [ROOT / 'drivers/AdrenoMetal/bridge/patches' / name for name in [
     '0040-unixnu-runtime-on-development-555b13d5.patch',
     # A driver that compiles inside the call: pipeline makings stay on the asking thread (METAL2VULKAN_COMPILE_ON_ASKING_THREAD=1)
     # instead of a thread started for each, which a thread without a quality-of-service class waited for.
-    '0041-compile-on-the-asking-thread.patch']]
+    '0041-compile-on-the-asking-thread.patch',
+    # An invalid pipeline handle fails the affected command instead of unwinding backboardd.
+    '0042-check-render-pipeline-replay-handle.patch']]
 
 
 def git_tree(*steps):
