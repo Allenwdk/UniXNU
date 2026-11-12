@@ -109,3 +109,8 @@ The board IRQ handler passes its acknowledged RBBM status to `native_adreno_gpu_
 A board may register the loader's `darwinboot-memory-outside` ranges with `native_adreno_pool_add` before GPU publication. The ranges must be final-map conventional memory outside XNU's owned window, excluding all firmware/device reservations. The pool supplies write-combined system BOs before the ordinary descriptor fallback; views retain their grants and the default retirement policy prevents reuse of pages exposed to a client. Firmware, ADT and board probe must agree on this handoff.
 
 The hang check captures CP state before recovery and retains it until the next hang. `native_adreno_stall_hang` identifies the snapshot. For faults whose upper address word is zero, `native_adreno_stall_fault` searches the job's IB1s and up to 512 referenced IB2s for the low word and nearby bases followed by zero. These are candidates for inspection, not decoded address operands. A new snapshot clears the previous search.
+
+
+### Incremental trace reader
+
+`native_gpu_trace_since(cursor, out, bytes, lost)` reads bounded new records without consuming the ordinary diagnostic snapshot. Overwritten and busy slots increment `lost`. The reader takes no GPU lock and performs no I/O or allocation. Uke uses a separate worker to persist these records continuously.
