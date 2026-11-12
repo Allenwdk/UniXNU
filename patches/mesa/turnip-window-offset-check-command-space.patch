@@ -1,0 +1,142 @@
+diff --git a/src/freedreno/vulkan/tu_cs.h b/src/freedreno/vulkan/tu_cs.h
+--- a/src/freedreno/vulkan/tu_cs.h
++++ b/src/freedreno/vulkan/tu_cs.h
+@@ -308,22 +308,28 @@
+    return cs->end - cs->cur;
+ }
+ 
+-static inline void
+-tu_cs_reserve(struct tu_cs *cs, uint32_t reserved_size)
++static inline VkResult
++tu_cs_reserve_checked(struct tu_cs *cs, uint32_t reserved_size)
+ {
+    if (cs->mode != TU_CS_MODE_GROW) {
+       assert(tu_cs_get_space(cs) >= reserved_size);
+       assert(cs->reserved_end == cs->end);
+-      return;
++      return VK_SUCCESS;
+    }
+ 
+    if (tu_cs_get_space(cs) >= reserved_size &&
+        cs->entry_count < cs->entry_capacity) {
+       cs->reserved_end = cs->cur + reserved_size;
+-      return;
+-   }
+-
+-   ASSERTED VkResult result = tu_cs_reserve_space(cs, reserved_size);
++      return VK_SUCCESS;
++   }
++
++   return tu_cs_reserve_space(cs, reserved_size);
++}
++
++static inline void
++tu_cs_reserve(struct tu_cs *cs, uint32_t reserved_size)
++{
++   ASSERTED VkResult result = tu_cs_reserve_checked(cs, reserved_size);
+    /* TODO: set this error in tu_cs and use it */
+    assert(result == VK_SUCCESS);
+ }
+diff --git a/src/freedreno/vulkan/tu_cmd_buffer.cc b/src/freedreno/vulkan/tu_cmd_buffer.cc
+--- a/src/freedreno/vulkan/tu_cmd_buffer.cc
++++ b/src/freedreno/vulkan/tu_cmd_buffer.cc
+@@ -1144,10 +1144,18 @@
+ TU_GENX(tu6_emit_window_scissor);
+ 
+ template <chip CHIP>
+-void
+-tu6_emit_window_offset(struct tu_cs *cs, uint32_t x1, uint32_t y1)
+-{
+-   tu_crb crb = cs->crb(5);
++static bool
++tu6_emit_window_offset(struct tu_cmd_buffer *cmd, struct tu_cs *cs,
++                       uint32_t x1, uint32_t y1)
++{
++   const unsigned nregs = CHIP >= A7XX ? 5 : 4;
++   VkResult result = tu_cs_reserve_checked(cs, 1 + 2 * nregs);
++   if (result != VK_SUCCESS) {
++      vk_command_buffer_set_error(&cmd->vk, result);
++      return false;
++   }
++
++   tu_crb crb = cs->crb(nregs);
+ 
+    crb.add(A6XX_RB_WINDOW_OFFSET(.x = x1, .y = y1));
+    crb.add(A6XX_RB_RESOLVE_WINDOW_OFFSET(.x = x1, .y = y1));
+@@ -1156,6 +1164,7 @@
+    if (CHIP >= A7XX) {
+       crb.add(TPL1_A2D_WINDOW_OFFSET(CHIP, .x = x1, .y = y1));
+    }
++   return true;
+ }
+ 
+ void
+@@ -1682,7 +1691,8 @@
+    } else {
+       tu6_emit_window_scissor<CHIP>(cs, x1, y1, x2 - 1, y2 - 1);
+    }
+-   tu6_emit_window_offset<CHIP>(cs, x1, y1);
++   if (!tu6_emit_window_offset<CHIP>(cmd, cs, x1, y1))
++      return;
+ 
+    unsigned slot = ffs(tile->slot_mask) - 1;
+ 
+@@ -3294,7 +3304,8 @@
+ 
+    assert(fb->width > 0 && fb->height > 0);
+    tu6_emit_window_scissor<CHIP>(cs, 0, 0, fb->width - 1, fb->height - 1);
+-   tu6_emit_window_offset<CHIP>(cs, 0, 0);
++   if (!tu6_emit_window_offset<CHIP>(cmd, cs, 0, 0))
++      return;
+ 
+    tu6_emit_bin_size<CHIP>(cs, 0, 0, {
+       .render_mode = RENDERING_PASS,
+@@ -3724,6 +3735,9 @@
+ {
+    uint32_t tile_idx = (tile->pos.y * vsc->tile_count.width) + tile->pos.x;
+    tu6_emit_tile_select<CHIP>(cmd, &cmd->cs, tile, fdm_offsets);
++   if (vk_command_buffer_has_error(&cmd->vk))
++      return;
++
+    tu_lrz_before_tile<CHIP>(cmd, &cmd->cs);
+ 
+    trace_start_draw_ib_gmem(&cmd->trace, &cmd->cs, cmd);
+@@ -4005,6 +4019,10 @@
+                }
+ 
+                tu6_render_tile<CHIP>(cmd, &cmd->cs, tile, fdm_offsets, rp_ctx, vsc);
++               if (vk_command_buffer_has_error(&cmd->vk)) {
++                  free(tiles);
++                  return;
++               }
+             }
+             slot_row += tile_row_stride;
+          }
+@@ -4056,6 +4074,8 @@
+    tu_trace_start_render_pass(cmd);
+ 
+    tu6_sysmem_render_begin<CHIP>(cmd, &cmd->cs, rp_ctx);
++   if (vk_command_buffer_has_error(&cmd->vk))
++      return;
+ 
+    trace_start_draw_ib_sysmem(&cmd->trace, &cmd->cs, cmd);
+ 
+@@ -4330,7 +4350,7 @@
+       tu_cmd_render_sysmem<CHIP>(cmd_buffer, rp_ctx);
+    else
+       tu_cmd_render_tiles<CHIP>(cmd_buffer, rp_ctx, fdm_offsets);
+-   if (stamps)
++   if (stamps && !vk_command_buffer_has_error(&cmd_buffer->vk))
+       tu_pass_stamp<CHIP>(&cmd_buffer->cs, stamps + 8);
+ }
+ 
+@@ -5589,6 +5609,9 @@
+ tu_EndCommandBuffer(VkCommandBuffer commandBuffer)
+ {
+    VK_FROM_HANDLE(tu_cmd_buffer, cmd_buffer, commandBuffer);
++
++   if (vk_command_buffer_has_error(&cmd_buffer->vk))
++      return vk_command_buffer_end(&cmd_buffer->vk);
+ 
+    /* We currently flush CCU at the end of the command buffer, like
+     * what the blob does. There's implicit synchronization around every

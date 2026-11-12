@@ -1,0 +1,35 @@
+diff --git a/src/freedreno/vulkan/tu_knl_darwin.cc b/src/freedreno/vulkan/tu_knl_darwin.cc
+--- a/src/freedreno/vulkan/tu_knl_darwin.cc
++++ b/src/freedreno/vulkan/tu_knl_darwin.cc
+@@ -1141,7 +1141,8 @@
+          retire->head = 0;
+       }
+    }
+-   if (retire->count < retire->capacity) {
++   const bool enqueued = retire->count < retire->capacity;
++   if (enqueued) {
+       pthread_mutex_lock(&dw.lock);
+       uint32_t fence = dw.last_fence;
+       pthread_mutex_unlock(&dw.lock);
+@@ -1150,16 +1151,17 @@
+                                bo->darwin_token, fence, bo->darwin_alloc_size != 0, bo->darwin_read_only};
+       ++retire->count;
+       ++retire->enqueued;
+-      darwin_reap_locked(dev, retire);
+    } else if (retire->failure == VK_SUCCESS) {
+       /* No reusable range is reported on error. The kernel still owns the handle
+        * and view; connection teardown must drain them, even if this record cannot fit. */
+       retire->failure = vk_device_set_lost(&dev->vk, "deferred BO queue cannot grow; retaining native allocation");
+    }
++   /* Reaping can immediately publish this handle to the cache. Invalidate
++    * the old sparse-array entry before another allocation takes that handle. */
++   memset(bo, 0, sizeof(*bo));
++   if (enqueued)
++      darwin_reap_locked(dev, retire);
+    pthread_mutex_unlock(&retire->lock);
+-
+-   /* The BO structs live in a sparse array: zero the entry to mark it free. */
+-   memset(bo, 0, sizeof(*bo));
+ 
+    u_rwlock_rdunlock(&dev->dma_bo_lock);
+ }

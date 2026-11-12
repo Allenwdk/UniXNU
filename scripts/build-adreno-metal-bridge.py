@@ -47,7 +47,8 @@ PATCHES = [ROOT / 'drivers/AdrenoMetal/bridge/patches' / name for name in [
     # runtime's keep_room and frees kept empty blocks and parked objects by time; memory census bytes, kinds by size and allocation
     # sites; the stage trace with its diagnostics switch and latency stages; specialized links, shared constants and allocation sizes;
     # YCbCr surface textures over their planes alone.
-    '0040-unixnu-runtime-on-development-555b13d5.patch']]
+    '0040-unixnu-runtime-on-development-555b13d5.patch',
+    '0041-compile-on-the-asking-thread.patch']]
 
 
 def git_tree(*steps):

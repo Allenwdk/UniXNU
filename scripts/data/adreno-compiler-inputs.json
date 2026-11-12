@@ -65,7 +65,12 @@
     "patches/mesa/turnip-darwin-submit-cuts.patch",
     "patches/mesa/turnip-render-mode-turns.patch",
     "patches/mesa/turnip-diagnostic-errors.patch",
-    "patches/mesa/turnip-vertex-state-allocation.patch"
+    "patches/mesa/turnip-vertex-state-allocation.patch",
+    "patches/mesa/ir3-fragment-consts-leave-pipeline-space.patch",
+    "patches/mesa/turnip-darwin-keep-device-after-restart.patch",
+    "patches/mesa/turnip-shaders-shared-across-pipeline-caches.patch",
+    "patches/mesa/turnip-darwin-invalidate-bo-before-reuse.patch",
+    "patches/mesa/turnip-window-offset-check-command-space.patch"
   ],
   "integer_fma_reference": {
     "repository": "https://github.com/ucb-bar/berkeley-softfloat-3",
