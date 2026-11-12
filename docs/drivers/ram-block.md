@@ -17,6 +17,8 @@ writes in progress, so every bitmap bit on the medium names a durable page. With
 cached store writes the store runs write back (`data-fua=1` selects write
 through); a synchronize with no write since the last flush sends no command.
 
+Uke's pinned revision uses `sheng-data-fua=1` for write-through mode. Its log writer uses FUA for the log blocks, so routine log writes leave Data cache flushing to RamBlock.
+
 ## Integration
 
 The catalog records implementation scope, hardware and OS requirements, board dependencies, revision, build stage, outputs, and runtime identifiers. The selected profile orders build commands by dependency.
