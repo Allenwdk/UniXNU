@@ -37,7 +37,7 @@ Three metal2vulkan work placements are on by default. `metal-flow=<bits>` select
 
 Any value of `metal-flow=` logs the `FL` counts to os_log every ten seconds when they change.
 
-Uke frame-path capture keeps two rotating 16 MiB segments, `frames.trace` and `frames.previous.trace`. Each has a process and clock header plus the next record index and overwritten-record count. Uke exports the latest kernel and frontend evidence at the configured `sheng-diag-export` time, repeating with `uke-diag-repeat` seconds when requested.
+Uke frame-path capture keeps two rotating 12 MiB segments, `frames.trace` and `frames.previous.trace`. Each has a process and clock header plus the next record index and overwritten-record count. Uke exports the latest kernel and frontend evidence at the configured `sheng-diag-export` time, repeating with `uke-diag-repeat` seconds when requested.
 
 Turnip chooses tile memory or system memory for each render pass. `tu-cb=1` enables concurrent binning, which is off by default. `tu-debug=<flags>` sets `TU_DEBUG` for every Metal process. `gmem` forces tile memory and `nocb` disables concurrent binning. `tum=a` alternates between Turnip's choice and tile memory every eight seconds for measurement.
 
