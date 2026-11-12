@@ -36,6 +36,8 @@ Turnip 为每个渲染通道选择瓦片内存或系统内存。并发分箱默�
 
 Uke 沿用 Turnip 的渲染模式与并发分箱默认策略。Uke addon 用空的 `tu_debug` 清除旧安装的 `sysmem,nocb` 覆盖。
 
+Uke 帧路径记录保留两个各 16 MiB 的轮转文件 `frames.trace` 和 `frames.previous.trace`，文件头保存进程、时钟、下一条记录序号和累计覆盖数。`sheng-diag-export` 指定首次内核与前端证据导出时间，`uke-diag-repeat` 指定后续导出间隔，单位为秒。
+
 同一进程的 Metal 逻辑队列共用一个 Vulkan 队列和内核队列。前端汇总存活队列的当前请求，采用其中最高的优先级；队列降级或销毁后撤回提升。getter 返回各队列自身的请求，setter 返回后端是否接受。内核根据任务的 GPU role 选择前台或后台优先级，策略不使用进程名。
 
 
