@@ -21,6 +21,8 @@ Each ring tracks its queued context and page table. The CP records the executed 
 
 The reference enables mode 2 with `gpu-preempt=2`. Mode 1 sends only low/background requests to ring 1; mode 0 uses one ring. CPU-only page-table switching also uses ring 0. The switch watchdog is 1 s. A failed switch disables further preemption and recovery replays pending work on ring 0; diagnostics retain the failure.
 
+The watchdog counts each timed-out switch once. A failed register read in its diagnostic snapshot leaves the ring available for recovery.
+
 Stall detection also checks progress of the concurrent-binning (BV) thread. The stall handler skips recovery while the GPU is advancing. A failed buffer map records the requested IOVA and the mapping at or after that address.
 
 ## Build and verification

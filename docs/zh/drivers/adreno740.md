@@ -23,6 +23,8 @@ Metal → AdrenoMetal → metal2vulkan → Turnip → Darwin KMD → Adreno740 �
 
 参考实现用 `gpu-preempt=2` 启用模式 2。模式 1 仅将 low/background 请求送往 ring 1，模式 0 使用单环。由 CPU 切换页表时也仅使用 ring 0。切环超时为 1 秒。切换失败后停止抢占，恢复流程在 ring 0 重放待执行任务，诊断记录保留失败信息。
 
+看门狗对每次切环超时只计数一次。诊断快照的寄存器读失败时，ring 仍可进入恢复流程。
+
 停顿检测同时检查并发分箱线程（BV）的进度。GPU 仍在推进时，停顿处理程序跳过恢复。缓冲区映射失败时记录请求 IOVA 及该地址处或之后的映射。
 
 ## 构建和验证
