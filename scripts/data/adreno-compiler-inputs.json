@@ -70,7 +70,8 @@
     "patches/mesa/turnip-darwin-keep-device-after-restart.patch",
     "patches/mesa/turnip-shaders-shared-across-pipeline-caches.patch",
     "patches/mesa/turnip-darwin-invalidate-bo-before-reuse.patch",
-    "patches/mesa/turnip-window-offset-check-command-space.patch"
+    "patches/mesa/turnip-window-offset-check-command-space.patch",
+    "patches/mesa/turnip-darwin-sweep-retired-on-cache-miss.patch"
   ],
   "integer_fma_reference": {
     "repository": "https://github.com/ucb-bar/berkeley-softfloat-3",

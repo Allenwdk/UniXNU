@@ -113,3 +113,5 @@ The Uke integration includes upstream AdrenoMetal main `6d7f734` and metal2vulka
 ## Uke runtime recovery compatibility
 
 Runtime recovery invalidates textures and pipelines from its previous generation. After completion handlers receive DeviceLost, GpuHang or GpuRecoveryVictim, the Uke render server enters its existing restart path. The Metal error codes retain their defined values. With diag=1, a bounded os_log callback retains runtime errors and recovery notices. tu-debug=perf also enables Vulkan error logging in the Mesa release build.
+
+With `diag=1`, encoding batch end records (type 14, phase 3) store encoding-thread CPU microseconds in field `d`. Compare this with paired start/end wall time to distinguish work from waits. `TUC` reports Turnip BO cache lookups, hits, inserts, evictions and full flushes.

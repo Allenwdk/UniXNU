@@ -10,7 +10,7 @@ legacy_page = "preserve"
 soc = "SM8550"
 summary = "[Implementation and evidence by area](/devices/sheng)"
 repository_id = 1425469865
-revision = "c7a034617b94e4f0826b8eb70db6bc612e1aa093"
+revision = "e8937177309d88c93b305a57bad147fd5fac8a86"
 board = "sheng"
 os_profile = "ipados-27.0.1-24A446"
 components = ["ArmDTPlatform", "ArmCpu", "XnuPrelink", "DarwinBoot", "ShengPreflight", "ShengUfs", "RamBlock", "GopFramebuffer", "AppleKeyStoreState", "Adreno740", "AdrenoMetal"]
@@ -215,7 +215,7 @@ title_zh = "OnePlus Ace 3 PJE110"
 format = 2
 legacy_page = "link"
 repository_id = 1449922753
-revision = "e0f721be3f2e8438b94395bd8e3a456f8cacc80b"
+revision = "d03c2c99895d639d03b27c889306d4d5d966071e"
 board = "aston"
 soc = "SM8550"
 os_profile = "ios-27.0.1-24A446"
@@ -230,7 +230,7 @@ title_zh = "Xiaomi MIX Fold 3"
 format = 2
 legacy_page = "link"
 repository_id = 1449159026
-revision = "bfde4bb9f8ad06911d431782022830b6726f2a4f"
+revision = "b87a4cb89377914fdb0e11482a3e9221491db817"
 board = "babylon"
 soc = "SM8550"
 os_profile = "ipados-27.0.1-24A446"
@@ -279,6 +279,18 @@ summary = "APFS restore RAM root and launchd; display and full system root pendi
 repository_id = 1429976702
 revision = "1e3d718f1b56566cf192eb064e216a2d34f0d7ce"
 board = "caihong"
+
+[[device]]
+name = "caihong-huohua135"
+repository = "huohua135/UniXNU-caihong"
+title = "OnePlus Pad Pro (OPD2404), Snapdragon 8 Gen 3 (huohua135)"
+title_zh = "OnePlus Pad Pro (OPD2404), Snapdragon 8 Gen 3 (huohua135)"
+format = 1
+legacy_page = "link"
+repository_id = 1454071566
+revision = "2b7a635aac1eaa925c6ee3e73285bd1da2d3c7b7"
+board = "caihong"
+soc = "SM8650"
 
 [[device]]
 name = "caihong-tenku-png"
@@ -460,7 +472,7 @@ legacy_page = "preserve"
 soc = "SDM660"
 summary = "eMMC-backed mockfs root and EL0 test init; APFS probes in development"
 repository_id = 1431566463
-revision = "823ee70041b493b69d4d3e38037bd4e63fd6b81d"
+revision = "60b283af781f7e5955dc3b52373f606111e00f44"
 board = "clover"
 os_profile = "ipados-17.7.11-21H461"
 components = ["ArmDTPlatform", "ArmCpu", "XnuPrelink", "DarwinBoot"]
@@ -517,7 +529,7 @@ title_zh = "Xiaomi 12 (cupid) (lengcece)"
 format = 2
 legacy_page = "link"
 repository_id = 1451382930
-revision = "1d85a9ae2506cbebd0850263b4939df3146ec1d3"
+revision = "991c8d1cbe49e2422a3ebf12f410470a5e0a31a4"
 board = "cupid"
 soc = "SM8450"
 os_profile = "ios-27.0.1-24A446"
@@ -670,7 +682,7 @@ title_zh = "Redmi K50 Ultra (diting/SM8475): UniXNU bring-up from the Pong basel
 format = 2
 legacy_page = "link"
 repository_id = 1447216879
-revision = "e618bfc8261210e1b6c904cfbf39340eaef6cc38"
+revision = "62ff5bae93fb040f7d80a42f9187c3968d643249"
 board = "diting"
 soc = "SM8475"
 os_profile = "ipados-18.7.10-22H374"
@@ -700,13 +712,28 @@ title_zh = "Xiaomi Redmi Pad Pro (dizi); ruan unverified"
 format = 2
 legacy_page = "link"
 repository_id = 1434414153
-revision = "43c75235c1c59cfc8ed8ecb364942c7a846929d1"
+revision = "cb1a33748b01016cce683b5dccbc7c5c410bd42b"
 board = "dizi"
 soc = "SM7435"
 os_profile = "ipados-17.7.11-21H461"
-components = ["ArmDTPlatform", "ArmCpu", "ArmVirtPlatform", "SoftwareAES", "RamBlock", "VirtioMmioBlock", "VirtioMmioConsole", "GopFramebuffer", "QcomGeniSpi", "XnuPrelink", "DarwinBoot"]
+components = ["ArmDTPlatform", "ArmCpu", "SoftwareAES", "GopFramebuffer", "QcomGeniSpi", "XnuPrelink", "DarwinBoot"]
 record_state = "invalid"
 record_error = "vildangil/UniXNU-Dizi-Ruan: device.name must match board.toml"
+
+[[device]]
+name = "dodge"
+repository = "lihenggui/UniXNU_dodge_SM8750"
+title = "OnePlus 13 CPH2653: iPhone iOS 16 source preparation"
+title_zh = "OnePlus 13 CPH2653: iPhone iOS 16 source preparation"
+format = 2
+legacy_page = "link"
+repository_id = 1452298736
+revision = "c789270726a971264b2095fdc5c9190290b19611"
+board = "dodge"
+soc = "SM8750"
+os_profile = "ios-16.7.16-20H392"
+components = ["ArmDTPlatform", "ArmCpu", "XnuPrelink", "DarwinBoot"]
+record_state = "available"
 
 [[device]]
 name = "droidvm"
@@ -718,7 +745,7 @@ legacy_page = "preserve"
 soc = "crosvm-gunyah"
 summary = "iPadOS 17 home screen; Metal widgets and icons; keychain and Bluetooth; virtio-net works"
 repository_id = 1428005836
-revision = "f9121cdc629d64cbd148980cdeef1f069c7f0068"
+revision = "77bb46b37eda15a12dd351c136e7aca18a7580d2"
 board = "droidvm"
 
 [[device]]
@@ -797,7 +824,22 @@ title_zh = "Lenovo Legion Y700 Gen 4 (TAY0123)"
 format = 2
 legacy_page = "link"
 repository_id = 1452101286
-revision = "96bb7e12ea6effc4a41d55a36c65167cec671fc7"
+revision = "469e5a41d5ecf4b580003a01a0be67b1b3209fe7"
+board = "elden"
+soc = "SM8750P"
+os_profile = "ipados-17.7.11-21H461"
+components = ["ArmDTPlatform", "ArmCpu", "SoftwareAES", "XnuPrelink", "DarwinBoot"]
+record_state = "available"
+
+[[device]]
+name = "elden-zenkernelsam"
+repository = "zenkernelsam/UniXNU_elden"
+title = "Lenovo Legion Y700 Gen 4 (zenkernelsam)"
+title_zh = "Lenovo Legion Y700 Gen 4 (zenkernelsam)"
+format = 2
+legacy_page = "link"
+repository_id = 1441643614
+revision = "bf431764497b1f1d85d920a415050d998a0ba0de"
 board = "elden"
 soc = "SM8750P"
 os_profile = "ipados-17.7.11-21H461"
@@ -838,7 +880,7 @@ title_zh = "OnePlus 6 (A6003), 8 GB RAM / 128 GB storage, arm64 only (no FEAT_PA
 format = 2
 legacy_page = "link"
 repository_id = 1448361516
-revision = "eb160ce803f64dfc3d7b5054c2e60b7a09b09162"
+revision = "a89c29d14ace416dd3fecff4880b16d4bace4233"
 board = "enchilada"
 soc = "SDM845"
 os_profile = "ios-16.7.16-20H392"
@@ -853,7 +895,7 @@ title_zh = "OnePlus 6 (keyfan)"
 format = 1
 legacy_page = "link"
 repository_id = 1436681571
-revision = "be08e3183e9847f5570987fd8acd43c34686aff6"
+revision = "48327a35465b2ce18200d2f17fa083864cd891ab"
 board = "enchilada"
 soc = "SDM845"
 
@@ -1256,13 +1298,28 @@ title_zh = "Gree G0245D (格力手机·色界)"
 format = 2
 legacy_page = "link"
 repository_id = 1450012528
-revision = "88739999bb10639aba847a05d5d940cec396e1f0"
+revision = "c4a44fa3588e49ed5fd9df9eba2ef2adfc7ca992"
 board = "g0245d"
 soc = "msm8996"
 os_profile = "ipados-17.7.11-21H461"
 components = ["ArmDTPlatform", "ArmCpu", "SoftwareAES", "XnuPrelink", "DarwinBoot", "NativeUfs8996", "Blsp8996", "Adreno530", "Msm8996Platform"]
 record_state = "invalid"
 record_error = "midopix/UniXNU-g0245d: device.soc must match board.toml"
+
+[[device]]
+name = "garnet"
+repository = "Scarpy19/UniXNU-garnet"
+title = "Preliminary garnet bring-up; not bootable"
+title_zh = "Preliminary garnet bring-up; not bootable"
+format = 2
+legacy_page = "link"
+repository_id = 1454433825
+revision = "86e64537fa71951f420b0b3ef442455b936e6c71"
+board = "garnet"
+soc = "SM7435"
+os_profile = "ipados-27.0.1-24A446"
+components = ["ArmDTPlatform", "ArmCpu", "SoftwareAES", "XnuPrelink", "DarwinBoot"]
+record_state = "available"
 
 [[device]]
 name = "gauguin"
@@ -1366,7 +1423,7 @@ title_zh = "Samsung Galaxy Tab S7+ Wi-Fi (SM-T970, gts7xlwifi): iPadOS desktop, 
 format = 2
 legacy_page = "link"
 repository_id = 1447080114
-revision = "b2cdb153b4f46a3bdaeb2326f326ce5c78adc58d"
+revision = "88b34f97100a01aab4ea6b86dc9c748b2114c382"
 board = "gts7xlwifi"
 soc = "SM8250"
 os_profile = "ipados-17.7.11-21H461"
@@ -1657,7 +1714,7 @@ title_zh = "Xiaomi Redmi Note 3 (Kenzo) Snapdragon 650"
 format = 2
 legacy_page = "link"
 repository_id = 1452519546
-revision = "efd7cc04854ae7bfdf1e29cdaab575da353ff645"
+revision = "c472ccc1102a772f9e84261d8240be4eec6d7dca"
 board = "kenzo"
 soc = "MSM8956"
 os_profile = "ipados-17.7.11-21H461"
@@ -1884,7 +1941,7 @@ title_zh = "Redmi Note 12 Turbo (FoXLinne)"
 format = 2
 legacy_page = "link"
 repository_id = 1433708077
-revision = "adc7526a97132db45f33f79a3074a0b36513cda1"
+revision = "7a0d68fff2557f12be9f8c47f618fd332b7a3e67"
 board = "marble"
 soc = "SM7475"
 os_profile = "ios-18.7.11-22H384"
@@ -1905,6 +1962,18 @@ soc = "SM7475"
 os_profile = "ipados-17.7.11-21H461"
 components = ["ArmDTPlatform", "ArmCpu", "SoftwareAES", "ShengUfs", "GopFramebuffer", "XnuPrelink", "DarwinBoot", "QcomGeniSpi", "VirtioMmioBlock", "RamBlock"]
 record_state = "available"
+
+[[device]]
+name = "meizu15"
+repository = "1359352487-droid/meizu15-unixnu"
+title = "Meizu 15 (M8810, eMMC, 4 GB DRAM, 1080x1920 AMOLED panel)"
+title_zh = "Meizu 15 (M8810, eMMC, 4 GB DRAM, 1080x1920 AMOLED panel)"
+format = 1
+legacy_page = "link"
+repository_id = 1454306303
+revision = "c9c2122ca0df70562d971a89b204deef85b3333c"
+board = "meizu15"
+soc = "SDM660"
 
 [[device]]
 name = "meizu21"
@@ -1946,7 +2015,7 @@ legacy_page = "preserve"
 soc = "MT6768"
 summary = "UEFI boots and custom menu works; storage init blocks UniXNU and XNU"
 repository_id = 1428265620
-revision = "dbd358993ae9c94ba4552b8c3d80bd1aa5a74aa7"
+revision = "b73b224403551ae78e08a1fa22b658ead6c21583"
 board = "merlinx"
 os_profile = "ipados-17.7.11-21H461"
 components = ["ArmCpu", "ArmDTPlatform", "SoftwareAES", "AppleKeyStoreState", "NativeEmmc", "RamBlock", "DarwinBoot", "XnuPrelink", "MaliG52", "GopFramebuffer", "FocalTechTouch"]
@@ -2019,13 +2088,13 @@ title_zh = "Redmi K60 (mondrian/SM8475): UniXNU UEFI bring-up"
 format = 2
 legacy_page = "link"
 repository_id = 1435726864
-revision = "29827f5102c6622448bdf79c5329619e10f84562"
+revision = "0497b1ccd9e37f2f6270b861144bd2d8da26cd17"
 board = "mondrian"
 soc = "SM8475"
 os_profile = "ipados-16.6.1-20G81"
 components = ["ArmDTPlatform", "ArmCpu", "XnuPrelink", "PongUfs"]
 record_state = "invalid"
-record_error = "'str' object has no attribute 'get'"
+record_error = "Emilelu/UniXNU-mondrian/storage: implemented work needs evidence"
 
 [[device]]
 name = "mondrian-mzyxsl"
@@ -2222,7 +2291,7 @@ title_zh = "Xiaomi Pad 5 (3214791900-del)"
 format = 1
 legacy_page = "link"
 repository_id = 1430068464
-revision = "3186c63adbc6ee6712713c02639456a4df31ae62"
+revision = "52ba9eb82b630312b74e7d3ee9a7cce3e40f8e5e"
 board = "nabu"
 soc = "SM8150"
 
@@ -2311,7 +2380,7 @@ title_zh = "MOTO Edge S (XT2125-4) / SM8250-AC UniXNU bring-up"
 format = 2
 legacy_page = "link"
 repository_id = 1442746231
-revision = "8972a77ddd98b653efef6ccf550c476a23585c42"
+revision = "6e9be396d445676f8710503e8105d95d785f5bc1"
 board = "nio"
 soc = "SM8250"
 os_profile = "ios-16.5-20F66"
@@ -2393,7 +2462,7 @@ legacy_page = "preserve"
 soc = "SM8550"
 summary = "Hardware UEFI and panel logs; XNU/root results pending"
 repository_id = 1429401494
-revision = "8ca9c546d1300b8d151faa0543d18a6d96fac625"
+revision = "896cf8a5b625b6614599760998758a99093d784c"
 board = "nx729j"
 
 [[device]]
@@ -2549,6 +2618,21 @@ components = ["ArmDTPlatform", "ArmCpu", "SoftwareAES", "XnuPrelink", "DarwinBoo
 record_state = "available"
 
 [[device]]
+name = "opi5plus"
+repository = "Hange777/UniXNU-opi5plus"
+title = "Orange Pi 5 Plus (RK3588, 8 GB, SD only, HDMI only)"
+title_zh = "Orange Pi 5 Plus (RK3588, 8 GB, SD only, HDMI only)"
+format = 2
+legacy_page = "link"
+repository_id = 1454782877
+revision = "a72f3c4dcea069e574a57030c7b3b7d7300c96b8"
+board = "opi5plus"
+soc = "RK3588"
+os_profile = "ipados-17.7.11-21H461"
+components = ["ArmDTPlatform", "ArmCpu", "SoftwareAES", "GopFramebuffer", "AppleKeyStoreState", "XnuPrelink", "DarwinBoot"]
+record_state = "available"
+
+[[device]]
 name = "orangepi5"
 repository = "Ken-u/UniXNU-orangepi5"
 title = "Orange Pi 5 (Rockchip RK3588S)"
@@ -2576,6 +2660,22 @@ repository_id = 1428693704
 revision = "d2c7089b0a2e6da2b1e7e843337b503ec032b2c5"
 
 [[device]]
+name = "panther"
+repository = "jiracipika/UniXNU-panther"
+title = "Google Pixel 7 (Tensor G2)"
+title_zh = "Google Pixel 7 (Tensor G2)"
+format = 2
+legacy_page = "link"
+repository_id = 1454544792
+revision = "b74b41a97d881872f998dae48d35d0c3231443c6"
+board = "panther"
+soc = "gs201"
+os_profile = "ipados-17.7.11-21H461"
+components = ["ArmDTPlatform", "ArmCpu", "SoftwareAES", "XnuPrelink", "DarwinBoot"]
+record_state = "invalid"
+record_error = "'str' object has no attribute 'get'"
+
+[[device]]
 name = "pclm10"
 repository = "shmilylee409-a11y/UniXNU-pclm10"
 title = "OPPO Reno Ace (PCLM10 / Project 19081, Snapdragon 855+ SM8150-AC)"
@@ -2583,7 +2683,7 @@ title_zh = "OPPO Reno Ace (PCLM10 / Project 19081, Snapdragon 855+ SM8150-AC)"
 format = 2
 legacy_page = "link"
 repository_id = 1452278328
-revision = "29e9f7cc47421f0ceb6419ce0031e998642383d3"
+revision = "4e9214d6571c670d73e73478fbfb4cf58624d0e8"
 board = "pclm10"
 soc = "SM8150"
 os_profile = "ipados-17.7.11-21H461"
@@ -2651,7 +2751,7 @@ title_zh = "Xiaomi Poco F6 / Redmi Turbo 3 (hoshikv)"
 format = 2
 legacy_page = "link"
 repository_id = 1429525166
-revision = "77533e0a2c74b7a1b64d4a22ec52af9902bca3da"
+revision = "110dfa9a209af3580063e200b94cbe6a485bf5b4"
 board = "peridot"
 soc = "SM8635"
 os_profile = "ios-27.0.1-24A446"
@@ -2707,7 +2807,7 @@ title_zh = "Xiaomi Pad 8 Pro: first XNU boot from RAM (OnePlus 13T base) (donyan
 format = 2
 legacy_page = "link"
 repository_id = 1451235551
-revision = "f37b9f3866df66105c93483df2551e528b61836a"
+revision = "8e52ef61245d9b196b2e8f868b781ee7f2b4fbd5"
 board = "piano"
 soc = "SM8750"
 os_profile = "ipados-17.7.11-21H461"
@@ -2716,13 +2816,13 @@ record_state = "available"
 
 [[device]]
 name = "piano-lenzhang"
-repository = "lenzhang/UniXNU-piano"
+repository = "lenzhang/UniXNU-xiaomipad8pro"
 title = "Xiaomi Pad 8 Pro (lenzhang)"
 title_zh = "Xiaomi Pad 8 Pro (lenzhang)"
 format = 2
 legacy_page = "link"
 repository_id = 1452821624
-revision = "686ec584c78f235367c7c1f3ddc1a2d3073815ce"
+revision = "cd8fb194b697f3ee3520f30b1105eae7621d36bb"
 board = "piano"
 soc = "SM8750"
 os_profile = "macos-27.3-26C5035r"
@@ -2737,13 +2837,12 @@ title_zh = "Xiaomi Pad 8 Pro: first XNU boot from RAM (OnePlus 13T base) (xiaomi
 format = 2
 legacy_page = "link"
 repository_id = 1446506969
-revision = "82892718b35fe75497afbaa9ae48a30bdb1723a8"
+revision = "34fb88d7cde1593b34deb358ecf38a579da4d8be"
 board = "piano"
 soc = "SM8750"
 os_profile = "ipados-17.7.11-21H461"
-components = ["ArmDTPlatform", "ArmCpu", "SoftwareAES", "XnuPrelink", "DarwinBoot", "Sm8750Platform", "GopFramebuffer", "BootProgress", "ShengPlatformPower", "NativeUfs", "NativeVirtioBlock", "NativeRamBlock", "PaganiVerifiedRoot", "NativeMobileDisplay", "Stage7Probe", "NativeKeyStoreEvents", "PaganiInput", "PaganiPanel"]
-record_state = "invalid"
-record_error = "xiaomi-pad-8-pro-development/android_device_xiaomi_piano-unixnu: components without an area: ['BootProgress', 'GopFramebuffer', 'NativeKeyStoreEvents', 'NativeMobileDisplay', 'NativeRamBlock', 'NativeUfs', 'NativeVirtioBlock', 'PaganiInput', 'PaganiPanel', 'PaganiVerifiedRoot', 'ShengPlatformPower', 'Sm8750Platform', 'Stage7Probe']"
+components = []
+record_state = "available"
 
 [[device]]
 name = "picasso"
@@ -2858,6 +2957,21 @@ repository_id = 1428471386
 revision = "1f6a1520f84c699a6f748e7b0b0ee72b79c7997b"
 
 [[device]]
+name = "pipa-esaijj"
+repository = "EsaiJJ/UniXNU-pipa"
+title = "Xiaomi Pad 6 (pipa, SM8250-AC) UniXNU bring-up (EsaiJJ)"
+title_zh = "Xiaomi Pad 6 (pipa, SM8250-AC) UniXNU bring-up (EsaiJJ)"
+format = 2
+legacy_page = "link"
+repository_id = 1452749664
+revision = "7442e5a5f0f1d6c87edc75e7cdc25250b601f7d6"
+board = "pipa"
+soc = "SM8250"
+os_profile = "ipados-17.7.11-21H461"
+components = ["XnuPrelink", "DarwinBoot", "ArmDTPlatform", "ArmCpu", "SoftwareAES", "RamBlock", "VirtioMmioBlock", "VerifiedRoot", "ShengUfs", "GopFramebuffer", "AppleKeyStoreState", "ShengHidInput", "AdrenoPM4", "AdrenoFirmware", "ArmSmmu4K", "AirNir", "Ath12kWifi", "QcaBluetooth", "QcomGeniSpi", "ShengNovatekTouch"]
+record_state = "available"
+
+[[device]]
 name = "pipa-fft-infra"
 repository = "FFT-infra/UniXNU-alioth-ARCHIVE"
 title = "Xiaomi Pad 6 (FFT-infra)"
@@ -2967,7 +3081,7 @@ legacy_page = "preserve"
 soc = "SM8475"
 summary = "iOS 16.6.1 home screen with display and touch; UFS and GPU partial"
 repository_id = 1431008794
-revision = "f85fbe118d1ec79fc776117408e4ca0ecfb73ea2"
+revision = "3b0cf3ee4764cda6d01e69f30d1b78344b0994c5"
 board = "pong"
 os_profile = "ios-18.6.2-22G100"
 components = ["PongPlatform24"]
@@ -3008,7 +3122,7 @@ title_zh = "Galaxy Tab S7+ (SM-T970) / S20+ (SM-G986N) SM8250 bring-up (kmu1757)
 format = 2
 legacy_page = "link"
 repository_id = 1444159327
-revision = "a0ef95b24a407943f7fc710a04bf8ea8d10d9465"
+revision = "b0e04fab1da2e310dc6758ef41a36cfcb767a4ed"
 board = "pong"
 soc = "SM8250"
 os_profile = "ipados-18.7.10-22H374"
@@ -3156,6 +3270,21 @@ revision = "b5b46ed979a8104952c9fadea196240abb633ede"
 board = "raphael"
 
 [[device]]
+name = "raphael-aruvelut-123"
+repository = "Aruvelut-123/UniXNU-raphael"
+title = "Redmi K20 Pro / Mi 9T Pro (raphael, SM8150) - arm64 port of iPadOS 18.7.12 (22H390). Kernel from the arm64 iPadOS restore, root image from the iOS 18.7.12 paylo (Aruvelut-123)"
+title_zh = "Redmi K20 Pro / Mi 9T Pro (raphael, SM8150) - arm64 port of iPadOS 18.7.12 (22H390). Kernel from the arm64 iPadOS restore, root image from the iOS 18.7.12 paylo (Aruvelut-123)"
+format = 2
+legacy_page = "link"
+repository_id = 1454749984
+revision = "577e2ceda172e41aad295deeda99f4eb3fb823e3"
+board = "raphael"
+soc = "SM8150"
+os_profile = "ipados-18.7.12-22H390"
+components = ["XnuPrelink", "DarwinBoot", "ArmDTPlatform"]
+record_state = "available"
+
+[[device]]
 name = "raphael-guowenye"
 repository = "guowenye/UniXNU-raphael"
 title = "Independent Redmi K20 Pro port; compile-only default with separately gated native handset bring-up (guowenye)"
@@ -3217,7 +3346,7 @@ title_zh = "realme GT2 Master Explorer (RMX3551): UniXNU UEFI bring-up"
 format = 2
 legacy_page = "link"
 repository_id = 1445692808
-revision = "311b89ec674451e8baaa6a8060cb68df601d386d"
+revision = "de4d4e1557eef3e16fe1f70cfec641979131f440"
 board = "rmx3551"
 soc = "SM8475"
 os_profile = "ipados-18.7.10-22H374"
@@ -3333,6 +3462,21 @@ record_state = "invalid"
 record_error = "ilertnost/unixnu-sagit: device.os_profile must match board.toml"
 
 [[device]]
+name = "sheng-111027866"
+repository = "111027866/UniXNU-sheng"
+title = "Xiaomi Pad 6S Pro (111027866)"
+title_zh = "Xiaomi Pad 6S Pro (111027866)"
+format = 2
+legacy_page = "link"
+repository_id = 1454921437
+revision = "e1c74bbc25e940b6520c865d067dd39c375b4fb9"
+board = "sheng"
+soc = "SM8550"
+os_profile = "ipados-27.0.1-24A446"
+components = ["ArmDTPlatform", "ArmCpu", "XnuPrelink", "DarwinBoot", "ShengPreflight", "ShengUfs", "RamBlock", "GopFramebuffer", "AppleKeyStoreState", "Adreno740", "AdrenoMetal"]
+record_state = "available"
+
+[[device]]
 name = "sheng-16crow"
 repository = "16Crow/UniXNU-sheng"
 title = "Xiaomi Pad 6S Pro (16Crow)"
@@ -3382,13 +3526,12 @@ title_zh = "Xiaomi Pad 6S Pro (abdulfarizi)"
 format = 2
 legacy_page = "link"
 repository_id = 1450260881
-revision = "21c707840ea907337f1146cdc09059d554f8e00a"
+revision = "e8937177309d88c93b305a57bad147fd5fac8a86"
 board = "sheng"
 soc = "SM8550"
-os_profile = "ipados-26.5.2-23F84"
+os_profile = "ipados-27.0.1-24A446"
 components = ["ArmDTPlatform", "ArmCpu", "XnuPrelink", "DarwinBoot", "ShengPreflight", "ShengUfs", "RamBlock", "GopFramebuffer", "AppleKeyStoreState", "Adreno740", "AdrenoMetal"]
-record_state = "invalid"
-record_error = "abdulfarizi/UniXNU-sheng: device.os_profile must match board.toml"
+record_state = "available"
 
 [[device]]
 name = "sheng-ad1095445"
@@ -3428,7 +3571,7 @@ title_zh = "Xiaomi Pad 6S Pro (alghiffaryfa19)"
 format = 2
 legacy_page = "link"
 repository_id = 1426797810
-revision = "032648c1ce514cf4976c3cca2e201825f21e7b5d"
+revision = "d00ffb9f6fd564dae61938e2266c9f50cb900d88"
 board = "sheng"
 soc = "SM8550"
 os_profile = "ipados-27.0.1-24A446"
@@ -3503,7 +3646,22 @@ title_zh = "Xiaomi Pad 6S Pro (DnuyaSha)"
 format = 2
 legacy_page = "link"
 repository_id = 1451823223
-revision = "d172bccb5a575188363534df5b5c269c8d27a77c"
+revision = "b4a922bcfa22414b87a471bb8611d5c579cded6a"
+board = "sheng"
+soc = "SM8550"
+os_profile = "ipados-27.0.1-24A446"
+components = ["ArmDTPlatform", "ArmCpu", "XnuPrelink", "DarwinBoot", "ShengPreflight", "ShengUfs", "RamBlock", "GopFramebuffer", "AppleKeyStoreState", "Adreno740", "AdrenoMetal"]
+record_state = "available"
+
+[[device]]
+name = "sheng-dong666-yantong"
+repository = "Dong666-yantong/UniXNU-sheng"
+title = "Xiaomi Pad 6S Pro (Dong666-yantong)"
+title_zh = "Xiaomi Pad 6S Pro (Dong666-yantong)"
+format = 2
+legacy_page = "link"
+repository_id = 1453593764
+revision = "382e13fbe1f47b3989976a016cfe8a221538ba09"
 board = "sheng"
 soc = "SM8550"
 os_profile = "ipados-27.0.1-24A446"
@@ -3524,6 +3682,22 @@ soc = "SM8550"
 os_profile = "ipados-27.0.1-24A446"
 components = ["ArmDTPlatform", "ArmCpu", "XnuPrelink", "DarwinBoot", "ShengPreflight", "ShengUfs", "RamBlock", "GopFramebuffer", "AppleKeyStoreState", "Adreno740", "AdrenoMetal"]
 record_state = "available"
+
+[[device]]
+name = "sheng-doubleloves"
+repository = "doubleloves/UniXNU-sheng"
+title = "Xiaomi Pad 6S Pro (doubleloves)"
+title_zh = "Xiaomi Pad 6S Pro (doubleloves)"
+format = 2
+legacy_page = "link"
+repository_id = 1453854528
+revision = "61a7b3c97d6d1d29c50a7b1ea4fd7f9f42b2fb3d"
+board = "sheng"
+soc = "SM8550"
+os_profile = "macos-26.5-25F71"
+components = ["ArmDTPlatform", "ArmCpu", "XnuPrelink", "DarwinBoot", "ShengPreflight", "ShengUfs", "RamBlock", "GopFramebuffer", "AppleKeyStoreState", "Adreno740", "AdrenoMetal"]
+record_state = "invalid"
+record_error = "doubleloves/UniXNU-sheng: device.os_profile must match board.toml"
 
 [[device]]
 name = "sheng-enlixk"
@@ -3635,7 +3809,7 @@ title_zh = "Xiaomi Pad 6S Pro (jsongmax)"
 format = 2
 legacy_page = "link"
 repository_id = 1442368679
-revision = "6a3d35c02504b712897799c5481952a61761325d"
+revision = "e8937177309d88c93b305a57bad147fd5fac8a86"
 board = "sheng"
 soc = "SM8550"
 os_profile = "ipados-27.0.1-24A446"
@@ -3677,7 +3851,7 @@ title_zh = "Xiaomi Pad 6S Pro (KuriyamaMirai08)"
 format = 2
 legacy_page = "link"
 repository_id = 1452423355
-revision = "2ce800b517a5b14d1255e1b03e6ac516cb1af2cc"
+revision = "59fd891211ff79ab5047f9d19a80d95e6a3b29a7"
 board = "sheng"
 soc = "SM8550"
 os_profile = "ipados-27.0.1-24A446"
@@ -3745,8 +3919,8 @@ title = "Xiaomi Pad 6S Pro (loadinghtml)"
 title_zh = "Xiaomi Pad 6S Pro (loadinghtml)"
 format = 2
 legacy_page = "link"
-repository_id = 1452923351
-revision = "6dff230f6a8ab163c82d947133ffd138490ad35d"
+repository_id = 1454602879
+revision = "1c7ab9beec26cdde43461721cf299c39391b3f6f"
 board = "sheng"
 soc = "SM8550"
 os_profile = "ipados-27.0.1-24A446"
@@ -3789,6 +3963,21 @@ format = 2
 legacy_page = "link"
 repository_id = 1452528094
 revision = "00ba90984e831e4c6ce30ec3d8a56e6434e9f1af"
+board = "sheng"
+soc = "SM8550"
+os_profile = "ipados-27.0.1-24A446"
+components = ["ArmDTPlatform", "ArmCpu", "XnuPrelink", "DarwinBoot", "ShengPreflight", "ShengUfs", "RamBlock", "GopFramebuffer", "AppleKeyStoreState", "Adreno740", "AdrenoMetal"]
+record_state = "available"
+
+[[device]]
+name = "sheng-qianfengmax"
+repository = "QianFengMax/UniXNU-sheng"
+title = "Xiaomi Pad 6S Pro (QianFengMax)"
+title_zh = "Xiaomi Pad 6S Pro (QianFengMax)"
+format = 2
+legacy_page = "link"
+repository_id = 1452763892
+revision = "6bc0ce1e8c3a3733110a80dd80ddfb2a1ca46555"
 board = "sheng"
 soc = "SM8550"
 os_profile = "ipados-27.0.1-24A446"
@@ -3886,6 +4075,21 @@ components = ["ArmDTPlatform", "ArmCpu", "XnuPrelink", "DarwinBoot", "ShengPrefl
 record_state = "available"
 
 [[device]]
+name = "sheng-vanzhang329"
+repository = "vanzhang329/UniXNU-sheng"
+title = "Xiaomi Pad 6S Pro (vanzhang329)"
+title_zh = "Xiaomi Pad 6S Pro (vanzhang329)"
+format = 2
+legacy_page = "link"
+repository_id = 1442944676
+revision = "6a3d35c02504b712897799c5481952a61761325d"
+board = "sheng"
+soc = "SM8550"
+os_profile = "ipados-27.0.1-24A446"
+components = ["ArmDTPlatform", "ArmCpu", "XnuPrelink", "DarwinBoot", "ShengPreflight", "ShengUfs", "RamBlock", "GopFramebuffer", "AppleKeyStoreState", "Adreno740", "AdrenoMetal"]
+record_state = "available"
+
+[[device]]
 name = "sheng-wzc35418"
 repository = "wzc35418/UniXNU-sheng"
 title = "Xiaomi Pad 6S Pro (wzc35418)"
@@ -3893,7 +4097,7 @@ title_zh = "Xiaomi Pad 6S Pro (wzc35418)"
 format = 2
 legacy_page = "link"
 repository_id = 1452432114
-revision = "cc3c150228481567425eb355487f474346839c5c"
+revision = "4f4bcc33a6b0536fa08dc24414fcc5855451ab97"
 board = "sheng"
 soc = "SM8550"
 os_profile = "ipados-27.0.1-24A446"
@@ -3908,7 +4112,7 @@ title_zh = "Xiaomi Pad 6S Pro (yeyingjun-codes)"
 format = 2
 legacy_page = "link"
 repository_id = 1436647412
-revision = "ca0854cb220e2c7ece04746a25db8fbe24e2dacf"
+revision = "2b75decdb2bf4b0c0787dee17e2b3d8c8d1346c4"
 board = "sheng"
 soc = "SM8550"
 os_profile = "ipados-17.7.11-21H461"
@@ -3927,6 +4131,21 @@ repository_id = 1432443226
 revision = "a979eb9675aaeb24a0bd981922ac2a323561ac11"
 board = "sheng"
 soc = "SM8550"
+
+[[device]]
+name = "sheng-zy-xyz"
+repository = "zy-xyz/UniXNU-sheng"
+title = "Xiaomi Pad 6S Pro (zy-xyz)"
+title_zh = "Xiaomi Pad 6S Pro (zy-xyz)"
+format = 2
+legacy_page = "link"
+repository_id = 1454312082
+revision = "9d02260a0ab79e3d584cd84eee048bcbdc2505c8"
+board = "sheng"
+soc = "SM8550"
+os_profile = "ipados-27.0.1-24A446"
+components = ["ArmDTPlatform", "ArmCpu", "XnuPrelink", "DarwinBoot", "ShengPreflight", "ShengUfs", "RamBlock", "GopFramebuffer", "AppleKeyStoreState", "Adreno740", "AdrenoMetal"]
+record_state = "available"
 
 [[device]]
 name = "shennong"
@@ -4075,13 +4294,13 @@ title_zh = "Samsung Galaxy Tab S7+ Wi-Fi (SM-T970, gts7xlwifi), single-core plat
 format = 2
 legacy_page = "link"
 repository_id = 1444476611
-revision = "5c37b6e5f54ebbd9f59c78ef17315e68de4e2dd0"
+revision = "a14a0936c64e74d18554205abba23f0919240492"
 board = "sm-t970"
 soc = "SM8250"
 os_profile = "ipados-17.7.11-21H461"
 components = ["ArmDTPlatform", "ArmCpu", "SoftwareAES", "VirtioMmioBlock", "RamBlock", "XnuPrelink", "DarwinBoot"]
 record_state = "invalid"
-record_error = "Invalid value (at end of document)"
+record_error = "Unterminated string (at end of document)"
 
 [[device]]
 name = "songyuan"
@@ -4115,7 +4334,7 @@ title_zh = "Redmi K100 Pro Max (NiandeNian)"
 format = 1
 legacy_page = "link"
 repository_id = 1453510320
-revision = "3c1917466e6f0fcaf64baade9f3aef3f6f820af1"
+revision = "501a25b1845edfcd75fe8f2e6fe62c720eaa39dc"
 board = "songyuan"
 soc = "SM8850"
 
@@ -4678,6 +4897,18 @@ soc = "MT6993"
 summary = "UEFI not reached; about 25 to 30 percent"
 repository_id = 1429688461
 revision = "a00140856bbb46b0b1bd603efdf0abb00626c00d"
+
+[[device]]
+name = "xun"
+repository = "losthappines/UniXNU-xun"
+title = "Xiaomi Redmi Pad SE 11\" (xun)"
+title_zh = "Xiaomi Redmi Pad SE 11\" (xun)"
+format = 1
+legacy_page = "link"
+repository_id = 1454541793
+revision = "ca60c310870aea911da794ca91eeaca94c2f3c84"
+board = "xun"
+soc = "SM6225"
 
 [[device]]
 name = "yunluo"

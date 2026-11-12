@@ -4,4 +4,4 @@
 
 Complete and validate [porting.toml](/porting/records) in the device repository to publish its subsystem record.
 
-'str' object has no attribute 'get'
+Emilelu/UniXNU-mondrian/storage: implemented work needs evidence

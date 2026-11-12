@@ -155,6 +155,11 @@
     "title_zh": "dizi"
   },
   {
+    "name": "models/dodge",
+    "title": "dodge",
+    "title_zh": "dodge"
+  },
+  {
     "name": "models/droidvm",
     "title": "droidvm",
     "title_zh": "droidvm"
@@ -223,6 +228,11 @@
     "name": "models/g0245d",
     "title": "g0245d",
     "title_zh": "g0245d"
+  },
+  {
+    "name": "models/garnet",
+    "title": "garnet",
+    "title_zh": "garnet"
   },
   {
     "name": "models/gauguin",
@@ -370,6 +380,11 @@
     "title_zh": "marble"
   },
   {
+    "name": "models/meizu15",
+    "title": "meizu15",
+    "title_zh": "meizu15"
+  },
+  {
     "name": "models/meizu21",
     "title": "meizu21",
     "title_zh": "meizu21"
@@ -480,6 +495,11 @@
     "title_zh": "opd2515"
   },
   {
+    "name": "models/opi5plus",
+    "title": "opi5plus",
+    "title_zh": "opi5plus"
+  },
+  {
     "name": "models/orangepi5",
     "title": "orangepi5",
     "title_zh": "orangepi5"
@@ -488,6 +508,11 @@
     "name": "models/pandora",
     "title": "pandora",
     "title_zh": "pandora"
+  },
+  {
+    "name": "models/panther",
+    "title": "panther",
+    "title_zh": "panther"
   },
   {
     "name": "models/pclm10",
@@ -763,6 +788,11 @@
     "name": "models/x9",
     "title": "x9",
     "title_zh": "x9"
+  },
+  {
+    "name": "models/xun",
+    "title": "xun",
+    "title_zh": "xun"
   },
   {
     "name": "models/yunluo",
