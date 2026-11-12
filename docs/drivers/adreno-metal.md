@@ -37,9 +37,9 @@ Three metal2vulkan work placements are on by default. `metal-flow=<bits>` select
 
 Any value of `metal-flow=` logs the `FL` counts to os_log every ten seconds when they change.
 
-Turnip chooses tile memory or system memory for each render pass, and concurrent binning is on. `tu-debug=<flags>` sets `TU_DEBUG` for every Metal process: `gmem` renders every pass in tile memory and `nocb` turns concurrent binning off. `tum=a` alternates between Turnip's choice and tile memory every eight seconds for measurement.
+Turnip chooses tile memory or system memory for each render pass. `tu-cb=1` enables concurrent binning, which is off by default. `tu-debug=<flags>` sets `TU_DEBUG` for every Metal process. `gmem` forces tile memory and `nocb` disables concurrent binning. `tum=a` alternates between Turnip's choice and tile memory every eight seconds for measurement.
 
-The Uke build uses Turnip render-mode selection and concurrent binning by default. The Uke addon stages an empty `tu_debug` to clear the override installed by earlier builds.
+Uke uses Turnip's render-mode and concurrent-binning defaults. The Uke addon stages an empty `tu_debug` to clear overrides installed by earlier builds.
 
 Logical Metal queues share one Vulkan queue and kernel queue per process. The frontend forwards the most urgent **current** request among live queues. Lowering or destroying a queue removes its boost. Getters report each queue's own request; setters report backend acceptance. The kernel chooses foreground or background priority from the task's GPU role. Priority policy does not use process names.
 

@@ -32,9 +32,9 @@ AdrenoMetal 通过 `MTLAddDevice` 发布 Metal 设备。metal2vulkan 将 AIR 翻
 
 `metal-flow=` 取任一值时，都会在 `FL` 计数变化后写入 os_log，每十秒最多一次。
 
-Turnip 为每个渲染通道选择瓦片内存或系统内存，并发分箱默认打开。`tu-debug=<标志>` 为所有 Metal 进程设置 `TU_DEBUG`：`gmem` 让每个通道都在瓦片内存中渲染，`nocb` 关闭并发分箱。`tum=a` 每八秒在 Turnip 的选择和瓦片内存之间轮换，用于测量。
+Turnip 为每个渲染通道选择瓦片内存或系统内存。并发分箱默认关闭，可用 `tu-cb=1` 开启。`tu-debug=<标志>` 为所有 Metal 进程设置 `TU_DEBUG`。`gmem` 强制使用瓦片内存，`nocb` 关闭并发分箱。`tum=a` 每八秒在 Turnip 的选择和瓦片内存之间轮换，用于测量。
 
-Uke 的默认构建采用 Turnip 自动选择渲染模式和并发分箱。Uke addon 用空的 `tu_debug` 清除旧安装的 `sysmem,nocb` 覆盖。
+Uke 沿用 Turnip 的渲染模式与并发分箱默认策略。Uke addon 用空的 `tu_debug` 清除旧安装的 `sysmem,nocb` 覆盖。
 
 同一进程的 Metal 逻辑队列共用一个 Vulkan 队列和内核队列。前端汇总存活队列的当前请求，采用其中最高的优先级；队列降级或销毁后撤回提升。getter 返回各队列自身的请求，setter 返回后端是否接受。内核根据任务的 GPU role 选择前台或后台优先级，策略不使用进程名。
 
