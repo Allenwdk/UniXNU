@@ -98,6 +98,6 @@ uke的`sheng-diag=2 sheng-gpu-trace=2`保留原21个BR计数，以event69追加�
 板级可在GPU发布前通过`native_adreno_pool_add`注册加载器的`darwinboot-memory-outside`范围。输入必须来自最终固件内存图、位于XNU窗口外的conventional内存，并排除固件和设备保留区。池优先提供write-combined system BO，不足时保留原descriptor回退；视图保留grant，默认退役策略不复用已暴露给客户端的页。固件、ADT和板级probe需要成套构建。
 
 
-### Incremental trace reader
+### 增量记录读取
 
-`native_gpu_trace_since(cursor, out, bytes, lost)` reads bounded new records without consuming the ordinary diagnostic snapshot. Overwritten and busy slots increment `lost`. The reader takes no GPU lock and performs no I/O or allocation. Uke uses a separate worker to persist these records continuously.
+`native_gpu_trace_since(cursor, out, bytes, lost)` 按独立游标读取有界新记录，不消耗普通诊断快照。已覆盖和忙槽计入 `lost`；读取不获取GPU锁，不进行I/O或分配。Uke在独立线程中持续持久化这些记录。

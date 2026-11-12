@@ -119,6 +119,6 @@ Uke 集成上游 AdrenoMetal main `6d7f734` 与 metal2vulkan `963f0e64f103d2e682
 运行时恢复会让旧代纹理和管线失效。Uke 的渲染服务在完成处理器收到 DeviceLost、GpuHang 或 GpuRecoveryVictim 后进入已有的重建流程。各错误的 Metal 数值保持原定义。diag=1 将运行时错误和恢复通知通过有界的 os_log 出口持久记录，tu-debug=perf 同时启用 Mesa 发布构建的 Vulkan 错误日志。
 
 
-### Frame trace durability
+### 帧记录持久化
 
-The frame writer uses elapsed time for pending-file synchronization, with a one-second threshold. Idle turns also check pending bytes; a stopped producer no longer leaves its last partial batch waiting for eight nonempty batches. A blocked writer can extend the interval.
+帧文件按经过时间检查待同步数据，阈值为一秒；空循环也执行检查，生产者停止后末尾数据不再等待八个非空批次。写线程阻塞仍可能延长实际间隔。
