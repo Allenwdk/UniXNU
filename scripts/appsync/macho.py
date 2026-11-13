@@ -8,6 +8,37 @@ import hashlib
 import struct
 
 
+def require_reexport(data, name):
+    """Check the produced library's forwarding contract before it is signed."""
+    if len(data) < 32:
+        raise ValueError('truncated adapter Mach-O header')
+    magic, cpu, subtype, kind, count, size, flags, _ = struct.unpack_from('<8I', data)
+    if (magic, cpu, subtype & 0xffffff, kind) != (0xfeedfacf, 0x100000c, 2, 6):
+        raise ValueError('expected an arm64e MH_DYLIB adapter')
+    if flags & 0x100000:  # MH_NO_REEXPORTED_DYLIBS
+        raise ValueError('adapter declares no re-exported libraries')
+    at, end, found = 32, 32 + size, []
+    if end > len(data):
+        raise ValueError('truncated adapter load commands')
+    for _ in range(count):
+        if at + 8 > end:
+            raise ValueError('truncated adapter load command')
+        command, length = struct.unpack_from('<II', data, at)
+        if length < 8 or length % 8 or at + length > end:
+            raise ValueError('invalid adapter load command')
+        if command in (0xc, 0x80000018, 0x8000001f, 0x80000023):
+            if length < 24:
+                raise ValueError('truncated adapter dependency')
+            offset = struct.unpack_from('<I', data, at + 8)[0]
+            if not 24 <= offset < length or b'\0' not in data[at + offset:at + length]:
+                raise ValueError('invalid adapter dependency name')
+            if data[at + offset:at + length].split(b'\0', 1)[0] == name.encode():
+                found.append(command)
+        at += length
+    if at != end or found != [0x8000001f]:
+        raise ValueError('adapter must actually LC_REEXPORT_DYLIB ' + name)
+
+
 def add_dylib(data, name, expected_sha256):
     if hashlib.sha256(data).hexdigest() != expected_sha256:
         raise ValueError('OS executable does not match the 24A446 source pin')

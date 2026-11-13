@@ -102,6 +102,11 @@ these runtime copies and the signer library; user application hashes are not
 build inputs. `appsync-service.json` records `scope = "all-user-bundles"`,
 `dynamic_user_trust = true`, `signature_repair = true` and the source pins.
 
+Foundation is declared once, as a re-export: some ld64 versions discard a later
+re-export declaration when the same framework was already added normally.
+Before signing, the builder requires the actual arm64e adapter to contain
+`LC_REEXPORT_DYLIB` for Foundation and to clear `MH_NO_REEXPORTED_DYLIBS`.
+
 From UniXNU on macOS with Xcode and Python 3.13 or later:
 
 ```sh

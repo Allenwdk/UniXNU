@@ -10,7 +10,7 @@ import shutil
 import subprocess
 import tempfile
 
-from macho import add_dylib
+from macho import add_dylib, require_reexport
 import signer
 
 ROOT = Path(__file__).resolve().parent
@@ -75,17 +75,21 @@ def build(os_root, output):
             (work / directory).mkdir(parents=True)
         sdk = run('xcrun', '--sdk', 'iphoneos', '--show-sdk-path', capture=True).stdout.strip()
         flags = ['-target', 'arm64e-apple-ios27.0', '-isysroot', sdk, '-fobjc-arc', '-O2',
-                 '-Wall', '-Wextra', '-Werror', '-framework', 'Foundation']
+                 '-Wall', '-Wextra', '-Werror']
+        # Declare Foundation only as a re-export. Some ld64 versions retain the
+        # first library declaration and drop the re-export flag on a duplicate.
         run('xcrun', 'clang', *flags, '-dynamiclib', ROOT / 'AppSync.m', ROOT / 'Signing.m', ROOT / 'BacklightMode.m', '-install_name', DYLIB,
             '-Wl,-reexport_framework,Foundation', '-Wl,-compatibility_version,3000',
             '-Wl,-current_version,5027.0.69',
             '-o', work / 'lib/UniXNUAppSync.dylib')
+        require_reexport((work / 'lib/UniXNUAppSync.dylib').read_bytes(),
+                         '/System/Library/Frameworks/Foundation.framework/Foundation')
         sign(work / 'lib/UniXNUAppSync.dylib', 'org.unixnu.appsync')
         # installd may not start processes: the signer is a library it loads.
         signing = signer.build(work / 'lib' / signer.LIBRARY)
         sign(work / 'lib' / signer.LIBRARY, 'org.unixnu.ldid')
         shutil.copytree(Path(signing['cache']) / 'licenses', work / 'libexec/appsync-licenses')
-        run('xcrun', 'clang', *flags, ROOT / 'appinst.m', '-o', work / 'libexec/unixnu-appinst')
+        run('xcrun', 'clang', *flags, '-framework', 'Foundation', ROOT / 'appinst.m', '-o', work / 'libexec/unixnu-appinst')
         entitlement_file = work / 'appinst-entitlements.plist'
         entitlement_file.write_bytes(plistlib.dumps({
             'application-identifier': 'org.unixnu.appinst', 'platform-application': True,
