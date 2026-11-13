@@ -75,6 +75,8 @@ images are build candidates; hardware qualification is pending.
 
 The uke candidate separates unowned system-BO page preparation from the original IOUserClient mapping-exclusion lock. Optional native prepare/finish callbacks keep active IPC ownership across preflight, locked validation/adoption and post-lock cleanup. A racing close refuses adoption; unused pages are returned outside the lock. The allocation diagnostic's user-stack walk also runs after the lock. Map/unmap/close serialization, request ABI and failure results remain. Without the matching native adapter the original allocation path applies; BO trace flag16 identifies preflight. Host concurrency checks and image assembly pass; hardware latency and120Hz remain unqualified.
 
+The native allocation preflight reads the BO size limit and physical address width from values published at mount. It can start wiring pages while the driver lock is busy. Dispatch still takes the lock to validate the live client and adopt the pages.
+
 
 The optional preflight path requires runtime readiness after GPU publication, not just linked callback symbols. Early clients retain the original call path without the new IPC pin; the driver repeats the readiness check before class access. Readiness/entry counters distinguish startup-stage behavior from actual GPU work. The BO preflight optimization remains enabled after publication; startup/performance require device validation.
 

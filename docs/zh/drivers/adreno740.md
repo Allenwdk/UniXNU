@@ -74,6 +74,8 @@ gen7_11_0 profile 使用真实 chip ID 0x43030b00、1.5 MiB GMEM、2196 KiB 抢�
 
 uke候选把尚未发布的系统BO页面准备移到IOUserClient原映射排斥锁之外。可选prepare/finish入口用活动IPC计数覆盖预准备、原锁内校验/采用及锁外清理；close抢先完成时拒绝采用并回收页面。分配诊断的用户栈读取也在锁外。map/unmap/close同步、请求ABI和真实错误保留；未搭配原生适配时走原分配路径，BO trace bit16标识preflight。主机并发检查与镜像构建通过，实机收益和120Hz尚未验证。
 
+原生分配预处理读取连接创建时发布的 BO 大小上限和物理地址位宽，可在驱动锁忙时开始准备页面。提交分配仍在驱动锁内检查连接有效性并接收页面。
+
 
 可选preflight路径要求GPU发布后的运行时ready，不能只凭回调符号存在即启用。早期client不进入新增IPC pin，driver在类型转换前再次检查ready；记录ready/entries区分启动阶段与实际GPU工作。GPU就绪后的BO锁外准备优化保留；开机和帧时间收益须实机验证。
 
