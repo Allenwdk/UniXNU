@@ -123,7 +123,9 @@ def build(output, host=False):
             'HAVE_TIMEGM', 'HAVE_STRPTIME', 'HAVE_MEMMEM', 'HAVE_TM_TM_GMTOFF', 'HAVE_TM_TM_ZONE',
             '__LITTLE_ENDIAN__')) + '\n#define PACKAGE_VERSION "2.7.0"\n')
         objects = []
-        for source in sorted((plist / 'src').glob('*.c')) + sorted((plist / 'libcnary').glob('*.c')):
+        # libcnary/Makefile.am builds these two files. cnary.c is a standalone
+        # demo with main() and an obsolete pointer API, not part of libplist.
+        for source in sorted((plist / 'src').glob('*.c')) + [plist / 'libcnary' / name for name in ('node.c', 'node_list.c')]:
             obj = work / (source.stem + '.o')
             run('xcrun', 'clang', *flags, '-DHAVE_CONFIG_H', '-DLIBPLIST_STATIC', '-I', work,
                 '-I', plist / 'include', '-I', plist / 'src', '-I', plist / 'libcnary/include', '-c', source, '-o', obj)
