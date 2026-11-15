@@ -140,6 +140,10 @@ lockdown 会话。[抓取日志](/zh/porting/log-capture)后可查看 `[usb]` �
 测试主机模式时，`usb-host=<s>` 在延时后强制进入主机模式，`usb-back=<s>` 再回到线缆决定的角色。
 设备结果按[适配记录](/zh/porting/records)记录。
 
+## 小米平板 7（uke）
+
+SM7675 移植以原厂生效设备树确定 PM7550BA 中继器、WCD939x USB 路径及 Cliffs 电源和时钟资源。固定 USB2 候选在 AppleUSBXDCI 复位槽执行有读回检查的 GCC 块复位。见 [QcomDwc3 的 uke 源码](https://github.com/Allenwdk/QcomDwc3/tree/feat/uke-usb2)。
+
 ## 下一步
 
 有基带的设备继续[基带与移动网络](/zh/porting/baseband)，其余设备继续 [DSP、音频和电源](/zh/porting/power)。

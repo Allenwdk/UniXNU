@@ -150,6 +150,10 @@ To test host mode, set `usb-host=<s>` to force it after a delay and
 `usb-back=<s>` to return to the cable's role. Record device results as described in
 [Porting record](/porting/records).
 
+## Xiaomi Pad 7 (uke)
+
+The SM7675 port uses the stock applied device tree for the PM7550BA repeater, the WCD939x USB path and Cliffs power and clock resources. Its fixed USB 2 candidate uses a checked GCC block reset at the AppleUSBXDCI reset slot. See the [QcomDwc3 Uke source](https://github.com/Allenwdk/QcomDwc3/tree/feat/uke-usb2).
+
 ## Next step
 
 Continue with [baseband and cellular](/porting/baseband) on devices with a modem, or
