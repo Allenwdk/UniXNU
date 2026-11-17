@@ -76,6 +76,24 @@ def git(repo, *args, capture=True):
 CLANGPDB_TOOLS = ('clang', 'lld-link', 'llvm-lib', 'llvm-rc')
 
 
+def validate_clang_bin(directory):
+    """Validate EDK II tools and return its required slash-terminated prefix."""
+    directory = expand(directory)
+    for name in CLANGPDB_TOOLS:
+        binary = directory / name
+        if not binary.is_file() or not os.access(binary, os.X_OK):
+            raise Error(f'CLANGPDB tool missing or not executable: {binary}')
+    versions = []
+    for name in ('clang', 'lld-link'):
+        output = run([directory / name, '--version'], capture=True)
+        match = re.search(r'\b(\d+\.\d+\.\d+)\b', output)
+        versions.append(match.group(1) if match else '')
+    if not versions[0] or versions[0] != versions[1]:
+        raise Error(f'CLANGPDB requires matching LLVM and LLD releases (clang {versions[0]}, LLD {versions[1]}); '
+                    'set CLANG_BIN to a directory containing matching clang, lld-link, llvm-lib and llvm-rc')
+    return str(directory) + '/'
+
+
 def clang_bin(directory):
     """A directory with the tools EDK II's CLANGPDB tool chain expects (CLANG_BIN), linked from wherever they are.
 
@@ -89,4 +107,4 @@ def clang_bin(directory):
         if link.is_symlink() or link.exists():
             link.unlink()
         link.symlink_to(target)
-    return str(directory) + '/'
+    return validate_clang_bin(directory)
