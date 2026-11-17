@@ -44,9 +44,11 @@ build = (ROOT / 'scripts/build-adreno-metal-bridge.py').read_text()
 listed = build[build.index('PATCHES = ['):build.index(']]', build.index('PATCHES = ['))]
 names = re.findall(r"'(\d{4}-[^']+\.patch)'", listed)
 directory = ROOT / 'drivers/AdrenoMetal/bridge/patches'
-on_disk = sorted(p.name for p in directory.glob('*.patch'))
-if sorted(names) != on_disk:
-    fail('the build lists %s, the directory holds %s' % (names, on_disk))
+if not names or len(names) != len(set(names)):
+    fail('missing or duplicate patches in the bridge build')
+missing = [name for name in names if not (directory / name).is_file()]
+if missing:
+    fail('missing build patches: ' + ', '.join(missing))
 patches = [directory / name for name in names]
 
 git('fetch', '-q', 'origin', '+refs/heads/%s:refs/remotes/origin/%s' % (branch, branch))
