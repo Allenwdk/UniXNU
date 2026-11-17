@@ -21,8 +21,12 @@ def validate(directory, digest, identity, library=None, full=False):
     """Validate one previously verified policy without rewriting its evidence."""
     record = json.loads((directory / 'verification.json').read_text())
     key = (directory / 'trusted-key.bin').read_bytes()
-    header = ((directory / 'manifest.bin').read_bytes() if full else
-              (directory / 'manifest.header.bin').read_bytes())
+    header_path = directory / 'manifest.header.bin'
+    if full or not header_path.is_file():
+        manifest = (directory / 'manifest.bin').read_bytes()
+        header = manifest if full else manifest[:544]
+    else:
+        header = header_path.read_bytes()
     blocks = record['blocks_verified']
     if (len(key) != 395 or record.get('real_c_signature_and_block_verification') is not True or
             record.get('original_image_modified') is not False or record['image_sha256'] != digest or

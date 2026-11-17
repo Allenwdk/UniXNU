@@ -230,7 +230,7 @@ def preflight(ctx):
     embedded = ctx.board.get('kernel', {}).get('embedded_components', {})
     for spec in ctx.component_specs:
         # Catalogue-only dependencies may be supplied by a different SoC's archive.
-        if not spec.get('build') and spec['id'] not in embedded:
+        if spec.get('build_stage') == 'embedded' and not spec.get('build') and spec['id'] not in embedded:
             continue
         module = ctx.modules[(spec['kind'], spec['id'])]
         for name in spec.get('source_files', []):
