@@ -26,7 +26,8 @@ if subprocess.check_output(['git', '-C', str(SOURCE), 'rev-parse', 'HEAD'], text
 PATCHES = [ROOT / 'drivers/AdrenoMetal/bridge/patches' / name for name in [
     '0063-main-optimizations-on-development-46e7cc96.patch',
     # An invalid pipeline handle fails the affected command instead of unwinding backboardd.
-    '0064-guard-render-pipeline-replay.patch']]
+    '0064-guard-render-pipeline-replay.patch',
+    '0065-enable-ios-copied-host-pages.patch']]
 
 
 def git_tree(*steps):
