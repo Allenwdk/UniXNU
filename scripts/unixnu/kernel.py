@@ -227,7 +227,11 @@ def preflight(ctx):
             source = command if command.is_absolute() else ctx.tree / (command if command.parts[0] == 'scripts' else Path('scripts') / command)
             if not source.is_file():
                 missing.append(str(source))
+    embedded = ctx.board.get('kernel', {}).get('embedded_components', {})
     for spec in ctx.component_specs:
+        # Catalogue-only dependencies may be supplied by a different SoC's archive.
+        if not spec.get('build') and spec['id'] not in embedded:
+            continue
         module = ctx.modules[(spec['kind'], spec['id'])]
         for name in spec.get('source_files', []):
             if module.path is None or not (module.path / name).is_file():

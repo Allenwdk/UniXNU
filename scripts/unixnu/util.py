@@ -1,6 +1,7 @@
 """Small helpers shared by the build driver."""
 import hashlib
 import os
+import re
 import shutil
 import subprocess
 import sys

@@ -100,6 +100,8 @@ def blob_digest(data):
 
 
 def mirror_data(destination, name, sha):
+    if not destination.is_relative_to('.cache/xnu-work'):
+        return None
     prefix = destination.relative_to('.cache/xnu-work')
     for root in MIRRORS:
         try:
