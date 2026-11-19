@@ -4,9 +4,9 @@
 
 <div v-pre>
 
-Xiaomi Pad 7 runs iPadOS 27.0.1 with accelerated internal graphics, Wi-Fi, touch and USB host storage. Native extended desktop is device-observed on the earlier copy path; the XR10 HiDPI direct-scanout candidate has passed host checks and been flashed for hardware validation.
+Xiaomi Pad 7 runs iPadOS 27.0.1 with accelerated internal graphics, Wi-Fi, touch and USB host storage. Native XR10 HiDPI extended desktop and both panel outputs were device-observed. The current image has DP diagnostics off by default, and its restored Wi-Fi service passed the owner test.
 
-Source record: [porting.toml](https://github.com/Allenwdk/UniXNU-uke/blob/cab36c6bc8e3e63be93309a5ccaaa8a607bfc583/porting.toml), `cab36c6bc8e3e63be93309a5ccaaa8a607bfc583`.
+Source record: [porting.toml](https://github.com/Allenwdk/UniXNU-uke/blob/55909f42b5e473628245b0eafb00d853555f4bb2/porting.toml), `55909f42b5e473628245b0eafb00d853555f4bb2`.
 
 This page is generated from the device record.
 
@@ -17,7 +17,7 @@ This page is generated from the device record.
 | [CPU and interrupts](#cpu) | `device-verified` |
 | [Memory and DMA](#memory) | `implemented` |
 | [Storage and root](#storage) | `device-verified` |
-| [Display](#display) | `host-verified` |
+| [Display](#display) | `device-verified` |
 | [Input](#input) | `device-verified` |
 | [GPU](#gpu) | `device-verified` |
 | [Network](#network) | `device-verified` |
@@ -51,8 +51,9 @@ Components: `ArmDTPlatform`, `ArmCpu`, `SoftwareAES`, `XnuPrelink`, `QcomDwc3`.
 
 ### Development findings
 
+- The display source pins include the OEM split-panel handoff and gate DP diagnostics behind uke-dp-debug=1.
 - Uke uses sheng-derived host and peripheral services against the 24A446 ABI. The stock DTB and ABL handoff stay in the boot pair.
-- XR10 direct scanout remains opt-in via uke-dp-xr10=1.
+- XR10 direct scanout remains opt-in via uke-dp-xr10=1. The accepted image leaves uke-dp-debug unset.
 
 ### Completion criteria
 
@@ -68,7 +69,7 @@ Components: `ArmDTPlatform`, `ArmCpu`, `SoftwareAES`, `XnuPrelink`, `QcomDwc3`.
 
 ### Evidence
 
-- `host`: [Formal XR10 candidate built with pinned inputs and no new unresolved prelink bindings.](https://github.com/Allenwdk/UniXNU-uke/blob/cab36c6bc8e3e63be93309a5ccaaa8a607bfc583/docs/USB-DP-20261119.md)
+- `host`: [Formal XR10 candidate built with pinned inputs and no new unresolved prelink bindings.](https://github.com/Allenwdk/UniXNU-uke/blob/55909f42b5e473628245b0eafb00d853555f4bb2/docs/USB-DP-20261119.md)
   Command: <code>./unixnu build kernel &amp;&amp; ./unixnu build payload; release verify.py</code>. Revision: `d61336190c478c9884334f85433eea44e5fee6d0`.
 
 ## Firmware and boot {#firmware}
@@ -99,15 +100,15 @@ Components: `DarwinBoot`.
 
 ### Current limits
 
-- The XR10 boot pair was written successfully. Its firmware handoff and subsequent boot await the next device observation.
+- The later split-panel and Wi-Fi service recovery images were used on the device. Broad repeated-boot, sleep and resume qualification remains open.
 
 ### Next action
 
-- Record UEFI handoff and first XNU progress from the XR10 image.
+- Trace UEFI and the framebuffer handoff if a future cold boot or suspend test fails.
 
 ### Evidence
 
-- `source`: [Board firmware build settings, DTB handling and payload reservations.](https://github.com/Allenwdk/UniXNU-uke/blob/cab36c6bc8e3e63be93309a5ccaaa8a607bfc583/board.toml)
+- `source`: [Board firmware build settings, DTB handling and payload reservations.](https://github.com/Allenwdk/UniXNU-uke/blob/55909f42b5e473628245b0eafb00d853555f4bb2/board.toml)
 
 ## CPU and interrupts {#cpu}
 
@@ -145,7 +146,7 @@ Components: `ArmCpu`, `ArmDTPlatform`, `ArmVirtPlatform`.
 
 ### Evidence
 
-- `device`: [All eight CPUs advanced IRQ, timer and IPI counters across the recorded interval.](https://github.com/Allenwdk/UniXNU-uke/blob/cab36c6bc8e3e63be93309a5ccaaa8a607bfc583/docs/CPU-TRACE-READBACK-20261115.md)
+- `device`: [All eight CPUs advanced IRQ, timer and IPI counters across the recorded interval.](https://github.com/Allenwdk/UniXNU-uke/blob/55909f42b5e473628245b0eafb00d853555f4bb2/docs/CPU-TRACE-READBACK-20261115.md)
   Command: <code>Read back the UUID 77C55B96 battery-refresh trace and compare adjacent valid per-CPU samples.</code>. Revision: `c97bca260a1b831fce889889204dcacc4878c69d`.
 
 ## Memory and DMA {#memory}
@@ -184,8 +185,8 @@ Components: `RamBlock`.
 
 ### Evidence
 
-- `source`: [ADT, GPU memory and DMA configuration.](https://github.com/Allenwdk/UniXNU-uke/blob/cab36c6bc8e3e63be93309a5ccaaa8a607bfc583/board.toml)
-- `host`: [Host regressions passed for display IOMMU bounds and fail-safe buffer retirement.](https://github.com/Allenwdk/UniXNU-uke/blob/cab36c6bc8e3e63be93309a5ccaaa8a607bfc583/docs/USB-DP-20261119.md)
+- `source`: [ADT, GPU memory and DMA configuration.](https://github.com/Allenwdk/UniXNU-uke/blob/55909f42b5e473628245b0eafb00d853555f4bb2/board.toml)
+- `host`: [Host regressions passed for display IOMMU bounds and fail-safe buffer retirement.](https://github.com/Allenwdk/UniXNU-uke/blob/55909f42b5e473628245b0eafb00d853555f4bb2/docs/USB-DP-20261119.md)
   Command: <code>./unixnu build kernel &amp;&amp; ./unixnu build payload; release verify.py</code>. Revision: `d61336190c478c9884334f85433eea44e5fee6d0`.
 
 ## Storage and root {#storage}
@@ -227,13 +228,13 @@ Components: `ShengUfs`, `RamBlock`, `VirtioMmioBlock`, `VirtioMmioConsole`, `Ver
 
 ### Evidence
 
-- `device`: [The historical LUN0 and partition O\_DIRECT readbacks agreed after the authorized header recovery, and the production reader matched the restored root header.](https://github.com/Allenwdk/UniXNU-uke/blob/cab36c6bc8e3e63be93309a5ccaaa8a607bfc583/docs/CPU-STALL-ROOT-PANIC-20261114.md)
+- `device`: [The historical LUN0 and partition O\_DIRECT readbacks agreed after the authorized header recovery, and the production reader matched the restored root header.](https://github.com/Allenwdk/UniXNU-uke/blob/55909f42b5e473628245b0eafb00d853555f4bb2/docs/CPU-STALL-ROOT-PANIC-20261114.md)
   Command: <code>Read the restored userdata header on both the LUN and its partition with O_DIRECT; run the production RootLayout parser.</code>. Revision: `02757b828aeec889db09ad8f99daa5465c29ccd5`.
-- `source`: [Historical Uke user test confirmed Files, USB drive I/O and the later 215 GB About value.](https://github.com/Allenwdk/UniXNU-uke/blob/cab36c6bc8e3e63be93309a5ccaaa8a607bfc583/docs/USB-DP-20261119.md)
+- `source`: [Historical Uke user test confirmed Files, USB drive I/O and the later 215 GB About value.](https://github.com/Allenwdk/UniXNU-uke/blob/55909f42b5e473628245b0eafb00d853555f4bb2/docs/USB-DP-20261119.md)
 
 ## Display {#display}
 
-`host-verified`
+`device-verified`
 
 Components: `GopFramebuffer`, `NativeUfs`.
 
@@ -254,6 +255,8 @@ Components: `GopFramebuffer`, `NativeUfs`.
 
 ### Development findings
 
+- During a dual-output run, the panel scanned at 120 Hz and DP at 60 Hz while the measured external presentation rate fell from 35.5 to 22.0 frames/s.
+- The owner confirmed both displays work after the VIG1 right-source and opaque mixer stage fix. The panel DMA1 handoff preserved all four measured pixel signatures.
 - The prior full-damage image removed flicker and black blocks. Its log showed the 3840×2160 b3a8 compositor output at 12.15–12.99 new frames/s, with 73.8 ms median CPU frame preparation.
 - The XR10 candidate maps the original color plane, uses QSEED for 3:2 scaling and CSC for XR10-to-SDR, and preserves producer fences and CTL latch retirement.
 
@@ -263,17 +266,19 @@ Components: `GopFramebuffer`, `NativeUfs`.
 
 ### Current limits
 
-- The original driver passed both constituent atomic tests separately. Recovery exposed no usable external DP mode for combined testing. The flashed XR10 candidate awaits hardware acceptance.
+- Dual-display output is device-observed on the split-stage image. Sustained cadence and a matched quiet-build performance comparison remain open.
 
 ### Next action
 
-- Confirm the direct IOSurface route and measure external producer cadence and latch cadence on the flashed image.
+- Correlate each display presentation with its own IOSurface producer fence and CTL latch on a matched workload.
 
 ### Evidence
 
-- `host`: [Host checks passed for HBR2 modes, full-frame geometry, XR10 scaling and display DMA ownership.](https://github.com/Allenwdk/UniXNU-uke/blob/cab36c6bc8e3e63be93309a5ccaaa8a607bfc583/docs/USB-DP-20261119.md)
+- `host`: [Host checks passed for HBR2 modes, full-frame geometry, XR10 scaling and display DMA ownership.](https://github.com/Allenwdk/UniXNU-uke/blob/55909f42b5e473628245b0eafb00d853555f4bb2/docs/USB-DP-20261119.md)
   Command: <code>Run host-test.py, xr10-direct-host.cpp and verify.py from the XR10 candidate.</code>. Revision: `d61336190c478c9884334f85433eea44e5fee6d0`.
-- `source`: [Matched pre-XR10 readback identifies 1440p wire timing, HiDPI geometry and CPU-copy throughput on vendor\_boot 9a0fc473220661d6c6a350ad3563da520ef7e060af11dab8801b36784017c7d9.](https://github.com/Allenwdk/UniXNU-uke/blob/cab36c6bc8e3e63be93309a5ccaaa8a607bfc583/docs/USB-DP-20261119.md)
+- `source`: [Matched pre-XR10 readback identifies 1440p wire timing, HiDPI geometry and CPU-copy throughput on vendor\_boot 9a0fc473220661d6c6a350ad3563da520ef7e060af11dab8801b36784017c7d9.](https://github.com/Allenwdk/UniXNU-uke/blob/55909f42b5e473628245b0eafb00d853555f4bb2/docs/USB-DP-20261119.md)
+- `device`: [The owner confirmed dual-screen output on vendor\_boot 93c30b07eb1b. Same-boot readback found four matching panel signatures before and after handoff.](https://github.com/Allenwdk/UniXNU-uke/blob/55909f42b5e473628245b0eafb00d853555f4bb2/docs/USB-DP-20261119.md)
+  Command: <code>Connect HDMI in Extend mode and compare DMA1, mixer and interface registers across the same-boot capture.</code>. Revision: `dd0e3ec0e882d2aa2d0acf976e14c88f3db643fd`.
 
 ## Input {#input}
 
@@ -312,7 +317,7 @@ Components: `ShengHidInput`, `ShengNovatekTouch`, `QcomGeniSpi`.
 
 ### Evidence
 
-- `device`: [The owner confirmed upward swipes no longer froze the UI on CRC 0485290E96ACC9B3.](https://github.com/Allenwdk/UniXNU-uke/blob/cab36c6bc8e3e63be93309a5ccaaa8a607bfc583/docs/PROGRESS.md)
+- `device`: [The owner confirmed upward swipes no longer froze the UI on CRC 0485290E96ACC9B3.](https://github.com/Allenwdk/UniXNU-uke/blob/55909f42b5e473628245b0eafb00d853555f4bb2/docs/PROGRESS.md)
   Command: <code>Record hardware swipe feedback for the archived CA surface-tracking release.</code>. Revision: `5ed46420025be331b51d98207ea6aa679faac9c7`.
 
 ## GPU {#gpu}
@@ -351,7 +356,7 @@ Components: `Adreno740`, `AdrenoMetal`, `AdrenoFirmware`, `AdrenoPM4`, `ArmSmmu4
 
 ### Evidence
 
-- `device`: [Owner accepted the desktop, Settings, widgets and upward gestures on CRC 90B6BC701210D9DB.](https://github.com/Allenwdk/UniXNU-uke/blob/cab36c6bc8e3e63be93309a5ccaaa8a607bfc583/docs/GPU-IOS27.md)
+- `device`: [Owner accepted the desktop, Settings, widgets and upward gestures on CRC 90B6BC701210D9DB.](https://github.com/Allenwdk/UniXNU-uke/blob/55909f42b5e473628245b0eafb00d853555f4bb2/docs/GPU-IOS27.md)
   Command: <code>Inspect user-observation-success.json for that flashed image.</code>. Revision: `10a077a8b4de9b8333069089e808ab8ad2cba8bd`.
 
 ## Network {#network}
@@ -374,6 +379,7 @@ Components: `Sm7675Platform`, `Ath12kWifi`.
 
 ### Development findings
 
+- The current image restores the signed V4.9.7 supplicant matched by the existing signed launch cache and authorization record. The device owner confirmed Wi-Fi works again.
 - The V4.9.7 baseline passed Settings Wi-Fi, open and password-protected association, DHCP and app/Safari access. Scan-result expiry uses the continuous clock.
 
 ### Completion criteria
@@ -390,8 +396,10 @@ Components: `Sm7675Platform`, `Ath12kWifi`.
 
 ### Evidence
 
-- `device`: [A matched 879437D238BB23B0 capture showed six successful WMI scans, association, DHCP ACK and bidirectional TCP.](https://github.com/Allenwdk/UniXNU-uke/blob/cab36c6bc8e3e63be93309a5ccaaa8a607bfc583/docs/BACKLIGHT-PASS-WIFI-CONTROL-20261111.md)
+- `device`: [A matched 879437D238BB23B0 capture showed six successful WMI scans, association, DHCP ACK and bidirectional TCP.](https://github.com/Allenwdk/UniXNU-uke/blob/55909f42b5e473628245b0eafb00d853555f4bb2/docs/BACKLIGHT-PASS-WIFI-CONTROL-20261111.md)
   Command: <code>Read the same-boot log and read-only Data capture.</code>. Revision: `bdc9a9def4f21c8a4a438b46860882ab2933eb49`.
+- `device`: [The owner confirmed Wi-Fi recovery on vendor\_boot b92e39d1aead. Host checks verified the exact accepted supplicant signature and the control protocol.](https://github.com/Allenwdk/UniXNU-uke/blob/55909f42b5e473628245b0eafb00d853555f4bb2/docs/WIFI-WCN6750.md)
+  Command: <code>Boot b92e39d1aead and test Wi-Fi while keeping the packaged launch cache and configuration.</code>. Revision: `dd0e3ec0e882d2aa2d0acf976e14c88f3db643fd`.
 
 ## cellular {#cellular}
 
@@ -447,6 +455,7 @@ Collect evidence using the next action.
 
 ### Development findings
 
+- The shared display and battery archive links the quiet DP diagnostic policy for Alt Mode notifications.
 - Device captures reached ADSP, GLINK and APM readiness. Audio mode 1 is a control-path readiness check.
 
 ### Completion criteria
@@ -463,7 +472,7 @@ Collect evidence using the next action.
 
 ### Evidence
 
-- `source`: [ADSP, GLINK and APM bring-up history and route scope.](https://github.com/Allenwdk/UniXNU-uke/blob/cab36c6bc8e3e63be93309a5ccaaa8a607bfc583/docs/DSP-AUDIO-POWER.md)
+- `source`: [ADSP, GLINK and APM bring-up history and route scope.](https://github.com/Allenwdk/UniXNU-uke/blob/55909f42b5e473628245b0eafb00d853555f4bb2/docs/DSP-AUDIO-POWER.md)
 
 ## Power {#power}
 
@@ -485,6 +494,7 @@ Components: `Adreno740`, `AppleKeyStoreState`.
 
 ### Development findings
 
+- The shared PMIC GLINK Alt Mode notifications use the quiet DP diagnostic policy while retaining the same role and power handling.
 - The user verified battery percent and charge UI on D4EFA944BD2B2081. The subsequent battery service handles field timeouts independently.
 
 ### Completion criteria
@@ -501,7 +511,7 @@ Components: `Adreno740`, `AppleKeyStoreState`.
 
 ### Evidence
 
-- `device`: [User confirmed battery percentage and charging indication on D4EFA944BD2B2081.](https://github.com/Allenwdk/UniXNU-uke/blob/cab36c6bc8e3e63be93309a5ccaaa8a607bfc583/docs/DSP-AUDIO-POWER.md)
+- `device`: [User confirmed battery percentage and charging indication on D4EFA944BD2B2081.](https://github.com/Allenwdk/UniXNU-uke/blob/55909f42b5e473628245b0eafb00d853555f4bb2/docs/DSP-AUDIO-POWER.md)
   Command: <code>Observe the battery percentage and charging icon with the staged image booted.</code>. Revision: `4eb1665f9295f00d815c31ac847fb265c45b7766`.
 
 ## usb {#usb}
@@ -524,6 +534,7 @@ Components: `QcomDwc3`, `Sm7675Platform`, `ArmCpu`.
 
 ### Development findings
 
+- Routine DP Alt Mode and training diagnostics default to off. Link failures still report their errors.
 - UCSI negotiates connector data role, retrieves alternate modes and handles DisplayPort HPD. Hubs, keyboard, mouse and drive transfer were accepted on earlier device builds.
 
 ### Completion criteria
@@ -540,7 +551,7 @@ Components: `QcomDwc3`, `Sm7675Platform`, `ArmCpu`.
 
 ### Evidence
 
-- `host`: [Controller UCSI, board Alt Mode and HBR2 link-policy tests passed.](https://github.com/Allenwdk/UniXNU-uke/blob/cab36c6bc8e3e63be93309a5ccaaa8a607bfc583/docs/USB-DP-20261119.md)
+- `host`: [Controller UCSI, board Alt Mode and HBR2 link-policy tests passed.](https://github.com/Allenwdk/UniXNU-uke/blob/55909f42b5e473628245b0eafb00d853555f4bb2/docs/USB-DP-20261119.md)
   Command: <code>clang++ -std=c++17 -I. tests/ucsi_host.cpp -o ucsi-host &amp;&amp; ./ucsi-host; run the Uke XR10 candidate host-test.py</code>. Revision: `d61336190c478c9884334f85433eea44e5fee6d0`.
 
 ## Image assembly {#packaging}
@@ -563,6 +574,7 @@ Components: `DarwinBoot`, `XnuPrelink`, `VerifiedRoot`.
 
 ### Development findings
 
+- The latest image replaced only the add-on supplicant with the verified V4.9.7 file. Boot image, kernel, ADT, arguments, trust cache and GPU contents match the quiet DP base.
 - The XR10 package used 984 bytes of boot arguments and added zero unresolved prelink bindings. The two-slot boot pair was written successfully.
 - CI resolves the XNU revision and four-layer patch order through UniXNU. All 149 patches applied on a clean XNU 12377.121.6 checkout.
 
@@ -572,17 +584,17 @@ Components: `DarwinBoot`, `XnuPrelink`, `VerifiedRoot`.
 
 ### Current limits
 
-- Successful transport records only the four writes, slot selection and reboot. Runtime acceptance remains pending.
+- The owner confirmed Wi-Fi operation on the repack. Host artifact verification and the device observation cover different parts of the release.
 
 ### Next action
 
-- Attach device boot and XR10 acceptance to the exact vendor\_boot hash once observed.
+- Keep the signed Wi-Fi service paired with its launch cache in future addon builds.
 
 ### Evidence
 
-- `host`: [Formal kernel and payload builds and the vendor\_boot payload round trip passed for c0a6f7ec9315.](https://github.com/Allenwdk/UniXNU-uke/blob/cab36c6bc8e3e63be93309a5ccaaa8a607bfc583/docs/USB-DP-20261119.md)
+- `host`: [Formal kernel and payload builds and the vendor\_boot payload round trip passed for c0a6f7ec9315.](https://github.com/Allenwdk/UniXNU-uke/blob/55909f42b5e473628245b0eafb00d853555f4bb2/docs/USB-DP-20261119.md)
   Command: <code>./unixnu build kernel &amp;&amp; ./unixnu build payload; release verify.py</code>. Revision: `d61336190c478c9884334f85433eea44e5fee6d0`.
-- `host`: [All 149 resolved patches applied to clean XNU 12377.121.6 at ac9718fb1af618d5ce8678d0dc6e8a58f252216f.](https://github.com/Allenwdk/UniXNU-uke/blob/cab36c6bc8e3e63be93309a5ccaaa8a607bfc583/docs/USB-DP-20261119.md)
+- `host`: [All 149 resolved patches applied to clean XNU 12377.121.6 at ac9718fb1af618d5ce8678d0dc6e8a58f252216f.](https://github.com/Allenwdk/UniXNU-uke/blob/55909f42b5e473628245b0eafb00d853555f4bb2/docs/USB-DP-20261119.md)
   Command: <code>bash scripts/check-xnu-patch-set.sh</code>. Revision: `380cfbf686f41ae2a2ebf44835ce541a10241bcd`.
 
 ## Diagnostics {#diagnostics}
@@ -605,6 +617,7 @@ Components: `AppleKeyStoreState`, `XnuPrelink`.
 
 ### Development findings
 
+- Same-boot records from the split-panel image isolated GPU fence waits from link timing. Normal DP operation avoids periodic receiver and pixel-signature sampling.
 - The ring includes older boots. Image-matched backtraces and CRC-valid sequence filtering are needed before associating a panic or performance sample with a trial.
 
 ### Completion criteria
@@ -613,7 +626,7 @@ Components: `AppleKeyStoreState`, `XnuPrelink`.
 
 ### Current limits
 
-- The current XR10 image has build and flash evidence. No same-boot device trace is recorded yet.
+- The split-panel image has a same-boot trace. The quiet image defaults to bounded operational logging and retains the opt-in capture mode.
 
 ### Next action
 
@@ -621,7 +634,7 @@ Components: `AppleKeyStoreState`, `XnuPrelink`.
 
 ### Evidence
 
-- `host`: [XR10 image verification confirmed that DP sink status, CRC, display latch and frame counters are linked.](https://github.com/Allenwdk/UniXNU-uke/blob/cab36c6bc8e3e63be93309a5ccaaa8a607bfc583/docs/USB-DP-20261119.md)
+- `host`: [XR10 image verification confirmed that DP sink status, CRC, display latch and frame counters are linked.](https://github.com/Allenwdk/UniXNU-uke/blob/55909f42b5e473628245b0eafb00d853555f4bb2/docs/USB-DP-20261119.md)
   Command: <code>./unixnu build kernel &amp;&amp; ./unixnu build payload; release verify.py</code>. Revision: `d61336190c478c9884334f85433eea44e5fee6d0`.
 
 </div>
