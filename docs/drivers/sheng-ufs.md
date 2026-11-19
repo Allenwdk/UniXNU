@@ -40,6 +40,10 @@ buffers are transferred by zero-copy DMA of up to 1 MiB per command. On the
 reference board every read test matches or exceeds the mainline Linux driver;
 see [UFS performance](/porting/ufs#performance).
 
+## Uke display DMA
+
+Uke uses the component's display SMMU context. `uke-dp-ext-buffers=1` enables two dedicated 32 MiB IOVA slots for the external output, after the existing four built-in panel slots. The board owns each output's buffer and scanout lifetime.
+
 ## Wi-Fi DMA window
 
 The WCN7850 DMA window maps 128 MiB at IOVA 0x10000000 using 64 two-MiB

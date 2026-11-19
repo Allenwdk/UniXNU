@@ -154,7 +154,39 @@ To test host mode, set `usb-host=<s>` to force it after a delay and
 
 The SM7675 port uses the stock applied device tree for the PM7550BA repeater, the WCD939x USB path and Cliffs power and clock resources. Its fixed USB 2 candidate uses a checked GCC block reset at the AppleUSBXDCI reset slot. See the [QcomDwc3 Uke source](https://github.com/Allenwdk/QcomDwc3/tree/feat/uke-usb2).
 
+On 2026-11-15 the Uke USB2 shared-bus candidate passed WCD939x revision/routing and AppleUSBDeviceMux configuration in the same boot. Enumeration still fails: the event buffer and endpoints remain unconfigured after `startUSBStack`. The next local candidate records power requests and callbacks without replacing Apple's power state machine. These observations do not establish USB2 acceptance.
+
+The Uke power diagnostic boot returned `kIOPMNotYetInitialized` (8) for its initial power request. Later desired power reached 4 while current power remained 0. A local candidate retains that rejected request and retries only after PM initialization and power-tree attachment, with at most five retries; PM readiness and parent attachment are logged. USB enumeration remains unverified.
+
+The Uke deferred request was accepted after PM initialization and power-plane attachment at 52.35 seconds, but current power remained 0 and hardware callbacks did not execute through 116.32 seconds. Early rejection is not the complete cause. The next diagnostic candidate keeps the component unchanged and records native PM registration, parent capability, request consumption and callback progress, with a limit of 96 trace points for this controller.
+
+For Uke, the comprehensive diagnostic candidate correlates synchronous registration returns and the runtime power table, both request queues, parent capability/ACKs, independent PM/USB worker stacks, CPU state and DWC3/SMMU snapshots in one boot. Per-category call/omission counters distinguish missing coverage from absent execution. USB remains unverified.
+
+Uke comprehensive readback found 40 native PM requests enqueued with none dequeued. The linked arm64e classification compares identical virtual-call thunks, so the repair uses explicit active contracts for native PM queues, root power, interrupt, DMA, command and notification sources. The final binary verifies seven linked flag writes; the legacy command queue is source-only. The candidate is built and paired but unflashed; USB enumeration and shared PM consumers still require device validation.
+
+Uke candidate609e restores native PM processing (58 queued/58 dequeued, power4); the controller starts and configures event DMA/EP0, but IRQ/event counts remain zero. The next local candidate restores and verifies session-valid after external block reset, keeps SS power-present clear for USB2, and records QSCRATCH/PHY/IRQ plus a 300-second window. Raw SMMU FSR0x400 is the AArch64 format, not a fault. This candidate is built but unflashed; the earlier capture did not directly record lost post-reset session, and USB enumeration is still unverified.
+
+On 2026-11-16 the ac456259 image enumerated USB2 and completed the Mux version exchange, but the host's TCP SYN to lockdown port 62078 received no device TCP reply. An official/sheng/Uke source comparison found no evidence yet of a custom Uke Mux parser defect. A new unflashed candidate enables bounded `AppleUSBDeviceMux` `DebugLevel=7` logging for the TCP/session/socket/write path. It also adds Uke's missing `sheng-aks-sls=3`; the owned KeyStore otherwise defaults to lock state 0, while the official pairing gate requires no-passcode state 3. Formal build and paired-image verification passed; lockdown and hardware acceptance remain pending. [Audit and candidate](../../../../docs/status/uke-usb2-mux-debug-2026-11-16.md).
+
+The 2026-11-17 Recovery readback matched the exported Mux diagnostic boot. It reached high-speed configuration 1 and logged 24 reads, 24 short-packet classifications and zero writes by deactivation. DWC3 reported `DCFG=0x00600808`, with bit 22 set despite the OEM `snps,usb2-gadget-lpm-disable` property. The next Uke candidate keeps that bit clear across controller reset and AppleUSBXDCI register updates. The effect on Mux traffic awaits a hardware comparison.
+
+The gadget LPM comparison confirmed bit 22 was clear during enumeration and after reconnect. Mux v2 replied, while the lockdown port still timed out. After reconnect the controller stayed in Suspended even though the host selected configuration 1 again. The next Uke candidate requests On through the existing power queue when connection-done reports a USB2 link and both power states are still Suspended. Hardware validation is pending.
+
 ## Next step
 
 Continue with [baseband and cellular](/porting/baseband) on devices with a modem, or
 [DSP, audio and power](/porting/power).
+
+On 2026-11-18, the Uke USB3 peripheral candidate used Cliffs QMP power, clocks and reset wiring with the 167 entries from the effective OEM device tree. GPIO122 selects orientation in hardware. `uke-usb3=1` enables the SuperSpeed experiment, with UTMI as the fallback if QMP bring-up fails. The kernel and paired images passed host verification. SuperSpeed enumeration, data transfer, both orientations and host mode remain device tests.
+
+The 2026-11-18 Uke candidate enables automatic DRD with `uke-usb-otg=1`. It uses the PMIC GLINK UCSI client to choose the data role and Cliffs block reset to hand the controller between XDCI and xHCI. The Type-C firmware controls the power role. GPIO122, QMP port selection and LTSSM diagnostics cover the reverse-plug investigation. Host build and prelink checks passed. Hardware role transitions and reverse SuperSpeed remain to be tested.
+
+The next Uke candidate uses the OEM charger CC orientation report to select the QMP lane before bringing up the selected role. Cliffs uses low-word then high-word xHCI register writes. Host diagnostics sample the event ring configuration and IRQ count. This candidate awaits hardware verification.
+
+The latest Uke OTG candidate reapplies the OEM eUSB2 PHY initialization on role changes and uses the Cliffs host-specific timing bits. It records root port objects and PORTSC transitions to diagnose USB 2 keyboard enumeration. The original recovery kernel enumerated the same adapter and keyboard. Candidate hardware verification is pending.
+
+Uke's next OTG candidate explicitly subscribes `QcomDwc3Xhci` to its own power-state notifications. In the previous hardware test the host reached power state 3 with no published root ports. The original IOUSBHostFamily creates them in the gated post-change path. Build and image checks passed. Port creation and enumeration await hardware verification.
+
+Uke's DP Alt Mode readback confirms Pin D with two DP lanes and USB3 in both orientations. HDMI hotplug reaches the board through PMIC GLINK HPD notifications. The board's `uke-dp-aux=1` candidate applies the combined QMP route within the existing USB role handoff, selects WCD939x AUX polarity, then reads DPCD on HPD. AUX and link training still require hardware verification.
+
+Uke has since verified AUX, EDID and two-lane HBR training in both orientations. The next board candidate keeps a DPTX0 test stream active while HPD and the USB role generation remain valid. HPD IRQ checks the active link status.

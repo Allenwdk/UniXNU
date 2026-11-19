@@ -34,6 +34,10 @@ arm64e 的公开源码构建方法及当前链接、运行时限制见[公开源
 走零拷贝 DMA，每条命令最多 1 MiB。在参考板型上，每项读取测试都不低于主线
 Linux 驱动，见 [UFS 性能](/zh/porting/ufs#performance)。
 
+## Uke 显示 DMA
+
+Uke 复用该组件的显示 SMMU 上下文。`uke-dp-ext-buffers=1` 在内屏现有四槽之后启用两个外接屏专用的 32 MiB IOVA 槽，各自的显示缓冲和扫描生命周期由板级后端管理。
+
 ## Wi-Fi DMA 窗口
 
 WCN7850 DMA 窗口为 128 MiB，IOVA 从 0x10000000 起，使用独立
