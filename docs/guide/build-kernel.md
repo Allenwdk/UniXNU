@@ -109,7 +109,7 @@ archives = [
 
 Keep signed source-storage inputs outside the disposable target build directory.
 The storage builder accepts an explicit policy directory, or policies copied from
-the device's scripts/policies/<profile>/ directory into the assembled tree.
+the device's `scripts/policies/<profile>/` directory into the assembled tree.
 Both OS and SystemOS require manifest.bin, trusted-key.bin and verification.json,
 using their original shared owner anchor. A prelink regression policy alone is
 not a signed root-policy bundle. Preserve pinned prelink reference kernels as

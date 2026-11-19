@@ -156,7 +156,7 @@ Uke全面回读确认原生PM入队40/出队0。实包arm64e自动分类比较�
 
 Uke609e已实证恢复原生PM处理（58入/58出、电源4），控制器启动并配置事件DMA/EP0，但IRQ/事件计数仍0。下一本地候选在外部块复位后恢复并验证session-valid，USB2清SS就绪位，并记录QSCRATCH/PHY/IRQ及300秒窗口。raw SMMU FSR0x400为AArch64格式，不是故障。候选已构建未刷；前版未直接记录post-reset session丢失，USB枚举仍未通过。
 
-2026-11-16：ac456259 USB2枚举和Mux版本握手通过，但主机对62078发送的SYN后无设备TCP回复。官方/sheng/Uke实现对照没有找到可证实的自定义Mux解析错误；诊断候选为AppleUSBDeviceMux设置DebugLevel=7以记录TCP/session/socket/write路径。另确认Uke `sheng-aks=1` 时原先缺少锁状态参数；候选加入`sheng-aks-sls=3`，对应官方配对检查的无密码状态3。正式构建和配对镜像验证通过，未刷，USB lockdown仍未验收。[证据与候选](../../../../docs/status/uke-usb2-mux-debug-2026-11-16.md)。
+2026-11-16：ac456259 USB2枚举和Mux版本握手通过，但主机对62078发送的SYN后无设备TCP回复。官方/sheng/Uke实现对照没有找到可证实的自定义Mux解析错误；诊断候选为AppleUSBDeviceMux设置DebugLevel=7以记录TCP/session/socket/write路径。另确认Uke `sheng-aks=1` 时原先缺少锁状态参数；候选加入`sheng-aks-sls=3`，对应官方配对检查的无密码状态3。正式构建和配对镜像验证通过，未刷，USB lockdown仍未验收。[证据与候选](https://github.com/Allenwdk/UniXNU-uke/blob/main/docs/USB2-20261115.md)。
 
 2026-11-17 Recovery 回读与已导出的 Mux 诊断启动一致。同次启动达到 USB2 高速、配置 1，Mux 在停用前累计 24 次读取、24 次过短包判定、0 次写入。DWC3 的 `DCFG=0x00600808` 显示 bit 22 已置位，原厂生效设备树声明了 `snps,usb2-gadget-lpm-disable`。新 Uke 候选在控制器复位和 AppleUSBXDCI 更新寄存器时均保持该位清零。Mux 流量是否恢复待实机对照。
 
