@@ -72,7 +72,11 @@
     "patches/mesa/turnip-darwin-invalidate-bo-before-reuse.patch",
     "patches/mesa/turnip-window-offset-check-command-space.patch",
     "patches/mesa/turnip-darwin-sweep-retired-on-cache-miss.patch",
-    "patches/mesa/turnip-darwin-thread-submit-cursor.patch"
+    "patches/mesa/turnip-darwin-thread-submit-cursor.patch",
+    "patches/mesa/turnip-panel-gmem-scissor.patch",
+    "patches/mesa/turnip-panel-gmem-scissor-grid.patch",
+    "patches/mesa/turnip-panel-gmem-linear-layout.patch",
+    "patches/mesa/turnip-panel-gmem-attachment-preservation.patch"
   ],
   "integer_fma_reference": {
     "repository": "https://github.com/ucb-bar/berkeley-softfloat-3",

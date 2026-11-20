@@ -1,0 +1,29 @@
+diff --git a/src/freedreno/vulkan/tu_cmd_buffer.cc b/src/freedreno/vulkan/tu_cmd_buffer.cc
+--- a/src/freedreno/vulkan/tu_cmd_buffer.cc
++++ b/src/freedreno/vulkan/tu_cmd_buffer.cc
+@@ -3953,6 +3953,7 @@
+    TU_PANEL_TILES_PASS_LAYOUT,
+    TU_PANEL_TILES_SURFACE_LAYOUT,
+    TU_PANEL_TILES_ATTACHMENT_OPS,
++   TU_PANEL_TILES_SURFACE_IMPORT,
+ };
+ 
+ static tu_panel_tile_result
+@@ -3997,12 +3998,13 @@
+    if (!view || (view->vk.format != VK_FORMAT_B8G8R8A8_UNORM &&
+                  view->vk.format != VK_FORMAT_B8G8R8A8_SRGB) ||
+        view->view.width != 3200 || view->view.height != 2136 ||
+-       !fdl_level_linear(&view->image->layout[0], 0) ||
++       fdl_tile_mode(&view->image->layout[0], 0) != TILE6_LINEAR ||
+        view->vk.base_mip_level || view->vk.base_array_layer ||
+-       (view->image->vk.create_flags & VK_IMAGE_CREATE_SPARSE_BINDING_BIT) ||
+-       !view->image->mem ||
++       (view->image->vk.create_flags & VK_IMAGE_CREATE_SPARSE_BINDING_BIT))
++      return TU_PANEL_TILES_SURFACE_LAYOUT;
++   if (!view->image->mem ||
+        view->image->mem->vk.import_handle_type != VK_EXTERNAL_MEMORY_HANDLE_TYPE_HOST_ALLOCATION_BIT_EXT)
+-      return TU_PANEL_TILES_SURFACE_LAYOUT;
++      return TU_PANEL_TILES_SURFACE_IMPORT;
+    if (!color.load || !color.store)
+       return TU_PANEL_TILES_ATTACHMENT_OPS;
+ 

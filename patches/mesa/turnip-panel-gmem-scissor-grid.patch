@@ -1,0 +1,244 @@
+diff --git a/src/freedreno/vulkan/tu_cmd_buffer.h b/src/freedreno/vulkan/tu_cmd_buffer.h
+--- a/src/freedreno/vulkan/tu_cmd_buffer.h
++++ b/src/freedreno/vulkan/tu_cmd_buffer.h
+@@ -332,6 +332,7 @@
+     * A clear, query, or side effect makes the bound unusable for tile culling.
+     */
+    uint32_t draw_bounds[4];
++   uint32_t panel_scissor_rows[32];
+    bool has_draw_bounds;
+    bool tile_bounds_unsafe;
+ 
+diff --git a/src/freedreno/vulkan/tu_cmd_buffer.cc b/src/freedreno/vulkan/tu_cmd_buffer.cc
+--- a/src/freedreno/vulkan/tu_cmd_buffer.cc
++++ b/src/freedreno/vulkan/tu_cmd_buffer.cc
+@@ -3943,39 +3943,54 @@
+  * intersecting tile. Only LOAD/STORE of the same imported color surface
+  * preserves an untouched tile. Other colors must be disposable.
+  */
+-static bool
+-tu_can_cull_panel_tiles(struct tu_cmd_buffer *cmd)
++enum tu_panel_tile_result {
++   TU_PANEL_TILES_NOT_PROFILED,
++   TU_PANEL_TILES_CULLED,
++   TU_PANEL_TILES_ALL_COVERED,
++   TU_PANEL_TILES_DISABLED,
++   TU_PANEL_TILES_UNSAFE_DRAW,
++   TU_PANEL_TILES_NO_DRAW_BOUNDS,
++   TU_PANEL_TILES_PASS_LAYOUT,
++   TU_PANEL_TILES_SURFACE_LAYOUT,
++   TU_PANEL_TILES_ATTACHMENT_OPS,
++};
++
++static tu_panel_tile_result
++tu_panel_tile_eligibility(struct tu_cmd_buffer *cmd)
+ {
+    const auto &state = cmd->state;
+    const auto *pass = state.pass;
+-   if (!state.rp.has_draw_bounds || state.rp.tile_bounds_unsafe ||
++   if (state.rp.tile_bounds_unsafe ||
+        state.rp.xfb_used || state.rp.has_tess || state.predication_active ||
+        state.occlusion_query_may_be_running ||
+        state.prim_generated_query_running_before_rp ||
+        state.vtx_stats_query_running_before_rp || state.xfb_query_running_before_rp ||
+        state.rp.has_prim_generated_query_in_rp || state.rp.has_vtx_stats_query_in_rp ||
+-       state.rp.has_zpass_done_sample_count_write_in_rp ||
+-       state.suspend_resume != SR_NONE || state.suspending || state.resuming ||
++       state.rp.has_zpass_done_sample_count_write_in_rp)
++      return TU_PANEL_TILES_UNSAFE_DRAW;
++   if (!state.rp.has_draw_bounds)
++      return TU_PANEL_TILES_NO_DRAW_BOUNDS;
++   if (state.suspend_resume != SR_NONE || state.suspending || state.resuming ||
+        state.per_layer_render_area ||
+        state.fdm_subsampled || pass->has_fdm || pass->num_views ||
+        pass->subpass_count != 1 || state.framebuffer->layers != 1 ||
+        state.framebuffer->width != 3200 || state.framebuffer->height != 2136)
+-      return false;
++      return TU_PANEL_TILES_PASS_LAYOUT;
+ 
+    const auto &subpass = pass->subpasses[0];
+    if (!subpass.color_count || subpass.samples != VK_SAMPLE_COUNT_1_BIT ||
+        subpass.unresolve_count || subpass.custom_resolve ||
+        subpass.depth_stencil_attachment.attachment != VK_ATTACHMENT_UNUSED)
+-      return false;
++      return TU_PANEL_TILES_PASS_LAYOUT;
+ 
+    for (unsigned i = 0; i < subpass.resolve_count; i++) {
+       if (subpass.resolve_attachments[i].attachment != VK_ATTACHMENT_UNUSED)
+-         return false;
++         return TU_PANEL_TILES_ATTACHMENT_OPS;
+    }
+ 
+    const uint32_t screen = subpass.color_attachments[0].attachment;
+    if (screen == VK_ATTACHMENT_UNUSED)
+-      return false;
++      return TU_PANEL_TILES_SURFACE_LAYOUT;
+ 
+    const auto *view = state.attachments[screen];
+    const auto &color = pass->attachments[screen];
+@@ -3986,17 +4001,50 @@
+        view->vk.base_mip_level || view->vk.base_array_layer ||
+        (view->image->vk.create_flags & VK_IMAGE_CREATE_SPARSE_BINDING_BIT) ||
+        !view->image->mem ||
+-       view->image->mem->vk.import_handle_type != VK_EXTERNAL_MEMORY_HANDLE_TYPE_HOST_ALLOCATION_BIT_EXT ||
+-       !color.load || !color.store)
+-      return false;
++       view->image->mem->vk.import_handle_type != VK_EXTERNAL_MEMORY_HANDLE_TYPE_HOST_ALLOCATION_BIT_EXT)
++      return TU_PANEL_TILES_SURFACE_LAYOUT;
++   if (!color.load || !color.store)
++      return TU_PANEL_TILES_ATTACHMENT_OPS;
+ 
+    for (unsigned i = 0; i < pass->attachment_count; i++) {
+       const auto &att = pass->attachments[i];
+       if (att.clear_mask || att.will_be_resolved || att.load_stencil ||
+           att.store_stencil || (i != screen && (att.load || att.store)))
+-         return false;
+-   }
+-   return true;
++         return TU_PANEL_TILES_ATTACHMENT_OPS;
++   }
++   return TU_PANEL_TILES_ALL_COVERED;
++}
++
++/* A fixed conservative grid works for both primary and secondary buffers.
++ * Cells touching a scissor are marked even when the scissor only covers an edge.
++ */
++static constexpr uint32_t PANEL_CELL_W = 100;
++static constexpr uint32_t PANEL_CELL_H = 68;
++
++static uint32_t
++tu_panel_cell_mask(uint32_t first, uint32_t end)
++{
++   return (uint32_t)(((UINT64_C(1) << end) - 1) ^ ((UINT64_C(1) << first) - 1));
++}
++
++static bool
++tu_panel_tile_touched(const tu_render_pass_state &rp, VkExtent2D tile,
++                      uint32_t tx, uint32_t ty)
++{
++   const uint32_t x0 = tx * tile.width, y0 = ty * tile.height;
++   const uint32_t x1 = x0 + tile.width, y1 = y0 + tile.height;
++   const auto &bounds = rp.draw_bounds;
++   if (x1 <= bounds[0] || y1 <= bounds[1] || x0 >= bounds[2] || y0 >= bounds[3])
++      return false;
++
++   const uint32_t mask = tu_panel_cell_mask(x0 / PANEL_CELL_W,
++                                          DIV_ROUND_UP(MIN2(x1, 3200u), PANEL_CELL_W));
++   for (uint32_t y = y0 / PANEL_CELL_H;
++        y < DIV_ROUND_UP(MIN2(y1, 2136u), PANEL_CELL_H); y++) {
++      if (rp.panel_scissor_rows[y] & mask)
++         return true;
++   }
++   return false;
+ }
+ 
+ template <chip CHIP>
+@@ -4035,22 +4083,14 @@
+    if (has_fdm)
+       tiles = tu_calc_tile_config(cmd, vsc, fdm, fdm_offsets);
+ 
+-   uint32_t min_x = 0, min_y = 0;
+-   uint32_t max_x = vsc->tile_count.width, max_y = vsc->tile_count.height;
+-   if (CHIP == A7XX && !has_fdm && tu_panel_tile_culling_enabled() &&
+-       tu_can_cull_panel_tiles(cmd)) {
+-      const auto &bounds = cmd->state.rp.draw_bounds;
+-      min_x = MIN2(max_x, bounds[0] / tiling->tile0.width);
+-      min_y = MIN2(max_y, bounds[1] / tiling->tile0.height);
+-      max_x = MIN2(max_x, DIV_ROUND_UP(bounds[2], tiling->tile0.width));
+-      max_y = MIN2(max_y, DIV_ROUND_UP(bounds[3], tiling->tile0.height));
+-   }
+-   const bool culled = min_x || min_y || max_x < vsc->tile_count.width ||
+-                       max_y < vsc->tile_count.height;
+-   const uint32_t total = vsc->tile_count.width * vsc->tile_count.height;
+-   const uint32_t kept = (max_x - min_x) * (max_y - min_y);
+-   if (tile_counts)
+-      p_atomic_set(tile_counts, MIN2(total, UINT16_MAX) | (MIN2(total - kept, UINT16_MAX) << 16));
++   tu_panel_tile_result panel_result = TU_PANEL_TILES_NOT_PROFILED;
++   if (CHIP == A7XX && cmd->state.framebuffer->width == 3200 &&
++       cmd->state.framebuffer->height == 2136) {
++      panel_result = !tu_panel_tile_culling_enabled() ? TU_PANEL_TILES_DISABLED :
++                     has_fdm ? TU_PANEL_TILES_PASS_LAYOUT : tu_panel_tile_eligibility(cmd);
++   }
++   const bool check_scissors = panel_result == TU_PANEL_TILES_ALL_COVERED;
++   uint32_t skipped = 0;
+ 
+    /* Create gmem stores now (at EndRenderPass time)) because they needed to
+     * know whether to allow their conditional execution, which was tied to a
+@@ -4090,9 +4130,11 @@
+                else
+                   tx = tile_row_i;
+ 
+-               if (culled && (tx1 + tx < min_x || tx1 + tx >= max_x ||
+-                              ty < min_y || ty >= max_y))
++               if (check_scissors &&
++                   !tu_panel_tile_touched(cmd->state.rp, tiling->tile0, tx1 + tx, ty)) {
++                  skipped++;
+                   continue;
++               }
+ 
+                struct tu_tile_config _tile = {
+                   .pos = { tx1 + tx, ty },
+@@ -4120,6 +4162,14 @@
+             slot_row += tile_row_stride;
+          }
+       }
++   }
++
++   if (tile_counts) {
++      const uint32_t total = vsc->tile_count.width * vsc->tile_count.height;
++      if (skipped)
++         panel_result = TU_PANEL_TILES_CULLED;
++      p_atomic_set(tile_counts, MIN2(total, 4095u) |
++                   (MIN2(skipped, 4095u) << 12) | ((uint32_t)panel_result << 24));
+    }
+ 
+    tu6_tile_render_end<CHIP>(cmd, &cmd->cs, rp_ctx);
+@@ -4233,7 +4283,7 @@
+ extern "C" __attribute__((visibility("default"))) unsigned
+ tu_panel_tile_stats_version()
+ {
+-   return 1;
++   return 2;
+ }
+ static struct tu_pass_rec tu_pass_ring[512];
+ 
+@@ -6571,8 +6621,11 @@
+                            const struct tu_render_pass_state *src)
+ {
+    dst->tile_bounds_unsafe |= src->tile_bounds_unsafe;
+-   if (src->has_draw_bounds)
++   if (src->has_draw_bounds) {
+       tu_add_draw_bounds(*dst, src->draw_bounds);
++      for (unsigned row = 0; row < ARRAY_SIZE(dst->panel_scissor_rows); row++)
++         dst->panel_scissor_rows[row] |= src->panel_scissor_rows[row];
++   }
+    dst->xfb_used |= src->xfb_used;
+    dst->has_tess |= src->has_tess;
+    dst->has_prim_generated_query_in_rp |= src->has_prim_generated_query_in_rp;
+@@ -8779,7 +8832,10 @@
+    /* Fill draw stats for autotuner */
+    rp->drawcall_count++;
+ 
+-   if (CHIP == A7XX && tu_panel_tile_culling_enabled() && !rp->tile_bounds_unsafe) {
++   if (CHIP == A7XX && tu_panel_tile_culling_enabled() && !rp->tile_bounds_unsafe &&
++       (cmd->vk.level == VK_COMMAND_BUFFER_LEVEL_SECONDARY ||
++        (cmd->state.framebuffer && cmd->state.framebuffer->width == 3200 &&
++         cmd->state.framebuffer->height == 2136))) {
+       const auto &vp = cmd->vk.dynamic_graphics_state.vp;
+       if (!draw_count || !vp.scissor_count || cmd->state.predication_active ||
+           cmd->state.occlusion_query_may_be_running)
+@@ -8799,7 +8855,14 @@
+             MIN2((uint32_t)rect.offset.x + (uint64_t)rect.extent.width, 3200u),
+             MIN2((uint32_t)rect.offset.y + (uint64_t)rect.extent.height, 2136u),
+          };
++         if (bounds[0] >= bounds[2] || bounds[1] >= bounds[3])
++            continue;
+          tu_add_draw_bounds(*rp, bounds);
++         const uint32_t mask = tu_panel_cell_mask(bounds[0] / PANEL_CELL_W,
++                                                 DIV_ROUND_UP(bounds[2], PANEL_CELL_W));
++         for (uint32_t row = bounds[1] / PANEL_CELL_H;
++              row < DIV_ROUND_UP(bounds[3], PANEL_CELL_H); row++)
++            rp->panel_scissor_rows[row] |= mask;
+       }
+    }
+ 

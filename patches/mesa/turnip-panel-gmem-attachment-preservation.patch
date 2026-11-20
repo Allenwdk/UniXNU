@@ -1,0 +1,65 @@
+diff --git a/src/freedreno/vulkan/tu_cmd_buffer.cc b/src/freedreno/vulkan/tu_cmd_buffer.cc
+--- a/src/freedreno/vulkan/tu_cmd_buffer.cc
++++ b/src/freedreno/vulkan/tu_cmd_buffer.cc
+@@ -3941,7 +3941,7 @@
+ 
+ /* Keep the original render area, tile layout, and transfers on every
+  * intersecting tile. Only LOAD/STORE of the same imported color surface
+- * preserves an untouched tile. Other colors must be disposable.
++ * preserves an untouched tile. Other colors may also be discarded.
+  */
+ enum tu_panel_tile_result {
+    TU_PANEL_TILES_NOT_PROFILED,
+@@ -3954,6 +3954,11 @@
+    TU_PANEL_TILES_SURFACE_LAYOUT,
+    TU_PANEL_TILES_ATTACHMENT_OPS,
+    TU_PANEL_TILES_SURFACE_IMPORT,
++   TU_PANEL_TILES_RESOLVE,
++   TU_PANEL_TILES_SCREEN_OPS,
++   TU_PANEL_TILES_AUX_CLEAR_STORE,
++   TU_PANEL_TILES_AUX_STORE_WITHOUT_LOAD,
++   TU_PANEL_TILES_AUX_STENCIL,
+ };
+ 
+ static tu_panel_tile_result
+@@ -3986,7 +3991,7 @@
+ 
+    for (unsigned i = 0; i < subpass.resolve_count; i++) {
+       if (subpass.resolve_attachments[i].attachment != VK_ATTACHMENT_UNUSED)
+-         return TU_PANEL_TILES_ATTACHMENT_OPS;
++         return TU_PANEL_TILES_RESOLVE;
+    }
+ 
+    const uint32_t screen = subpass.color_attachments[0].attachment;
+@@ -4005,14 +4010,26 @@
+    if (!view->image->mem ||
+        view->image->mem->vk.import_handle_type != VK_EXTERNAL_MEMORY_HANDLE_TYPE_HOST_ALLOCATION_BIT_EXT)
+       return TU_PANEL_TILES_SURFACE_IMPORT;
+-   if (!color.load || !color.store)
+-      return TU_PANEL_TILES_ATTACHMENT_OPS;
++   if (!color.load || !color.store || color.clear_mask)
++      return TU_PANEL_TILES_SCREEN_OPS;
+ 
+    for (unsigned i = 0; i < pass->attachment_count; i++) {
+       const auto &att = pass->attachments[i];
+-      if (att.clear_mask || att.will_be_resolved || att.load_stencil ||
+-          att.store_stencil || (i != screen && (att.load || att.store)))
+-         return TU_PANEL_TILES_ATTACHMENT_OPS;
++      if (att.will_be_resolved)
++         return TU_PANEL_TILES_RESOLVE;
++      if (att.load_stencil || att.store_stencil)
++         return TU_PANEL_TILES_AUX_STENCIL;
++      if (i == screen)
++         continue;
++
++      // A split pass may carry auxiliary colors through LOAD/STORE. A tile
++      // with no draw already holds the values that pair would write back.
++      // A discarded color may be cleared for draws, but produces no output
++      // outside the tiles with draws. Keep any clear that writes back.
++      if (att.store && att.clear_mask)
++         return TU_PANEL_TILES_AUX_CLEAR_STORE;
++      if (att.store && !att.load)
++         return TU_PANEL_TILES_AUX_STORE_WITHOUT_LOAD;
+    }
+    return TU_PANEL_TILES_ALL_COVERED;
+ }
