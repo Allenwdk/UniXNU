@@ -1,0 +1,47 @@
+diff --git a/src/freedreno/vulkan/tu_knl_darwin.cc b/src/freedreno/vulkan/tu_knl_darwin.cc
+--- a/src/freedreno/vulkan/tu_knl_darwin.cc
++++ b/src/freedreno/vulkan/tu_knl_darwin.cc
+@@ -309,6 +309,16 @@
+    if(!dw.open || !data || method!=0x7102 ||
+       bytes!=120)return false;
+    return dw_call(method,data,bytes,NULL,0)==KERN_SUCCESS;
++}
++
++/* The fence of a new kernel submission on this submitting thread. A Vulkan
++ * submission deferred to another thread must not change the caller's cursor. */
++static thread_local uint64_t darwin_submit_cursor;
++extern "C" __attribute__((visibility("default"))) uint64_t tu_darwin_submit_cursor(void);
++extern "C" __attribute__((visibility("default"))) uint64_t
++tu_darwin_submit_cursor(void)
++{
++   return darwin_submit_cursor;
+ }
+ 
+ static void
+@@ -1589,6 +1598,10 @@
+          tu_frame_event(38,(uintptr_t)submit,chunk_fence,at,count,rec.busy,rec.space_wait_us,wait_count,signal_count);
+       }
+       p_atomic_set(&queue->fence, fence);
++      uint32_t sequence = uint32_t(darwin_submit_cursor >> 32) + 1;
++      if (!sequence)
++         sequence = 1;
++      darwin_submit_cursor = (uint64_t(sequence) << 32) | fence;
+       rec.buffers = MIN2(total, 255u);
+       if (inside)
+          rec.chunks |= 0x80;   /* a cut inside a command stream */
+diff --git a/src/freedreno/ir3/ir3_lexer.l b/src/freedreno/ir3/ir3_lexer.l
+--- a/src/freedreno/ir3/ir3_lexer.l
++++ b/src/freedreno/ir3/ir3_lexer.l
+@@ -20,6 +20,12 @@
+  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  * SOFTWARE.
+  */
++
++%top{
++#if defined(__APPLE__) && !defined(_DARWIN_C_SOURCE)
++#define _DARWIN_C_SOURCE
++#endif
++}
+ 
+ %{
+ #include <stdlib.h>

@@ -28,7 +28,9 @@ PATCHES = [ROOT / 'drivers/AdrenoMetal/bridge/patches' / name for name in [
     # An invalid pipeline handle fails the affected command instead of unwinding backboardd.
     '0064-guard-render-pipeline-replay.patch',
     '0065-enable-ios-copied-host-pages.patch',
-    '0066-order-native-scanout-after-kernel-submission.patch']]
+    '0066-order-native-scanout-after-kernel-submission.patch',
+    '0067-ios-submit-thread-cpu-via-mach.patch',
+    '0068-observe-native-scanout-submit.patch']]
 
 
 def git_tree(*steps):
