@@ -19,6 +19,15 @@ recipe, then run this page's checks.
 | Board integration | [BluetoothProbe.cpp](https://github.com/UniXNU/UniXNU-sheng/blob/ce0c600fa015964d4ecb6af864fa2ab66efa915f/package/BluetoothProbe.cpp), [WcnPower.h](https://github.com/UniXNU/UniXNU-sheng/blob/ce0c600fa015964d4ecb6af864fa2ab66efa915f/package/WcnPower.h) | Resources, power order, worker and shared supplies |
 | Native stack | [native-ios27.md](https://github.com/UniXNU/QcaBluetooth/blob/22ff97f93416452335bb61badb14c762da653487/native-ios27.md) | `bluetoothd` routing, scanning and capabilities |
 
+## Xiaomi Pad 7 (uke)
+
+The uke 24A446 candidate uses WCN6750 over QUP1 SE2 at 3 Mbaud. The
+[uke QcaBluetooth branch](https://github.com/Allenwdk/QcaBluetooth/tree/feat/uke-wcn6750)
+selects the WCN6750 path in the locked Linux driver and retains the existing
+WCN7850 entry point for sheng. Use the original uke `msbtfw12.mbn` or
+`msbtfw12.tlv` and `msnv12.bin`. The device repository owns the shared rail
+votes, pin mapping and RX wake. Consult its Bluetooth record for validation.
+
 ## 1. Collect the hardware inputs
 
 Read these from the target's DTS:

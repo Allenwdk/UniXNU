@@ -13,7 +13,7 @@ DRIVER_KEYS = (
     'offline-legacy-gop', 'offline-legacy-unit-scale', 'offline-legacy-pm',
     'offline-legacy-validate', 'offline-legacy-transfer', 'offline-legacy-cpu-present',
     'offline-legacy-phase', 'offline-legacy-noconsole', 'sheng-dpu-scanout',
-    'sheng-vsync', 'sheng-vsync-fixed',
+    'sheng-vsync', 'sheng-vsync-fixed', 'bluetooth', 'log-bluetooth',
 )
 DRIVER_ALIASES = {key.removeprefix('sheng-'): key for key in DRIVER_KEYS}
 PROPERTY = 'unixnu-driver-args'

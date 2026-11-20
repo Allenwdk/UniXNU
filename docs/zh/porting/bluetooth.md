@@ -16,6 +16,14 @@
 | 板级集成 | [BluetoothProbe.cpp](https://github.com/UniXNU/UniXNU-sheng/blob/ce0c600fa015964d4ecb6af864fa2ab66efa915f/package/BluetoothProbe.cpp)、[WcnPower.h](https://github.com/UniXNU/UniXNU-sheng/blob/ce0c600fa015964d4ecb6af864fa2ab66efa915f/package/WcnPower.h) | 资源、上电顺序、工作线程和共享电源 |
 | 原生协议栈 | [native-ios27.md](https://github.com/UniXNU/QcaBluetooth/blob/22ff97f93416452335bb61badb14c762da653487/native-ios27.md) | `bluetoothd` 路由、扫描和能力 |
 
+## 小米平板 7（uke）
+
+uke 的 24A446 候选通过 QUP1 SE2 以 3 Mbaud 连接 WCN6750。
+[uke QcaBluetooth 分支](https://github.com/Allenwdk/QcaBluetooth/tree/feat/uke-wcn6750)
+沿用锁定的 Linux 驱动，为 uke 选择 WCN6750 路径，并保留 sheng 的 WCN7850 入口。
+固件使用 uke 原厂 `msbtfw12.mbn` 或 `msbtfw12.tlv`，以及 `msnv12.bin`。
+板级引脚、接收唤醒和共享电源票由设备仓库维护。验收结果见设备仓库的蓝牙记录。
+
 ## 1. 收集硬件输入
 
 从目标设备的 DTS 读取：

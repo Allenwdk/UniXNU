@@ -55,4 +55,5 @@ def main():
     print(f'{sys.argv[2]}: {len(files)} files')
 
 
-main()
+if __name__ == '__main__':
+    main()
