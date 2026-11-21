@@ -4549,12 +4549,12 @@ title_zh = "小米平板 7 / POCO Pad X1（uke）"
 format = 2
 legacy_page = "preserve"
 soc = "SM7675"
-summary = "On 2026-11-15 the device user confirmed that brightness adjustment and Wi-Fi work, and previous CPU/GPU freezes no longer occur in current use."
+summary = "Xiaomi Pad 7 runs iPadOS 27.0.1 with accelerated graphics, Wi-Fi, touch, USB host and an optional native Xiaomi Focus Pen Pro component. The owner retested the split driver image on 2026-11-22."
 repository_id = 1426957485
-revision = "55909f42b5e473628245b0eafb00d853555f4bb2"
+revision = "358beac17b32e4efec06595c469a4212032af50e"
 board = "uke"
 os_profile = "ipados-27.0.1-24A446"
-components = ["ArmDTPlatform", "ArmCpu", "XnuPrelink", "DarwinBoot", "AppleKeyStoreState", "Adreno740", "AdrenoMetal", "AdrenoFirmware", "AdrenoPM4", "ArmSmmu4K", "AirNir", "Sm7675Platform", "GopFramebuffer", "QcomGeniSpi", "ShengNovatekTouch", "ShengHidInput", "ShengUfs", "VirtioMmioBlock", "RamBlock", "VerifiedRoot", "SoftwareAES", "Ath12kWifi", "QcomDwc3"]
+components = ["ArmDTPlatform", "ArmCpu", "XnuPrelink", "DarwinBoot", "AppleKeyStoreState", "Adreno740", "AdrenoMetal", "AdrenoFirmware", "AdrenoPM4", "ArmSmmu4K", "AirNir", "Sm7675Platform", "GopFramebuffer", "QcomGeniSpi", "ShengNovatekTouch", "ShengHidInput", "NativeFocusPenPro", "ShengUfs", "VirtioMmioBlock", "RamBlock", "VerifiedRoot", "SoftwareAES", "Ath12kWifi", "QcomDwc3", "QcaBluetooth"]
 record_state = "available"
 
 [[device]]

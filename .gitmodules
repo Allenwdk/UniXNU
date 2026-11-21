@@ -63,3 +63,6 @@
 [submodule "drivers/Ath12kWifi"]
 	path = drivers/Ath12kWifi
 	url = https://github.com/Allenwdk/Ath12kWifi.git
+[submodule "drivers/NativeFocusPenPro"]
+	path = drivers/NativeFocusPenPro
+	url = https://github.com/Allenwdk/NativeFocusPenPro.git

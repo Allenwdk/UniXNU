@@ -184,6 +184,26 @@ outputs = []
 legacy_name = "NativeNovatekTouch"
 
 [[component]]
+id = "NativeFocusPenPro"
+repository_id = 1466935161
+kind = "driver"
+function = "Xiaomi Focus Pen Pro pressure, gestures, native pen input and magnetic attachment"
+scope = "accessory"
+repository = "https://github.com/Allenwdk/NativeFocusPenPro.git"
+revision = "b946ec01745f4888020339f2137a634339b9443f"
+path = "drivers/NativeFocusPenPro"
+hardware = ["Xiaomi Focus Pen Pro (P81c)", "Novatek NT36532/NT36532E pen scan"]
+os_abi = ["ipados-27.0.1-24A446"]
+board_dependencies = ["panel scan, IRQ and calibration", "system BLE transport", "display digitizer and PMIC attachment snapshot"]
+verified_devices = ["uke"]
+dependencies = ["ShengNovatekTouch", "ShengHidInput", "QcaBluetooth"]
+source_files = ["UkePenFrameSysctl.c", "UkePenBleBridge.cpp", "UkePenHover.cpp", "UkePenRadio.m"]
+runtime_identifiers = ["org.unixnu.uke.pencild", "uke-pen-hover", "kern.uke_pen_frame", "kern.uke_pen_hover", "kern.uke_pen_ble"]
+build_stage = "embedded"
+build = []
+outputs = []
+
+[[component]]
 id = "QcomGeniSpi"
 repository_id = 1426849026
 kind = "driver"

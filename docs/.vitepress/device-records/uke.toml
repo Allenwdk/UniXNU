@@ -58,7 +58,7 @@ procedure = [
 findings = [
   "The display source pins include the OEM split-panel handoff and gate DP diagnostics behind uke-dp-debug=1.",
   "Uke uses sheng-derived host and peripheral services against the 24A446 ABI. The stock DTB and ABL handoff stay in the boot pair.",
-  "XR10 direct scanout remains opt-in via uke-dp-xr10=1. The accepted image leaves uke-dp-debug unset.",
+  "The default payload uses panel-only desktop mode with exact scanout and frame diagnostics. The DisplayPort desktop can be selected with uke-dp-desktop=1.",
 ]
 completion = ["Boot artifacts contain the expected board ADT, runtime archives and prelink bindings."]
 limits = [
@@ -378,6 +378,44 @@ command = "Record hardware swipe feedback for the archived CA surface-tracking r
 revision = "5ed46420025be331b51d98207ea6aa679faac9c7"
 
 [[area]]
+id = "focus-pen-pro"
+status = "device-verified"
+components = ["NativeFocusPenPro"]
+paths = [
+  "package/TouchProbe.cpp",
+  "package/ShengBattery.cpp",
+  "package/HidInputProbe.cpp",
+  "scripts/build-pencil-runtime.py",
+  "scripts/build-pencil-hover.py",
+  "scripts/build-pencil-picker.py",
+  "scripts/decode-p81c-capture.py",
+  "scripts/gen-touch-firmware.py",
+  "scripts/patch-p81c-dock-address.py",
+  "scripts/prepare-pencil-card-fixups.py",
+]
+inputs = ["P81c system BLE bond, NT36532 pen frames, panel calibration and PMIC attachment status."]
+configuration = ["The NativeFocusPenPro submodule is embedded by the Uke kernel recipe. The ADT selects the Pencil configuration."]
+procedure = ["Run the radio and stroke host tests from the driver checkout, then build the Uke kernel and signed runtime."]
+findings = ["The radio protocol and stroke tests run directly from the extracted component checkout. The owner reported no issues on the flashed split image."]
+completion = ["The extracted component resolves to its pinned checkout and supplies the native kernel and userspace sources. The rebuilt split image passed the owner's retest."]
+limits = ["The retest establishes the split-image baseline. First-time pairing, long-run reconnect, continuous roll and Find My are separate acceptance items."]
+next_action = ["Record individual pairing, reconnect and Pro feature results when they are tested."]
+
+[[area.evidence]]
+kind = "host"
+reference = "docs/FOCUS-PEN-PRO-20261122.md"
+result = "The extracted FE11/FE12 radio regression and the C++ stroke regression both passed."
+command = "Compile and run Test/uke_pen_radio_host.c and Test/uke_pen_stroke_host.cpp from NativeFocusPenPro."
+revision = "b946ec01745f4888020339f2137a634339b9443f"
+
+[[area.evidence]]
+kind = "device"
+reference = "docs/FOCUS-PEN-PRO-20261122.md"
+result = "The owner reported no issues after retesting vendor_boot 4f0527af845acad88 from the split component build."
+command = "Flash the matching boot and vendor_boot pair on Uke, set slot A, reboot and record the owner's retest."
+revision = "b946ec01745f4888020339f2137a634339b9443f"
+
+[[area]]
 id = "gpu"
 status = "device-verified"
 components = [
@@ -419,7 +457,9 @@ procedure = [
   "Build the accelerator and matching GPU addon. Match the runtime lead-in ABI, submit frames, and verify fence progression before display latch.",
 ]
 findings = [
-  "The previously accepted internal GPU release reached the desktop and rendered apps, icons and widgets. External full-frame repaint and host-submit-before-scanout now preserve the target across attachment and detachment.",
+  "The previously accepted internal GPU release reached the desktop and rendered apps, icons and widgets. The dual-output dirty-region run on vendor_boot 99861d4cc6b8 recorded 1450 exact producer fence latches on the panel and 1532 on DP. All 1395 independently matched writers used the fence that released the corresponding swap.",
+  "The panel-only readback on vendor_boot 17d170cbf39b recorded 110115 skipped GMEM tiles out of 361665 and a 17.04 ms median touch presentation interval. All 1802 independently matched writers used the corresponding fence.",
+  "The follow-up encoding cleanup on vendor_boot 4cbfb64b3d25 passed image assembly. A default build reproduced its kernel, boot arguments, GPU addon and trust inputs. Runtime performance of the follow-up image awaits verification.",
 ]
 completion = [
   "Accelerated apps and system UI present correctly with ordered fences and consistent full-frame output.",
@@ -427,7 +467,7 @@ completion = [
 limits = [
   "Earlier internal renderer acceptance predates XR10 direct scanout. Sustained frame-time targets and multi-client recovery remain open.",
 ]
-next_action = ["Collect producer and scanout timing with both displays active on the XR10 image."]
+next_action = ["Reduce panel encode backlog and large GMEM passes, then compare single-panel animation cadence with a matched workload."]
 
 [[area.evidence]]
 kind = "device"
@@ -491,6 +531,50 @@ reference = "docs/WIFI-WCN6750.md"
 result = "The owner confirmed Wi-Fi recovery on vendor_boot b92e39d1aead. Host checks verified the exact accepted supplicant signature and the control protocol."
 command = "Boot b92e39d1aead and test Wi-Fi while keeping the packaged launch cache and configuration."
 revision = "dd0e3ec0e882d2aa2d0acf976e14c88f3db643fd"
+
+[[area]]
+id = "bluetooth"
+status = "device-verified"
+components = ["QcaBluetooth"]
+paths = [
+  "package/Bluetooth*.*",
+  "package/UkeBluetoothClock.*",
+  "package/WcnPower.h",
+  "package/UkeUsbBoard.cpp",
+  "patches/xnu-12377/uke-bluetooth-runtime.patch",
+  "firmware/bluetooth/manifest.json",
+  "scripts/*bluetooth*.py",
+  ".github/workflows/build-bluetooth-cache.yml",
+  "docs/BLUETOOTH-WCN6750.md",
+]
+inputs = ["Uke WCN6750, QUP1 SE2, the original BTFM firmware image and the 24A446 native Bluetooth daemon."]
+configuration = ["The paired runtime uses GENI DMA at 3 Mbaud and publishes the controller through UART.SK. The paired image enables the driver with bluetooth=1. The ADT defaults detailed diagnostics off."]
+procedure = ["Run the QcaBluetooth host checks and check-bluetooth-platform.py. Build the matched kernel, runtime and payload before device validation."]
+findings = ["The WCN6750 MBN and TLV fixtures passed, the native capability checks passed, and Apple libxpc and codesign accepted the merged cache.", "The owner confirmed enable, discovery, pairing and audio output on 9c012ce8e068. The same boot showed successful native service launches and connected data and audio pipes."]
+completion = ["Classic and LE pairing, reconnect after reboot, power toggle, A2DP, supported AirPods controls and Wi-Fi coexistence pass on the tablet."]
+limits = ["The accepted baseline covers the owner's accessory and the captured session. Reconnect after reboot, repeated toggles, separate LE and Classic tests, microphone, sleep and sustained Wi-Fi coexistence remain open. The quiet image has host evidence."]
+next_action = ["Confirm the quiet image on the tablet and test reconnection after reboot."]
+
+[[area.evidence]]
+kind = "host"
+reference = "https://github.com/Allenwdk/UniXNU-uke/actions/runs/44644572925"
+result = "The Mac runner merged BlueTool policy into the accepted Wi-Fi cache and verified the resulting cache with Apple libxpc and codesign."
+command = "Build Uke Bluetooth launchd cache"
+revision = "85953d31543238cf239238ffa9f2573acaa2dffa"
+
+[[area.evidence]]
+kind = "host"
+reference = "https://github.com/Allenwdk/QcaBluetooth/tree/9243c3c8f50a667135fa857464eeebf0d62d7254"
+result = "ASan/UBSan fixtures exercise WCN6750 MBN, TLV fallback, a failed startup followed by retry, and the existing WCN7850 path."
+command = "python3 tools/test-runtime.py"
+revision = "9243c3c8f50a667135fa857464eeebf0d62d7254"
+
+[[area.evidence]]
+kind = "device"
+reference = "docs/BLUETOOTH-WCN6750.md"
+result = "Image 9c012ce8e068 passed enable, discovery, pairing and audio output in the owner test. The matched log shows ready controller firmware, one observed launch per native job, UART.SK and AudioPipe. Revision identifies the controller component used."
+command = "Boot 9c012ce8e068, enable Bluetooth in Settings, discover and pair an accessory, play audio and read the same-boot kernel log."
+revision = "a84d7d3117af0e8d723ce7350d247fbec3939a25"
 
 [[area]]
 id = "cellular"
