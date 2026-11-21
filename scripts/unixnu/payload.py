@@ -317,7 +317,9 @@ def build(ctx, kernel=None):
     transport = image
     if compression == 'uefi':
         transport = image.with_suffix('.uefi')
-        compressor = tool('TianoCompress', 'build EDK II BaseTools TianoCompress')
+        basetools = ctx.tree / 'refer/edk2/BaseTools/Source/C/bin'
+        compressor = (shutil.which('TianoCompress', path=str(basetools))
+                      or tool('TianoCompress', 'build EDK II BaseTools TianoCompress'))
         run([compressor, '-e', '--uefi', '-o', transport, image], capture=True)
         # One real round trip per release; the firmware uses the same UEFI algorithm.
         decoded = image.with_suffix('.roundtrip')
