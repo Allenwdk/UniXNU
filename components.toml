@@ -204,6 +204,23 @@ build = []
 outputs = []
 
 [[component]]
+id = "QcomIris"
+kind = "driver"
+function = "Qualcomm Iris video acceleration through VideoToolbox"
+scope = "soc"
+path = "drivers/QcomIris"
+hardware = ["Qualcomm Iris33 on SM7675"]
+os_abi = ["ipados-27.0.1-24A446"]
+board_dependencies = ["Cliffs VIDEOCC and apps SMMU", "board-signed VPU firmware"]
+verified_devices = []
+dependencies = ["ArmSmmu4K", "ArmCpu"]
+source_files = ["kernel/IrisMedia.cpp", "kernel/VtHost.cpp", "kernel/VtParavirt.cpp", "src/IrisCore.c"]
+runtime_identifiers = ["AppleVideoToolboxParavirtualizationDriver"]
+build_stage = "embedded"
+build = []
+outputs = []
+
+[[component]]
 id = "QcomGeniSpi"
 repository_id = 1426849026
 kind = "driver"
@@ -421,7 +438,7 @@ kind = "kit"
 function = "ARM SMMU translation with 4 KiB pages"
 scope = "controller"
 repository = "https://github.com/UniXNU/ArmSmmu4K.git"
-revision = "83969cd874503e65997ff7639f7dcf3d0a92cd17"
+revision = "d53a89011f0078984d659bb3fd839c579f91facf"
 path = "kits/ArmSmmu4K"
 hardware = ["ARM SMMU", "MMU-500"]
 os_abi = []
