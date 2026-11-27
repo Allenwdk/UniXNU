@@ -1,0 +1,25 @@
+# Compiles the first-use check's sampler to AIR with Apple's Metal compiler, which only macOS has:
+# the build's own toolchain (Linux) assembles .ll with llvm-as and cannot make one.
+name: metal-air
+on:
+  workflow_dispatch:
+  # A push that touches the sampler's source compiles it: the workflow is new on this branch, and
+  # only the default branch's workflows can be dispatched by name.
+  push:
+    paths:
+      - .github/metal/ycbcr_sample.metal
+      - .github/workflows/metal-air.yml
+jobs:
+  air:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile ycbcr_sample.metal to AIR
+        run: |
+          xcrun -sdk iphoneos metal -std=metal3.0 -c \
+            .github/metal/ycbcr_sample.metal -emit-llvm -S -o ycbcr_sample.ll
+          ls -l ycbcr_sample.ll
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ycbcr_sample
+          path: ycbcr_sample.ll
