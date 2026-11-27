@@ -102,6 +102,8 @@ manifest.write_text('\n'.join([
     'metal2vulkan = { path = ' + json.dumps(str(SOURCE / 'crates/metal2vulkan')) + ', features = ["ash"] }',
     'metal2vulkan-runtime = { path = ' + json.dumps(str(SOURCE / 'crates/metal2vulkan-runtime')) + ' }',
     'libc = "0.2"',
+    # The bridge names Vulkan formats and chroma siting for the native YCbCr surface's spec.
+    'ash = { version = "0.38", default-features = false, features = ["loaded"] }',
     # The runtime hashes every shader-cache key and entry; without asm, sha2 0.10 on aarch64 is the portable software rounds, not the
     # ARMv8 SHA-256 instructions every target CPU has (cpufeatures answers sha2 true on Apple platforms).
     'sha2 = { version = "0.10", features = ["asm"] }',
