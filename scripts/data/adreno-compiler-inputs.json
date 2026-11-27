@@ -76,7 +76,11 @@
     "patches/mesa/turnip-panel-gmem-scissor.patch",
     "patches/mesa/turnip-panel-gmem-scissor-grid.patch",
     "patches/mesa/turnip-panel-gmem-linear-layout.patch",
-    "patches/mesa/turnip-panel-gmem-attachment-preservation.patch"
+    "patches/mesa/turnip-panel-gmem-attachment-preservation.patch",
+    "patches/mesa/turnip-darwin-headless-wsi.patch",
+    "patches/mesa/turnip-darwin-vulkan-floor.patch",
+    "patches/mesa/turnip-ir3-spill-allocation-failure.patch",
+    "patches/mesa/turnip-native-ycbcr-dynamic.patch"
   ],
   "integer_fma_reference": {
     "repository": "https://github.com/ucb-bar/berkeley-softfloat-3",
